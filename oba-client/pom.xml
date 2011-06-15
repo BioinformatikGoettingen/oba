@@ -1,0 +1,65 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<parent>
+		<groupId>de.sybig</groupId>
+		<artifactId>oba</artifactId>
+		<version>1.0</version>
+	</parent>
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>de.sybig</groupId>
+	<artifactId>oba-client</artifactId>
+	<version>1.0</version>
+	<packaging>jar</packaging>
+
+	<name>oba client</name>
+
+	<build><plugins>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-jar-plugin</artifactId>
+			<version>2.1</version>
+			<configuration>
+				<finalName>${project.artifactId}-${project.version}</finalName>
+				<archive>
+					<manifest>
+						<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+					</manifest>
+					<manifestEntries>
+						<Implementation-Build>${buildNumber}</Implementation-Build>
+					</manifestEntries>
+				</archive>
+				<includes>
+					<include>src/main/java</include>
+				</includes>
+			</configuration>
+		</plugin></plugins>
+	</build>
+
+	<dependencies>
+		<dependency>
+			<groupId>de.sybig</groupId>
+			<artifactId>oba-common</artifactId>
+			<version>1.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sun.jersey</groupId>
+			<artifactId>jersey-json</artifactId>
+			<version>${jersey.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.sun.jersey</groupId>
+			<artifactId>jersey-client</artifactId>
+			<version>${jersey.version}</version>
+		</dependency>
+		<dependency>
+			<!-- REST annotations (Produces, Consumes...) after version 1.? -->
+			<groupId>javax.ws.rs</groupId>
+			<artifactId>jsr311-api</artifactId>
+			<version>1.1.1</version>
+		</dependency>
+		<!-- <dependency> <groupId>edu.stanford.smi.protegex</groupId> <artifactId>protege-owl</artifactId> 
+			<version>3.4.1</version> </dependency> <dependency> <groupId>edu.stanford.smi.protegex</groupId> 
+			<artifactId>protege</artifactId> <version>3.4.1</version> </dependency> -->
+	</dependencies>
+</project>

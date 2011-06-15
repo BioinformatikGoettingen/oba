@@ -1,0 +1,134 @@
+<?xml version="1.0"?>
+<rdf:RDF
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:protege="http://protege.stanford.edu/plugins/owl/protege#"
+    xmlns:xsp="http://www.owl-ontologies.com/2005/08/07/xsp.owl#"
+    xmlns:owl="http://www.w3.org/2002/07/owl#"
+    xmlns="http://sybig.de/cytomer/testOntology/#"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+    xmlns:swrl="http://www.w3.org/2003/11/swrl#"
+    xmlns:swrlb="http://www.w3.org/2003/11/swrlb#"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+  xml:base="http://sybig.de/cytomer/testOntology/">
+  <owl:Ontology rdf:about=""/>
+  <owl:Class rdf:ID="SecondSubClass"/>
+  <owl:Class rdf:ID="cells">
+    <rdfs:subClassOf rdf:resource="#SecondSubClass"/>
+  </owl:Class>
+  <owl:Class rdf:ID="organC">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="organGroup"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="cellB">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="cellGroup"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="ThirdSubclass"/>
+  <owl:Class rdf:ID="classWithTwoParents">
+    <rdfs:subClassOf rdf:resource="#ThirdSubclass"/>
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="intermediateClass"/>
+    </rdfs:subClassOf>
+  </owl:Class>
+  <owl:Class rdf:ID="cellA">
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >As the organGroup as parent of organC is the organ, organGroup should be found as organ. Compare with eyelash and hair. Cells of the eyelash are part of the organ hair.</rdfs:comment>
+    <rdfs:subClassOf>
+      <owl:Restriction>
+        <owl:someValuesFrom rdf:resource="#organC"/>
+        <owl:onProperty>
+          <owl:ObjectProperty rdf:ID="isCellOf"/>
+        </owl:onProperty>
+      </owl:Restriction>
+    </rdfs:subClassOf>
+    <rdfs:subClassOf>
+      <owl:Restriction>
+        <owl:onProperty>
+          <owl:ObjectProperty rdf:ID="isPartOfOrgan"/>
+        </owl:onProperty>
+        <owl:someValuesFrom>
+          <owl:Class rdf:ID="organB"/>
+        </owl:someValuesFrom>
+      </owl:Restriction>
+    </rdfs:subClassOf>
+    <rdfs:subClassOf>
+      <owl:Restriction>
+        <owl:onProperty>
+          <owl:ObjectProperty rdf:ID="isPartOf"/>
+        </owl:onProperty>
+        <owl:someValuesFrom>
+          <owl:Class rdf:ID="organA"/>
+        </owl:someValuesFrom>
+      </owl:Restriction>
+    </rdfs:subClassOf>
+    <rdfs:subClassOf rdf:resource="#cells"/>
+  </owl:Class>
+  <owl:Class rdf:about="#cellGroup">
+    <rdfs:subClassOf>
+      <owl:Restriction>
+        <owl:onProperty rdf:resource="#isPartOf"/>
+        <owl:someValuesFrom>
+          <owl:Class rdf:about="#organGroup"/>
+        </owl:someValuesFrom>
+      </owl:Restriction>
+    </rdfs:subClassOf>
+    <rdfs:subClassOf rdf:resource="#cells"/>
+  </owl:Class>
+  <owl:Class rdf:about="http://sybig.de/cytomer/testOntology/other/#otherNamespace">
+    <rdfs:subClassOf rdf:resource="#SecondSubClass"/>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >A class in another name space than the default name space.</rdfs:comment>
+  </owl:Class>
+  <owl:Class rdf:about="#intermediateClass">
+    <rdfs:subClassOf rdf:resource="#ThirdSubclass"/>
+  </owl:Class>
+  <owl:Class rdf:about="#organB">
+    <rdfs:subClassOf>
+      <owl:Class rdf:ID="abstractOrganGroup"/>
+    </rdfs:subClassOf>
+    <abstract rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean"
+    >false</abstract>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >Organ as child of an abstract organ group, with own abstract annotation as false. This class should be found as organ</rdfs:comment>
+  </owl:Class>
+  <owl:Class rdf:ID="organ">
+    <rdfs:subClassOf rdf:resource="#SecondSubClass"/>
+  </owl:Class>
+  <owl:Class rdf:ID="FirstSubClass">
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >Child on the first level, without own children or individuals. In the owl file this class has no explicite rdfs:subClassOf definition</rdfs:comment>
+  </owl:Class>
+  <owl:Class rdf:about="#organA">
+    <rdfs:subClassOf>
+      <owl:Class rdf:about="#abstractOrganGroup"/>
+    </rdfs:subClassOf>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >Organ as child of an abstract organ group, without own abstract annotation. This class should be found as organ</rdfs:comment>
+  </owl:Class>
+  <owl:Class rdf:about="#abstractOrganGroup">
+    <rdfs:subClassOf rdf:resource="#organ"/>
+    <abstract rdf:datatype="http://www.w3.org/2001/XMLSchema#boolean"
+    >true</abstract>
+  </owl:Class>
+  <owl:Class rdf:about="#organGroup">
+    <rdfs:subClassOf rdf:resource="#organ"/>
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >Organ group  without abstract annotation. This class is not an organ, but will be found as orgen, due to the missing abstract annotation</rdfs:comment>
+  </owl:Class>
+  <owl:ObjectProperty rdf:about="#isCellOf">
+    <rdfs:subPropertyOf rdf:resource="#isPartOf"/>
+  </owl:ObjectProperty>
+  <owl:ObjectProperty rdf:about="#isPartOfOrgan">
+    <rdfs:subPropertyOf rdf:resource="#isPartOf"/>
+  </owl:ObjectProperty>
+  <owl:AnnotationProperty rdf:ID="abstract">
+    <rdfs:comment rdf:datatype="http://www.w3.org/2001/XMLSchema#string"
+    >A boolean data annotation to mark abstract groups like digestiveOrgan.</rdfs:comment>
+    <rdf:type rdf:resource="http://www.w3.org/2002/07/owl#DatatypeProperty"/>
+    <rdfs:range rdf:resource="http://www.w3.org/2001/XMLSchema#boolean"/>
+  </owl:AnnotationProperty>
+</rdf:RDF>
+
+<!-- Created with Protege (with OWL Plugin 3.4.4, Build 579)  http://protege.stanford.edu -->
