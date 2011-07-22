@@ -39,7 +39,9 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
 		out.append("<dt>XdownstreamOfY/{x}/{y}</dt><dd>Searches the class x below  of class y, i. e. x is a sibbling of y. The namespace of the classes can be defined as matrix or query parameter 'ns'</dd>");
 		out.append("<dt>reduceToLevel/{level}/{cls}</dt><dd>Returns a list of anchestor of the class at the given level below of owl:Thing. If the level of the given class is less then the required level, the class itself is returned in the list. The namespace of the classes can be defined as matrix or query parameter 'ns'</dd>");
 		out.append("<dt>reduceToLevel/{level}/{partition}/{name}</dt><dd>Similar to the function above, but uses a reference to a stored list as input and returns a list of list.</dd>");
-		out.append("<dt>reduceToClusterSize/{size}/{partition}/{name}</dt><dd>TODO </dd>");
+		out.append("<dt>reduceToLevelShortestPath/{level}/{cls}</dt><dd>Same 'reduceToLevel' above, but only the shortest paths are honored.</dd>");
+		out.append("<dt>reduceToLevelShortestPath/{level}/{partition}/{name}</dt><dd>Same 'reduceToLevel' above, but only the shortest paths are honored.</dd>");
+		out.append("<dt>reduceToClusterSize/{size}/{partition}/{name}</dt><dd>Maps in each iteration the input classes to its parents, until there are not more clusters than specified by 'level'. The classes with the greatest distance from root are mapped first.</dd>");
 		out.append("</dl>");
 		return out.toString();
 	}
@@ -71,10 +73,12 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
 			@PathParam("cls") String searchPattern, @QueryParam("ns") String ns) {
 		logger.debug("searching for pattern '{}' in ontology {}",
 				searchPattern, ontology);
+
 		String fields = null;
 		if (searchPathSeg.getMatrixParameters().get("field") != null) {
 			fields = searchPathSeg.getMatrixParameters().get("field").get(0);
 		}
+
 		return ontology.searchCls(searchPattern, fields);
 
 	}
@@ -82,7 +86,7 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
 	/**
 	 * Maps a class to its parents at the given level below the root node. If
 	 * the level of the given class is below or equal to the requested level,
-	 * the input class is returned.
+	 * the input class is returned as only member of the list.
 	 * 
 	 * If the input class is not found in the ontology, a web application
 	 * exception 404 is thrown.
@@ -93,16 +97,17 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
 	 * @return A list of classes
 	 */
 	@GET
-	@Path("reduceToLevel/{level}/{cls}")
+	@Path("reduceToLevelShortestPath/{level}/{cls}")
 	@Produces("text/html, text/plain, application/json")
-	public List<OWLClass> reduceToLevel(@PathParam("level") Integer level,
+	public List<OWLClass> reduceToLevelShortestPath(
+			@PathParam("level") Integer level,
 			@PathParam("cls") PathSegment clsPathSegment,
 			@QueryParam("ns") String ns) {
-		LinkedList<OWLClass> outList = new LinkedList<OWLClass>();
-		ObaClass cls = getClassFromPathSegement(clsPathSegment, ns);
-		logger.info("search level {} of class {}", level, cls);
 
+		ObaClass cls = getClassFromPathSegement(clsPathSegment, ns);
 		List<List<ObaClass>> path = getShortestPathsToRoot(cls);
+
+		LinkedList<OWLClass> outList = new LinkedList<OWLClass>();
 		if (path == null || path.size() < 1 || path.get(0).size() < level) {
 			outList.add(cls);
 			return outList;
@@ -114,15 +119,32 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
 	}
 
 	@GET
-	@Path("reduceToLevel/{level}/{partition}/{name}")
+	@Path("reduceToLevel/{level}/{cls}")
 	@Produces("text/html, text/plain, application/json")
-	public List<List<ObaClass>> reduceListToLevel(
+	public List<ObaClass> reduceToLevel(@PathParam("level") Integer level,
+			@PathParam("cls") PathSegment clsPathSegment,
+			@QueryParam("ns") String ns) {
+		ObaClass cls = getClassFromPathSegement(clsPathSegment, ns);
+
+		List<List<ObaClass>> pathes = getAllPathsToRoot(cls);
+		List<ObaClass> outList = new LinkedList<ObaClass>();
+		for (List<ObaClass> p : pathes) {
+			outList.add(p.get(p.size() - level));
+		}
+		return outList;
+	}
+
+	@GET
+	@Path("reduceToLevelShortestPath/{level}/{partition}/{name}")
+	@Produces("text/html, text/plain, application/json")
+	public List<List<ObaClass>> reduceListToLevelShortestPath(
 			@PathParam("level") Integer level,
 			@PathParam("partition") String partition,
 			@PathParam("name") String name) {
 		LinkedList<List<ObaClass>> outList = new LinkedList<List<ObaClass>>();
 		StorageHandler storageHandler = new StorageHandler();
 		Set<ObaClass> startClasses = storageHandler.getStorage(partition, name);
+
 		for (ObaClass startClass : startClasses) {
 			LinkedList<ObaClass> clsPath = new LinkedList<ObaClass>();
 			clsPath.add(startClass);
@@ -133,6 +155,44 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
 				}
 			}
 			outList.add(clsPath);
+		}
+		return outList;
+	}
+
+	/**
+	 * Get all ancestors at a given level for the classes in the set. For the
+	 * search for the ancestors all paths are honored, not only the shortest.
+	 * 
+	 * The result is a list of list of ontology classes. The result of each
+	 * input class is stored in one list, with the input class at the first
+	 * place.
+	 * 
+	 * @param level
+	 * @param partition
+	 * @param name
+	 * @return
+	 */
+	@GET
+	@Path("reduceToLevel/{level}/{partition}/{name}")
+	@Produces("text/html, text/plain, application/json")
+	public List<List<ObaClass>> reduceListToLevel(
+			@PathParam("level") Integer level,
+			@PathParam("partition") String partition,
+			@PathParam("name") String name) {
+		LinkedList<List<ObaClass>> outList = new LinkedList<List<ObaClass>>();
+		StorageHandler storageHandler = new StorageHandler();
+		Set<ObaClass> startClasses = storageHandler.getStorage(partition, name);
+
+		for (ObaClass startClass : startClasses) {
+			List<List<ObaClass>> pathes = getAllPathsToRoot(startClass);
+			List<ObaClass> list = new LinkedList<ObaClass>();
+			list.add(startClass);
+			for (List<ObaClass> p : pathes) {
+				if (p.size() >= level) {
+					list.add(p.get(p.size() - level));
+				}
+			}
+			outList.add(list);
 		}
 		return outList;
 	}
@@ -249,6 +309,45 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
 			}
 		}
 		return shortestPath;
+	}
+
+	protected List<List<ObaClass>> getAllPathsToRoot(ObaClass cls) {
+		List<ObaClass> path = new LinkedList<ObaClass>();
+		path.add(cls);
+		List<List<ObaClass>> pathes = new LinkedList<List<ObaClass>>();
+		pathes.add(path);
+		return getAllPathsToRoot(pathes);
+	}
+
+	// TODO join with #extendUpstream
+	protected List<List<ObaClass>> getAllPathsToRoot(List<List<ObaClass>> paths) {
+
+		LinkedList<List<ObaClass>> outPathes = new LinkedList<List<ObaClass>>();
+		boolean allFinished = true;
+		for (List<ObaClass> path : paths) {
+			ObaClass last = path.get(path.size() - 1);
+			if (last.isOWLThing()) {
+				outPathes.add(path);
+				continue;
+			}
+
+			Set<ObaClass> parents = OntologyHelper.getParents(last);
+			List<ObaClass> origPath = path;
+			for (ObaClass parent : parents) {
+				List<ObaClass> n = new LinkedList<ObaClass>();
+				n.addAll(origPath);
+				n.add(parent);
+				if (!parent.isOWLThing()) {
+					allFinished = false;
+				}
+				outPathes.add(n);
+			}
+		}
+		if (allFinished) {
+			return outPathes;
+		}
+		return getAllPathsToRoot(outPathes);
+
 	}
 
 	/**

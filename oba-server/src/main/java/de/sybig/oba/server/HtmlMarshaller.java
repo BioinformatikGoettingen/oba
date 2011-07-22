@@ -4,13 +4,18 @@
  */
 package de.sybig.oba.server;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Type;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.Provider;
 
 import org.semanticweb.owlapi.model.IRI;
@@ -23,6 +28,15 @@ import org.semanticweb.owlapi.model.OWLOntology;
 @Provider
 @Produces("text/html")
 public class HtmlMarshaller extends OntoMarshaller {
+
+	@Override
+	public void writeTo(Object arg0, Class arg1, Type arg2, Annotation[] arg3,
+			MediaType arg4, MultivaluedMap httpHeader, OutputStream os)
+			throws WebApplicationException, IOException {
+
+		httpHeader.add("Content-Type", "text/html; charset=UTF-8");
+		super.writeTo(arg0, arg1, arg2, arg3, arg4, httpHeader, os);
+	}
 
 	@Override
 	protected String listCls(Collection<OWLClass> cls, Annotation[] annotations) {
@@ -109,7 +123,7 @@ public class HtmlMarshaller extends OntoMarshaller {
 
 		// Restrictions
 		out.append("<h2>Relations</h2><dl>");
-		HashSet<ObaObjectPropertyExpression> properties = getObjectRestrictions(
+		Set<ObaObjectPropertyExpression> properties = getObjectRestrictions(
 				cls, ontology);
 		for (ObaObjectPropertyExpression p : properties) {
 			out.append(String
@@ -138,7 +152,7 @@ public class HtmlMarshaller extends OntoMarshaller {
 		printAnnotations(out, r, ontology);
 
 		// super propterties
-		HashSet<OWLObjectProperty> parentRestrictions = OntologyHelper
+		Set<OWLObjectProperty> parentRestrictions = OntologyHelper
 				.getParentRroperties(r, ontology);
 		if (parentRestrictions.size() > 0) {
 			out.append("<h2>Super properties</h2><ul>");
@@ -150,7 +164,7 @@ public class HtmlMarshaller extends OntoMarshaller {
 		}
 
 		// sub properteis
-		HashSet<OWLObjectProperty> childRestrictions = OntologyHelper
+		Set<OWLObjectProperty> childRestrictions = OntologyHelper
 				.getChildRroperties(r, ontology);
 		if (childRestrictions.size() > 0) {
 			out.append("<h2>Sub properties</h2><ul>");
@@ -202,8 +216,13 @@ public class HtmlMarshaller extends OntoMarshaller {
 	}
 
 	private String getHtmlLink(IRI iri, String htmlBase) {
-		return String.format("<a href=%s%s?ns=%s>%s</a>", htmlBase,
-				iri.getFragment(), iri.getStart(), iri.getFragment());
+		String name = iri.getFragment();
+		if (name == null) {
+			System.out.println(iri);
+			name = iri.toString().replace(iri.getStart(), "");
+		}
+		return String.format("<a href=%s%s?ns=%s>%s</a>", htmlBase, name,
+				iri.getStart(), name);
 	}
 
 	private String getHtmlLink(OWLClass cls) {

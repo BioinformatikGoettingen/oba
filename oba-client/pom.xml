@@ -2,14 +2,14 @@
 	<parent>
 		<groupId>de.sybig</groupId>
 		<artifactId>oba</artifactId>
-		<version>1.0</version>
+		<version>1.1</version>
 	</parent>
 
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>de.sybig</groupId>
 	<artifactId>oba-client</artifactId>
-	<version>1.0</version>
+	<version>1.1</version>
 	<packaging>jar</packaging>
 
 	<name>oba client</name>
@@ -40,7 +40,7 @@
 		<dependency>
 			<groupId>de.sybig</groupId>
 			<artifactId>oba-common</artifactId>
-			<version>1.0</version>
+			<version>1.1</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sun.jersey</groupId>

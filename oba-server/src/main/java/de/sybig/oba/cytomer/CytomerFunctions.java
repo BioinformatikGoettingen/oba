@@ -39,6 +39,7 @@ public class CytomerFunctions extends OntologyFunctions implements
 	private Properties cytomerProps;
 	private ObaClass organCls;
 	private Set<ObaClass> organList;
+	private ObaClass physiologicalSystemClass;
 
 	// private static Map<ObaOntology, Set<OWLObjectProperty>>
 	// organRestrictionsMap = new HashMap<ObaOntology,
@@ -78,6 +79,7 @@ public class CytomerFunctions extends OntologyFunctions implements
 		out.append("<dl>");
 		out.append("<dt>/organList</dt><dd>Gets a list of all organs</dd>");
 		out.append("<dt>/organsOf/{cls}</dt><dd>Gets a list of organs this class is associated with. The class may be a subclass of an organ or is connected to the organ through the restrictions 'isPartOf', 'isCellOf' and 'isPartOfOrgan'</dd>");
+		out.append("<dt>/systemsOf/{cls}</dt><dd>similar to 'getOrgansOf' but returns the list of physiological systems a class belongs to.</dd>");
 		out.append("<dt>/findUpstreamInSet/{cls}/{partition}/{set}</dt><dd>From the given starting class an upstream search is started until a class of the stored list is found. Besides of the class hierarchy the following relations are used: 'isPartOf', 'isCellOf' and 'isPartOfOrgan'. If at least one class from the stored set is found, all classes found in this step are returned.</dd>");
 		out.append("<dt>/findDownstreamInSet/{cls}/{partition}/{set}</dt><dd>From the given starting class an downs search is started until a class of the stored list is found. Besides of the class hierarchy the following relations are used: 'hasPart', 'hasCell' and 'hasOrganPart'. If at least one class from the stored set is found, all classes found in this step are returned.</dd>");
 		out.append("</dl>");
@@ -124,6 +126,25 @@ public class CytomerFunctions extends OntologyFunctions implements
 			throw new WebApplicationException(404);
 		}
 		Set<ObaClass> organSet = findOrgans(startClass);
+		return organSet;
+	}
+
+	@GET
+	@Path("/systemsOf/{cls}")
+	@Produces("text/plain, text/html, application/json")
+	@HtmlBase("../../../cls/")
+	public Set<ObaClass> getsystemsFor(@PathParam("cls") String cls,
+			@QueryParam("ns") String ns) {
+		// http://localhost:9998/cytomer/functions/cytomer/organsOf/left_medial_segment_of_liver?ns=http://cytomer.bioinf.med.uni-goettingen.de/organ#
+		// cuboidal_epithelial_cell
+		logger.info("getting organs for {} in namespace {}", cls, ns);
+
+		ObaClass startClass = ontology.getOntologyClass(cls, ns);
+		if (startClass == null) {
+			logger.warn("The start class could not be found in the ontology");
+			throw new WebApplicationException(404);
+		}
+		Set<ObaClass> organSet = findSystems(startClass);
 		return organSet;
 	}
 
@@ -353,13 +374,18 @@ public class CytomerFunctions extends OntologyFunctions implements
 
 	//
 	private boolean isClsOrgan(OWLClass cls) {
-		// Set<OWLClassExpression> parents = cls.getSuperClasses(ontology
-		// .getOntology());
-		// if (parents.contains(getOrganCls())) {
-		// return true;
-		// }
-		// return false;
 		return getOrgans().contains(cls);
+	}
+
+	private boolean isClsPhysiologicalSystem(ObaClass cls) {
+		Set<ObaClass> parents = OntologyHelper.getParents(cls);
+		if (parents == null) {
+			return false;
+		}
+		if (parents.contains(getPhysiologicalSystemCls())) {
+			return true;
+		}
+		return false;
 	}
 
 	ObaClass getOrganCls() {
@@ -373,6 +399,17 @@ public class CytomerFunctions extends OntologyFunctions implements
 					cytomerProps.getProperty("organ_ns"));
 		}
 		return organCls;
+	}
+
+	ObaClass getPhysiologicalSystemCls() {
+		if (physiologicalSystemClass == null) {
+			physiologicalSystemClass = ontology.getOntologyClass(cytomerProps
+					.getProperty("physiological_system_name",
+							"physiological_system"), cytomerProps.getProperty(
+					"physiological_system_ns",
+					"http://protege.stanford.edu/plugins/owl/protege#"));
+		}
+		return physiologicalSystemClass;
 	}
 
 	/**
@@ -415,10 +452,34 @@ public class CytomerFunctions extends OntologyFunctions implements
 		return organSet;
 	}
 
-	// private Set<OWLClass> findInSet(OWLClass startClass) {
-	//
-	// return null;
-	// }
+	// merge with findOrgans?
+	private Set<ObaClass> findSystems(ObaClass startClass) {
+		Set<ObaClass> systemSet = new HashSet<ObaClass>();
+		List<List<ObaClass>> pathsToSystem = searchXdownstreamOfY(startClass,
+				getPhysiologicalSystemCls());
+		if (pathsToSystem != null) {
+			for (List<ObaClass> path : pathsToSystem) {
+				for (ObaClass cls : path) {
+					if (isClsPhysiologicalSystem(cls)) {
+						systemSet.add(cls);
+					}
+				}
+			}
+		}
+		Set<ObaObjectPropertyExpression> restrictions = OntologyHelper
+				.getObjectRestrictions(startClass, ontology.getOntology());
+		for (ObaObjectPropertyExpression restriction : restrictions) {
+			if (isOrganRestriction(restriction.getRestriction())) {
+				Set<ObaClass> foundSystems = findSystems(restriction
+						.getTarget());
+				if (foundSystems != null) {
+					systemSet.addAll(foundSystems);
+				}
+			}
+		}
+
+		return systemSet;
+	}
 
 	private boolean isOrganRestriction(OWLObjectProperty prop) {
 		if (getOrganRestrictions().contains(prop)) {

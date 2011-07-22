@@ -4,7 +4,6 @@
  */
 package de.sybig.oba.server;
 
-import java.io.InputStream;
 import java.util.Set;
 
 import javax.ws.rs.DELETE;
@@ -46,7 +45,7 @@ public class Root {
 		out.append("<p>The oba service provides a basic html interface you may use with a web browser, "
 				+ "but is primary used by scripts communicating with this server using the MIME types "
 				+ "application/json or text/plain</p>");
-		out.append("<p>Please find more information at <a href=\"http://www.bioinf.med.uni-goettingen.de/oba\">"
+		out.append("<p>Please find more information at <a href=\"http://www.bioinf.med.uni-goettingen.de/projects/oba\">"
 				+ "http://www.bioinf.med.uni-goettingen.de/oba</a>");
 		Set<String> names = oh.getOntologyNames();
 		out.append("<h2>Available ontologies</h2><ul>");
@@ -68,12 +67,28 @@ public class Root {
 	}
 
 	@GET
-	@Path("/oba-documentation.pdf")
-	@Produces("application/pdf")
-	public Object getDocumentation() {
-		InputStream pdf = this.getClass().getResourceAsStream(
-				"/oba-documentation.pdf");
-		return pdf;
+	@Path("/ontologies")
+	@Produces("text/plain")
+	public String getOntologies() {
+		StringBuilder out = new StringBuilder();
+		Set<String> names = oh.getOntologyNames();
+		for (String n : names) {
+			out.append(n);
+			out.append("\n");
+		}
+		return out.toString();
+	}
+
+	@GET
+	@Path("/functions")
+	@Produces("text/plain")
+	public String getFunctions() {
+		StringBuilder out = new StringBuilder();
+		for (String name : oh.getFunctionNames()) {
+			out.append("name");
+			out.append("\n");
+		}
+		return out.toString();
 	}
 
 	// The following to methods have to work on the resource "admin" instead of
@@ -90,7 +105,7 @@ public class Root {
 	}
 
 	@PUT
-	@Path("admin/{ontology}/")	
+	@Path("admin/{ontology}/")
 	public void putOntology(@PathParam("ontology") String ontology) {
 		logger.info("loading ontology {} by request of user ", ontology);
 		oh.addOntology(ontology);

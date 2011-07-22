@@ -23,7 +23,6 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import uk.ac.manchester.cs.owl.owlapi.OWLAnonymousIndividualImpl;
 import uk.ac.manchester.cs.owl.owlapi.OWLLiteralImpl;
 import uk.ac.manchester.cs.owl.owlapi.OWLSubClassOfAxiomImpl;
 
@@ -110,7 +109,7 @@ public class OntologyHelper {
 				odp.setValue(((OWLLiteralImpl) value).getLiteral());
 
 				properties.add(odp);
-			} else if (value instanceof OWLAnonymousIndividualImpl) {
+				// } else if (value instanceof OWLAnonymousIndividualImpl) {
 				// TODO check with GO
 				// ObaAnnotation odp = new ObaAnnotation();
 				// System.out.println(((OWLAnonymousIndividualImpl) value)
@@ -157,7 +156,7 @@ public class OntologyHelper {
 		return out;
 	}
 
-	public static HashSet<ObaObjectPropertyExpression> getObjectRestrictions(
+	public static Set<ObaObjectPropertyExpression> getObjectRestrictions(
 			OWLClass startingClass) {
 		if (!(startingClass instanceof ObaClass)) {
 			logger.error(
@@ -169,7 +168,7 @@ public class OntologyHelper {
 				((ObaClass) startingClass).getOntology());
 	}
 
-	public static HashSet<ObaObjectPropertyExpression> getObjectRestrictions(
+	public static Set<ObaObjectPropertyExpression> getObjectRestrictions(
 			OWLClass startingClass,
 			org.semanticweb.owlapi.model.OWLOntology ontology) {
 		HashSet<ObaObjectPropertyExpression> out = new HashSet<ObaObjectPropertyExpression>();
@@ -203,7 +202,7 @@ public class OntologyHelper {
 		return out;
 	}
 
-	public static HashSet<OWLObjectProperty> getParentRroperties(
+	public static Set<OWLObjectProperty> getParentRroperties(
 			OWLObjectProperty r, OWLOntology ontology) {
 		Set<OWLObjectPropertyExpression> parents = r
 				.getSuperProperties(ontology);
@@ -211,14 +210,21 @@ public class OntologyHelper {
 
 	}
 
-	public static HashSet<OWLObjectProperty> getChildRroperties(
+	/**
+	 * Get the sub properties of a object property
+	 * 
+	 * @param r
+	 * @param ontology
+	 * @return
+	 */
+	public static Set<OWLObjectProperty> getChildRroperties(
 			OWLObjectProperty r, OWLOntology ontology) {
 		Set<OWLObjectPropertyExpression> children = r
 				.getSubProperties(ontology);
 		return extractFromObjectPropertyExpression(children);
 	}
 
-	private static HashSet<OWLObjectProperty> extractFromObjectPropertyExpression(
+	private static Set<OWLObjectProperty> extractFromObjectPropertyExpression(
 			Set<OWLObjectPropertyExpression> list) {
 		HashSet<OWLObjectProperty> out = new HashSet<OWLObjectProperty>();
 

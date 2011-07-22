@@ -69,6 +69,9 @@ public class RestServer {
 				"de.sybig.oba.server");
 		SelectorThread threadSelector = GrizzlyWebContainerFactory.create(
 				baseUri, initParams);
+		threadSelector.setCompression("force");
+		threadSelector.setCompressionMinSize(0);
+		threadSelector.setCompressableMimeTypes("text/html");
 
 		// System.in.read();
 		// threadSelector.stopEndpoint();
@@ -91,8 +94,17 @@ public class RestServer {
 	private Properties loadServerProperties(String[] args)
 			throws FileNotFoundException, IOException {
 		Properties internalProps = new Properties();
-		InputStream is = this.getClass().getResourceAsStream("/oba.properties");
-		internalProps.load(is);
+		InputStream is = null;
+		try {
+			is = this.getClass().getResourceAsStream("/oba.properties");
+			internalProps.load(is);
+		} catch (Exception ex) {
+			logger.error("could not load default properties " + ex);
+		} finally {
+			if (is != null) {
+				is.close();
+			}
+		}
 		if (args.length == 1) {
 			File externalPropFile = new File(args[0]);
 			if (!externalPropFile.exists() || !externalPropFile.canRead()) {
@@ -101,7 +113,9 @@ public class RestServer {
 						args[0]);
 			}
 			Properties externalProps = new Properties(internalProps);
-			externalProps.load(new FileReader(externalPropFile));
+			FileReader fr = new FileReader(externalPropFile);
+			externalProps.load(fr);
+			fr.close();
 			logger.info("reading global properties from external file {}",
 					args[0]);
 			return externalProps;
@@ -140,7 +154,9 @@ public class RestServer {
 			Properties p = new Properties();
 			try {
 				logger.info("load property file {}", f);
-				p.load(new FileReader(f));
+				FileReader fr = new FileReader(f);
+				p.load(fr);
+				fr.close();
 				oh.addOntology(p);
 
 			} catch (FileNotFoundException e) {

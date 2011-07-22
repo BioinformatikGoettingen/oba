@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import com.sun.jersey.api.client.WebResource;
 
-import de.sybig.oba.server.Json2DClsList;
 import de.sybig.oba.server.JsonCls;
 
 /**
@@ -26,9 +25,8 @@ import de.sybig.oba.server.JsonCls;
  * 
  */
 
-public class CytomerConnector
-		extends
-		GenericConnector<CytomerClass, CytomerClassList, Json2DClsList<CytomerClassList, CytomerClass>> {
+public class CytomerConnector extends
+		GenericConnector<CytomerClass, CytomerClassList, Cytomer2DClassList> {
 
 	protected final String SUB_RESOURCE = "functions/cytomer";
 	private Logger logger = LoggerFactory.getLogger(CytomerConnector.class);
@@ -46,11 +44,15 @@ public class CytomerConnector
 		String path = String.format("%s/%s/organList", getOntology(),
 				SUB_RESOURCE);
 		WebResource webResource = getWebResource().path(path);
-
-		CytomerClassList organlist = getResponse(webResource,
-				CytomerClassList.class);
-		organlist.setConnector(this);
-		return organlist;
+		try {
+			CytomerClassList organlist = getResponse(webResource,
+					CytomerClassList.class);
+			organlist.setConnector(this);
+			return organlist;
+		} catch (Exception ex) {
+			// an empty document results in errors in the json unmarshaller
+			return null;
+		}
 	}
 
 	/**
@@ -65,16 +67,43 @@ public class CytomerConnector
 		String path = String.format("%s/%s/organsOf/%s", getOntology(),
 				SUB_RESOURCE, cls.getName());
 		WebResource webResource = getWebResource().path(path);
-		webResource = webResource.queryParam("ns", cls.getNamespace());
-		return getResponse(webResource, CytomerClassList.class);
+		try {
+			webResource = webResource.queryParam("ns", cls.getNamespace());
+			CytomerClassList list = getResponse(webResource,
+					CytomerClassList.class);
+			list.setConnector(this);
+			return list;
+		} catch (Exception ex) {
+			// an empty document results in errors in the json unmarshaller
+			return null;
+		}
 	}
 
 	/**
+	 * Get the physiological system a entity belongs to.
 	 * 
 	 * @param cls
-	 * @param partition
-	 * @param listName
-	 * @return
+	 *            The ontology class for which the system should be searched.
+	 * @return A list of systems the ontology class belongs to.
+	 */
+	public CytomerClassList getPhysiologicalSystemForClass(JsonCls cls) {
+		String path = String.format("%s/%s/systemsOf/%s", getOntology(),
+				SUB_RESOURCE, cls.getName());
+		WebResource webResource = getWebResource().path(path);
+		webResource = webResource.queryParam("ns", cls.getNamespace());
+		try {
+			CytomerClassList list = getResponse(webResource,
+					CytomerClassList.class);
+			list.setConnector(this);
+			return list;
+		} catch (Exception ex) {
+			// an empty document results in errors in the json unmarshaller
+			return null;
+		}
+	}
+
+	/**
+	 * @see #findUpstreamInSet(String, String, String, String)
 	 */
 	public CytomerClassList findUpstreamInSet(JsonCls cls, String partition,
 			String listName) {
@@ -83,6 +112,9 @@ public class CytomerConnector
 	}
 
 	/**
+	 * * Starting from the given class a upstream search is started until one or
+	 * more classes from the specified list are found. These classes are
+	 * returned.
 	 * 
 	 * @param clsName
 	 * @param clsNS
@@ -107,10 +139,63 @@ public class CytomerConnector
 		uriBuilder = uriBuilder.segment(listName);
 		URI uri = uriBuilder.build();
 		webResource = webResource.uri(uri);
-		CytomerClassList list = (CytomerClassList) webResource.accept(
-				MediaType.APPLICATION_JSON).get(CytomerClassList.class);
-		list.setConnector(this);
-		return list;
+		try {
+			CytomerClassList list = (CytomerClassList) webResource.accept(
+					MediaType.APPLICATION_JSON).get(CytomerClassList.class);
+			list.setConnector(this);
+			return list;
+		} catch (Exception ex) {
+			// an empty document results in errors in the json unmarshaller
+			return null;
+		}
+	}
+
+	/**
+	 * @see #findDownstreamInSet(String, String, String, String)
+	 */
+	public CytomerClassList findDownstreamInSet(JsonCls cls, String partition,
+			String listName) {
+		return findDownstreamInSet(cls.getName(), cls.getNamespace(),
+				partition, listName);
+	}
+
+	/**
+	 * Starting from the given class a downstream search is started until one or
+	 * more classes from the specified list are found. These classes are
+	 * returned.
+	 * 
+	 * @param clsName
+	 * @param clsNS
+	 * @param partition
+	 * @param listName
+	 * @return
+	 */
+	public CytomerClassList findDownstreamInSet(String clsName, String clsNS,
+			String partition, String listName) {
+		// /findUpstreamInSet/{cls}/{partition}/{set}
+		String path = String.format("%s/%s/findDownstreamInSet/",
+				getOntology(), SUB_RESOURCE);
+		WebResource webResource = getWebResource();
+		UriBuilder uriBuilder = webResource.getUriBuilder();
+		uriBuilder = uriBuilder.path(path);
+		uriBuilder = uriBuilder.segment(clsName);
+		if (clsNS != null && clsNS.trim().length() > 0) {
+			String namespace = clsNS.replace("/", "$");
+			uriBuilder = uriBuilder.matrixParam("ns", namespace);
+		}
+		uriBuilder = uriBuilder.segment(partition);
+		uriBuilder = uriBuilder.segment(listName);
+		URI uri = uriBuilder.build();
+		webResource = webResource.uri(uri);
+		try {
+			CytomerClassList list = (CytomerClassList) webResource.accept(
+					MediaType.APPLICATION_JSON).get(CytomerClassList.class);
+			list.setConnector(this);
+			return list;
+		} catch (Exception ex) {
+			// an empty document results in errors in the json unmarshaller
+			return null;
+		}
 	}
 
 	@Override

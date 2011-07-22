@@ -2,18 +2,23 @@
 	<parent>
 		<groupId>de.sybig</groupId>
 		<artifactId>oba</artifactId>
-		<version>1.0</version>
+		<version>1.1</version>
 	</parent>
 
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>de.sybig</groupId>
 	<artifactId>oba-server</artifactId>
-	<version>1.0</version>
+	<version>1.1</version>
 	<packaging>jar</packaging>
 
 	<name>oba server</name>
 	<url>http://maven.apache.org</url>
+
+	<properties>
+	<grizzly.version>1.9.19-beta2</grizzly.version>
+	</properties>
+
 	<build>
 		<plugins>
 
@@ -60,7 +65,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>1.2</version>
+				<version>${plugin.shade.version}</version>
 				<executions>
 					<execution>
 						<phase>package</phase>
@@ -79,27 +84,17 @@
 									<manifestEntries>
 										<Main-Class>de.sybig.oba.server.RestServer</Main-Class>
 									</manifestEntries>
-									</transformer>
+								</transformer>
 							</transformers>
 
 						</configuration>
 					</execution>
 				</executions>
 			</plugin>
-			<!--  <plugin>
-				<artifactId>maven-assembly-plugin</artifactId>
-				<version>2.2-beta-5</version>
-				<configuration>
-					<descriptorRefs>
-						<descriptorRef>jar-with-dependencies</descriptorRef>
-					</descriptorRefs>
-					<archive>
-						<manifest>
-							<mainClass>de.sybig.oba.server.RestServer</mainClass>
-						</manifest>
-					</archive>
-				</configuration>
-			</plugin>  -->
+			<!-- <plugin> <artifactId>maven-assembly-plugin</artifactId> <version>2.2-beta-5</version> 
+				<configuration> <descriptorRefs> <descriptorRef>jar-with-dependencies</descriptorRef> 
+				</descriptorRefs> <archive> <manifest> <mainClass>de.sybig.oba.server.RestServer</mainClass> 
+				</manifest> </archive> </configuration> </plugin> -->
 		</plugins>
 	</build>
 	<dependencies>
@@ -111,12 +106,12 @@
 		<dependency>
 			<groupId>de.sybig</groupId>
 			<artifactId>oba-common</artifactId>
-			<version>1.0</version>
+			<version>1.1</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sun.grizzly</groupId>
 			<artifactId>grizzly-servlet-webserver</artifactId>
-			<version>[1.9.8]</version>
+			<version>${grizzly.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>com.sun.jersey</groupId>

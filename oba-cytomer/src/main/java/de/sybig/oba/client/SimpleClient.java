@@ -6,7 +6,6 @@ package de.sybig.oba.client;
 
 import java.util.Set;
 
-import de.sybig.oba.server.Json2DClsList;
 import de.sybig.oba.server.JsonCls;
 import de.sybig.oba.server.JsonObjectProperty;
 import de.sybig.oba.server.JsonPropertyList;
@@ -19,8 +18,6 @@ public class SimpleClient {
 		client.go();
 	}
 
-	// private CytomerConnector<CytomerClass, OntologyClassList<CytomerClass>,
-	// Ontology2DClassList<OntologyClassList<CytomerClass>, CytomerClass>> cc;
 	private CytomerConnector cc;
 
 	private void go() {
@@ -62,20 +59,25 @@ public class SimpleClient {
 		System.out.println("Is organ downstream of owl:ting?");
 		JsonCls organ = cc.getCls("organ",
 				"http://protege.stanford.edu/plugins/owl/protege");
-		Json2DClsList<CytomerClassList, CytomerClass> list2d = cc
-				.xDownstreamOfY(cls, root);
-		System.out.print("\t Path between organ and owl:thing ");
-		CytomerClassList firstPath = list2d.getEntities().get(0);
+		Cytomer2DClassList list2d = cc.xDownstreamOfY(cls, root);
+		System.out.print("\t Path between hilus of liver and owl:thing ");
+		CytomerClassList firstPath = (CytomerClassList) list2d.getEntities()
+				.get(0);
 		for (CytomerClass step : firstPath.getEntities()) {
 			System.out.print(step + " ");
 		}
 		System.out.println();
 		//
+		System.out.println("Is hilus of liver an entity or concept?");
+		CytomerClassList abstractCls = cc.reduceToLevel(2, cls);
+		System.out.println("\tClass at second level is: " + abstractCls.get(0));
+		System.out.println();
+
 		System.out.println("Getting all organs");
 		OntologyClassList organList = cc.getOrganList();
 		System.out.println("\tNumber of organs: "
 				+ cc.getOrganList().getEntities().size());
-		//
+
 		System.out.println("Getting organ for hilus_of_liver");
 		System.out.println("\tOrgan:" + cc.getOrgansForClass(cls).get(0));
 
@@ -91,6 +93,24 @@ public class SimpleClient {
 		CytomerClassList hepSet = cc.findUpstreamInSet(hepatocyte, "tmp",
 				"localtest");
 		System.out.println("\t" + hepSet.get(0));
+
+		//
+		System.out.println("Search for 'hepa*'");
+		CytomerClassList hepaList = cc.searchCls("hepa*");
+		System.out.println("\t" + hepaList.size() + " hits");
+		cc.storeList("tmp", "localtest", hepaList);
+		System.out
+				.println("Cluster the search results for 'hepa*' in max 15 groups");
+		Cytomer2DClassList clusters = cc.reduceToClusterSize(15, "tmp",
+				"localtest");
+		for (Object o : clusters.getEntities()) {
+			CytomerClassList list = (CytomerClassList) o;
+			System.out.print("\t" + list.get(0) + "\n\t\t");
+			for (int i = 1; i < list.size(); i++) {
+				System.out.print(list.get(i) + "  ");
+			}
+			System.out.println();
+		}
 
 		System.out
 				.println("Walking down one way to show that classes are loading their children lazy");
@@ -118,5 +138,4 @@ public class SimpleClient {
 		}
 		System.out.println();
 	}
-
 }

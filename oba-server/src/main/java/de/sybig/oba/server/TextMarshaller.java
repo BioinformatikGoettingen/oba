@@ -6,7 +6,6 @@ package de.sybig.oba.server;
 
 import java.lang.annotation.Annotation;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -102,7 +101,7 @@ public class TextMarshaller extends OntoMarshaller {
 			out.append(String.format("%s [%s]\t%s\n", property.getName(),
 					property.getLanguage(), property.getValue()));
 		}
-		HashSet<ObaObjectPropertyExpression> properties = getObjectRestrictions(
+		Set<ObaObjectPropertyExpression> properties = getObjectRestrictions(
 				cls, ontology);
 		for (ObaObjectPropertyExpression p : properties) {
 			// TODO add namespace if it is different from the class
@@ -123,14 +122,14 @@ public class TextMarshaller extends OntoMarshaller {
 
 		out.append(String.format("Name\t%s\n", r.getIRI().getFragment()));
 		out.append(String.format("Namespace\t%s\n", namespace));
-		HashSet<OWLObjectProperty> parentRestrictions = OntologyHelper
+		Set<OWLObjectProperty> parentRestrictions = OntologyHelper
 				.getParentRroperties(r, ontology);
 		for (OWLObjectProperty p : parentRestrictions) {
 			out.append(String.format("Super property\t %s \n", namespace
 					.equals(p.getIRI().getStart()) ? p.getIRI().getFragment()
 					: p.getIRI().getFragment()));
 		}
-		HashSet<OWLObjectProperty> childRestrictions = OntologyHelper
+		Set<OWLObjectProperty> childRestrictions = OntologyHelper
 				.getChildRroperties(r, ontology);
 		for (OWLObjectProperty p : childRestrictions) {
 			out.append(String.format("Sub property\t %s \n", namespace.equals(p

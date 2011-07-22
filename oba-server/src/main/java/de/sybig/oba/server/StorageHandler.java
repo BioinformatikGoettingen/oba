@@ -280,6 +280,9 @@ public class StorageHandler {
 					"could not unmarshall the list {} from space {}, file not found",
 					name, space);
 			throw new WebApplicationException(404);
+		} catch (IllegalStateException e) {
+			// list is empty
+			return null;
 		}
 		return null;
 	}
@@ -301,7 +304,7 @@ public class StorageHandler {
 					out.add(c);
 				}
 			}
-
+			br.close();
 		} catch (FileNotFoundException e) {
 			logger.warn(
 					"could not convert the list {} from space {} to text, file not found",

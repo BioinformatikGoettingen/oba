@@ -4,7 +4,7 @@
 
 	<groupId>de.sybig</groupId>
 	<artifactId>oba</artifactId>
-	<version>1.0</version>
+	<version>1.1</version>
 	<packaging>pom</packaging>
 
 	<name>oba</name>
@@ -12,8 +12,10 @@
 	<description>oba (ontology based answers)</description>
 
 	<properties>
-		<oba-version>1.0-SNAPSHOT</oba-version>
+				
 		<jersey.version>1.8-ea02</jersey.version>
+		<plugin.shade.version>1.4</plugin.shade.version>
+		<slf4j.version>1.5.8</slf4j.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!-- the following is needed for the PMD plugin, it ignores it own config 
 			values -->
@@ -61,8 +63,8 @@
 		</developer>
 	</developers>
 	<scm>
-		<connection>scm:svn:https://svn.bioinf.med.uni-goettingen.de/svn/oba/tags/oba-1.0</connection>
-		<developerConnection>scm:svn:https://svn.bioinf.med.uni-goettingen.de/svn/oba/tags/oba-1.0</developerConnection>
+		<connection>scm:svn:https://svn.bioinf.med.uni-goettingen.de/svn/oba/tags/1.1</connection>
+		<developerConnection>scm:svn:https://svn.bioinf.med.uni-goettingen.de/svn/oba/tags/1.1</developerConnection>
 	</scm>
 
 	<distributionManagement>
@@ -258,7 +260,7 @@
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
-			<version>1.5.8</version>
+			<version>${slf4j.version}</version>
 		</dependency>
 	</dependencies>
 

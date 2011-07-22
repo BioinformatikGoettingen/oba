@@ -1,6 +1,6 @@
 package de.sybig.oba.server;
 
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -14,7 +14,7 @@ import javax.xml.bind.annotation.XmlType;
 public class Json2DClsList<T extends JsonClsList<C>, C extends JsonCls> {
 
 	@XmlElement(name = "entities")
-	protected List<JsonClsList> _entities;
+	protected List<JsonClsList<C>> _entities;
 	@XmlTransient
 	protected List<T> entities;
 
@@ -22,14 +22,21 @@ public class Json2DClsList<T extends JsonClsList<C>, C extends JsonCls> {
 	 * @return the classes
 	 */
 	public List<T> getEntities() {
-		if (_entities == null) {
-			return null;
+		// if (_entities == null) {
+		// return null;
+		// }
+		// entities = new ArrayList<T>();
+		// for (JsonClsList e : _entities) {
+		// entities.add((T) e);
+		// }
+		// return entities;
+		if (entities == null) {
+			if (_entities == null) {
+				return null;
+			}
+			entities = new LinkedList<T>();
+			entities.addAll((Collection<? extends T>) _entities);
 		}
-		entities = new ArrayList<T>();
-		for (JsonClsList e : _entities) {
-			entities.add((T) e);
-		}
-		// entities.addAll((Collection<? extends T>) _entities);
 		return entities;
 	}
 
@@ -46,17 +53,21 @@ public class Json2DClsList<T extends JsonClsList<C>, C extends JsonCls> {
 			entities = new LinkedList<T>();
 		}
 		if (_entities == null) {
-			_entities = new LinkedList<JsonClsList>();
+			_entities = new LinkedList<JsonClsList<C>>();
 		}
 		_entities.add(cls);
 		return entities.add(cls);
 	}
 
 	public T get(int i) {
-		return entities.get(i);
+		return getEntities().get(i);
 	}
 
 	public int size() {
-		return entities.size();
+		return getEntities().size();
+	}
+
+	protected void setRawEntities(List<JsonClsList<C>> e) {
+		_entities = e;
 	}
 }

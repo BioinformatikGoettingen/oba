@@ -295,10 +295,14 @@ public class ObaOntology {
 		Document doc = new Document();
 		String name;
 		String value;
-		doc.add(new Field("luceneName", cls.getIRI()
-				.toString(), Store.YES, Index.ANALYZED));
+		doc.add(new Field("luceneName", cls.getIRI().toString(), Store.YES,
+				Index.ANALYZED));
 		name = "classname";
 		value = cls.getIRI().getFragment();
+		if (value == null) {
+			value = cls.getIRI().toString()
+					.replace(cls.getIRI().getStart(), "");
+		}
 		doc.add(new Field(name, value, Store.NO, Index.ANALYZED));
 		if (indexAnnotation != null && indexAnnotation.size() > 0) {
 			for (ObaAnnotation annotation : OntologyHelper

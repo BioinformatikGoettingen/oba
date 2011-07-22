@@ -29,14 +29,15 @@ import org.slf4j.LoggerFactory;
  * @author juergen.doenitz@bioinf.med.uni-goettingen.de
  * 
  */
-public class OntologyHandler {
+public final class OntologyHandler {
 
-	private static OntologyHandler instance = null;
+	private static volatile OntologyHandler instance = null;
 	private Properties generalProps;
 
-	protected Map<String, OntologyResource> ontologyMap = new HashMap<String, OntologyResource>();
-	protected Map<String, OntologyResource> preparedOntologyMap = new HashMap<String, OntologyResource>();
-	protected Map<String, OntologyFunction> functionMap;
+	private Map<String, OntologyResource> ontologyMap = new HashMap<String, OntologyResource>();
+	private Map<String, OntologyResource> preparedOntologyMap = new HashMap<String, OntologyResource>();
+	private Map<String, Properties> ontologyPropertiesMap = new HashMap<String, Properties>();
+	private Map<String, OntologyFunction> functionMap;
 
 	private Logger logger = LoggerFactory.getLogger(OntologyHandler.class);
 
@@ -97,7 +98,6 @@ public class OntologyHandler {
 			} catch (OWLOntologyCreationException e) {
 				logger.error("could not load ontology {}, due to {}", name,
 						e.getMessage());
-				e.printStackTrace();
 			}
 			ontologyMap.put(name, onto);
 			preparedOntologyMap.remove(name);
@@ -106,9 +106,9 @@ public class OntologyHandler {
 	}
 
 	public String getNameOfOntology(OWLOntology ontology) {
-		if (ontologyMap == null) {
-			return null;
-		}
+		// if (ontologyMap == null) {
+		// return null;
+		// }
 		for (String name : ontologyMap.keySet()) {
 			if (ontologyMap.get(name).getOntology().getOntology()
 					.equals(ontology)) {
@@ -126,7 +126,7 @@ public class OntologyHandler {
 	}
 
 	/**
-	 * Checks if a ontology was registered under this name. If an ontology was
+	 * Checks if an ontology was registered under this name. If an ontology was
 	 * registered but not yet loaded the name is also found.
 	 * 
 	 * @param name
@@ -134,9 +134,9 @@ public class OntologyHandler {
 	 * @return <code>true</code> if an ontology was registered under this name.
 	 */
 	public boolean containsOntology(String name) {
-		if (ontologyMap == null && preparedOntologyMap == null) {
-			return false;
-		}
+		// if (ontologyMap == null && preparedOntologyMap == null) {
+		// return false;
+		// }
 
 		return ontologyMap.containsKey(name)
 				|| preparedOntologyMap.containsKey(name);
@@ -149,6 +149,21 @@ public class OntologyHandler {
 		return functionMap.containsKey(name);
 	}
 
+	/**
+	 * Adds an ontology to the ontologies available by the server. In the
+	 * 'ontology directory', specified in the general properties the property
+	 * file for the ontology is searched. The name of the property file should
+	 * be 'name.properties' where name is the string given as parameter.
+	 * According to the properties of the ontology, the ontology is directly
+	 * loaded or only added to the prepared ontologies and loaded on the first
+	 * access. The properties are added to the map
+	 * <code>ontologyPropertiesMap</code> to enable other methods to access
+	 * values of the property file.
+	 * 
+	 * @param name
+	 *            The name of the property file (without the appendage
+	 *            ".properties")
+	 */
 	public void addOntology(String name) {
 		if (containsOntology(name)) {
 			logger.info("did not load the ontology {}, because it was already loaded");
@@ -163,9 +178,10 @@ public class OntologyHandler {
 			return;
 		}
 		Properties p = new Properties();
-
+		FileInputStream is = null;
 		try {
-			p.load(new FileInputStream(propFile));
+			is = new FileInputStream(propFile);
+			p.load(is);
 			addOntology(p);
 		} catch (FileNotFoundException e) {
 			logger.error("could not load the ontology {}, because: {}", name,
@@ -173,6 +189,14 @@ public class OntologyHandler {
 		} catch (IOException e) {
 			logger.error("could not load the ontology {}, because: {}", name,
 					e.getMessage());
+		} finally {
+			if (is != null) {
+				try {
+					is.close();
+				} catch (IOException e) {
+					//
+				}
+			}
 		}
 	}
 
@@ -194,13 +218,14 @@ public class OntologyHandler {
 					"could not load the ontology {}, will skip the ontology",
 					ontoFile);
 		}
-		String name = p.getProperty("name", ontoFile.getName().split("\\.")[0]);
+		String name = p.getProperty("identifier",
+				ontoFile.getName().split("\\.")[0]);
 		ObaOntology po = new ObaOntology();
 		po.setOwlURI(IRI.create(ontoFile));
 		po.setProperties(p);
 		OntologyResource onto = new OntologyResource();
 		onto.setOntology(po);
-		if (p.getProperty("load_lazy", "false").toLowerCase().equals("true")) {
+		if (p.getProperty("load_lazy", "false").equalsIgnoreCase("true")) {
 			preparedOntologyMap.put(name, onto);
 		} else {
 			try {
@@ -209,17 +234,17 @@ public class OntologyHandler {
 			} catch (OWLOntologyCreationException e) {
 				logger.error("could not load ontology {}, due to {}",
 						ontoFile.getName(), e.getMessage());
-				e.printStackTrace();
 				return;
 			}
 		}
+		ontologyPropertiesMap.put(name, p);
 	}
 
 	public void deleteOntology(ObaOntology ontology) {
 		for (String name : ontologyMap.keySet()) {
 			if (ontology.equals(ontologyMap.get(name).getOntology())) {
 				ontologyMap.remove(name);
-				System.out.println("deleting");
+				logger.info("removing ontology '{}'", ontology);
 				break;
 			}
 		}
@@ -265,6 +290,24 @@ public class OntologyHandler {
 		out.addAll(ontologyMap.keySet());
 		out.addAll(preparedOntologyMap.keySet());
 		return out;
+	}
+
+	/**
+	 * Returns the description of the ontology as stored in the property file of
+	 * the ontology. If the given name does not match the name of any loaded
+	 * ontology <code>null</code> is returned. If no description is stored in
+	 * the property file an empty string is returned.
+	 * 
+	 * @param name
+	 *            the identifier of the ontology
+	 * @return The description of the ontology.
+	 */
+	public String getDescriptionForOntology(String name) {
+		Properties p = ontologyPropertiesMap.get(name);
+		if (p == null) {
+			return null;
+		}
+		return p.getProperty("description", "");
 	}
 
 	public Set<String> getFunctionNames() {

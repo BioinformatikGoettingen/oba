@@ -33,4 +33,14 @@ public class Ontology2DClassList<CL extends OntologyClassList<C>, C extends Onto
 		}
 		return listEntities;
 	}
+
+	public void setConnector(GenericConnector connector) {
+		for (Object list : getEntities()) {
+
+			if (list instanceof OntologyClassList) {
+				OntologyClassList ol = (OntologyClassList) list;
+				ol.setConnector(connector);
+			}
+		}
+	}
 }

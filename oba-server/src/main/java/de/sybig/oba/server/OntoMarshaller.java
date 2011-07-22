@@ -9,7 +9,6 @@ import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +27,7 @@ import org.semanticweb.owlapi.model.OWLOntology;
 
 public abstract class OntoMarshaller implements MessageBodyWriter<Object> {
 	// private Logger logger = LoggerFactory.getLogger(OntoMarshaller.class);
+	private final int CACHE_TIME = 3600 * 6;
 
 	@Override
 	public void writeTo(Object arg0, Class arg1, Type arg2, Annotation[] arg3,
@@ -35,9 +35,10 @@ public abstract class OntoMarshaller implements MessageBodyWriter<Object> {
 			throws IOException, WebApplicationException {
 
 		if (!httpHeader.containsKey("Cache-Control")) {
-			httpHeader.add("Cache-Control", "public,max-age=3,s-maxage=3");
-			// .add("Cache-Control", "public,max-age=3600,s-maxage=3600");
+			httpHeader.add("Cache-Control", String.format(
+					"public,max-age=%d,s-maxage=%d", CACHE_TIME, CACHE_TIME));
 		}
+
 		if (arg0 instanceof OWLClass) {
 			os.write(convertCls((OWLClass) arg0, arg3).getBytes());
 		} else if (arg0 instanceof OWLNamedIndividual) {
@@ -151,7 +152,7 @@ public abstract class OntoMarshaller implements MessageBodyWriter<Object> {
 		return OntologyHelper.getParents(cls, ontology);
 	}
 
-	protected HashSet<ObaObjectPropertyExpression> getObjectRestrictions(
+	protected Set<ObaObjectPropertyExpression> getObjectRestrictions(
 			OWLClass cls, org.semanticweb.owlapi.model.OWLOntology ontology) {
 		return OntologyHelper.getObjectRestrictions(cls, ontology);
 	}

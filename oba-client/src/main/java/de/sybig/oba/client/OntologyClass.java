@@ -30,8 +30,8 @@ public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
 		fillWithTemplate(c);
 	}
 
-	public String getLabel() {
-		return getSingleAnnotationValue("label");
+	public Set<JsonAnnotation> getLabel() {
+		return getAnnotationValues("label");
 	}
 
 	/**
@@ -79,7 +79,7 @@ public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
 			ocChildren = new HashSet<C>();
 			for (Object o : _children) {
 				JsonCls c = (JsonCls) o;
-				C child = (C) new OntologyClass(c);
+				C child = (C) createNewOntologyClass(c);
 				child.setConnector(connector);
 				ocChildren.add(child);
 			}
@@ -95,7 +95,7 @@ public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
 		if (ocParents == null && _parents != null) {
 			ocParents = new HashSet<C>();
 			for (JsonCls c : _parents) {
-				C parent = (C) new OntologyClass(c);
+				C parent = (C) createNewOntologyClass(c);
 				parent.setConnector(connector);
 				ocParents.add(parent);
 			}
@@ -117,12 +117,12 @@ public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
 		return restrictions;
 	}
 
-	private GenericConnector getConnector() {
-		return connector;
-	}
-
 	public void setConnector(GenericConnector connector) {
 		this.connector = connector;
+	}
+
+	protected C createNewOntologyClass(JsonCls c) {
+		return (C) new OntologyClass(c);
 	}
 
 	private void fillWithTemplate(JsonCls c) {
@@ -147,8 +147,8 @@ public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
 
 	public String toString() {
 
-		if (getLabel() != null) {
-			return getLabel();
+		if (getLabel() != null && getLabel().size() == 1) {
+			return getLabel().iterator().next().getValue();
 		}
 		return name;
 

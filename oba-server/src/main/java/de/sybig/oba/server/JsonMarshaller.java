@@ -86,12 +86,15 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
 
 			if (first instanceof OWLClass) {
 				JsonClsList outList = copyClsList((Collection<OWLClass>) set);
+				outList.setRawEntities(null); // otherwise the list is
+												// duplicated
 				marshallObject(outList, JsonClsList.class, os);
 			} else if (first instanceof OWLObjectProperty) {
 				JsonPropertyList outList = copyPropertyList((Collection<OWLObjectProperty>) set);
 				marshallObject(outList, JsonPropertyList.class, os);
 			} else if (first instanceof Collection) {
 				Json2DClsList outList = copy2DClsList((Collection<Collection<OWLClass>>) set);
+				outList.setRawEntities(null);
 				marshallObject(outList, Json2DClsList.class, os);
 			}
 
@@ -108,9 +111,12 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
 				for (OWLClass value : map.get(key)) {
 					innerList.add(copyCls(value, false));
 				}
+				innerList.setRawEntities(null); // otherwise the list is
+												// duplicated
 				outList.add(innerList);
 			}
-			marshallObject(outList, JsonClsList.class, os);
+			outList.setRawEntities(null);
+			marshallObject(outList, Json2DClsList.class, os);
 		}
 	}
 
@@ -168,7 +174,7 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
 			out.addChild(copyCls(child, false));
 		}
 
-		HashSet<ObaObjectPropertyExpression> properties = OntologyHelper
+		Set<ObaObjectPropertyExpression> properties = OntologyHelper
 				.getObjectRestrictions(c, ontology);
 		// OntologyHelper.getObjectRestrictions(startingClass, ontology)
 		for (ObaObjectPropertyExpression p : properties) {
@@ -226,13 +232,13 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
 			return out;
 		}
 		out.setShell(!fillcomplete);
-		HashSet<OWLObjectProperty> parents = OntologyHelper
-				.getParentRroperties(property, ontology);
+		Set<OWLObjectProperty> parents = OntologyHelper.getParentRroperties(
+				property, ontology);
 		for (OWLObjectProperty p : parents) {
 			out.addSuperProperty(copyProperty(p, false));
 		}
-		HashSet<OWLObjectProperty> children = OntologyHelper
-				.getChildRroperties(property, ontology);
+		Set<OWLObjectProperty> children = OntologyHelper.getChildRroperties(
+				property, ontology);
 		for (OWLObjectProperty p : children) {
 			out.addSubProperty(copyProperty(p, false));
 		}
