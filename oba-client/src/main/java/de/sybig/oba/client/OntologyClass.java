@@ -18,6 +18,8 @@ public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
 	protected Set<C> ocChildren;
 	@XmlTransient
 	protected Set<C> ocParents;
+//	@XmlTransient
+//	protected Set<JsonObjectPropertyExpression<C>> ocRestrictions;
 
 	@XmlTransient
 	private GenericConnector connector;
@@ -103,18 +105,27 @@ public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
 		return ocParents;
 	}
 
+	public Set<JsonObjectPropertyExpression> getProperties() {
+		
+		if (restrictions != null) {
+			for (JsonObjectPropertyExpression ope : restrictions) {
+				JsonCls target = ope.getTarget();
+				if (!(target instanceof OntologyClass)) {
+					C newTarget = createNewOntologyClass(target);
+					newTarget.setConnector(connector);
+					ope.setTarget(newTarget);
+				}
+			}
+		}
+		
+	return restrictions;
+	}
+
 	public Set<JsonAnnotation> getAnnotations() {
 		if (shell) {
 			fillCls();
 		}
 		return annotations;
-	}
-
-	public Set<JsonObjectPropertyExpression> getProperties() {
-		if (shell) {
-			fillCls();
-		}
-		return restrictions;
 	}
 
 	public void setConnector(GenericConnector connector) {
@@ -132,6 +143,7 @@ public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
 		name = c.getName();
 		namespace = c.getNamespace();
 		_parents = c.getRawParents();
+
 		restrictions = c.getProperties();
 	}
 

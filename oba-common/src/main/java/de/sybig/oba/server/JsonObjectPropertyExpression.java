@@ -5,12 +5,12 @@ import javax.xml.bind.annotation.XmlType;
 
 @XmlType
 @XmlRootElement
-public class JsonObjectPropertyExpression {
+public class JsonObjectPropertyExpression<C extends JsonCls> {
 	private JsonObjectProperty property;
 	private String propertyName;
 	private String propertyNamespace;
 
-	private JsonCls target;
+	private C target;
 
 	public JsonObjectProperty getProperty() {
 		return property;
@@ -20,27 +20,12 @@ public class JsonObjectPropertyExpression {
 		this.property = property;
 	}
 
-	// public String getPropertyName() {
-	// return propertyName;
-	// }
-	//
-	// public void setPropertyName(String propertyName) {
-	// this.propertyName = propertyName;
-	// }
-	//
-	// public String getPropertyNamespace() {
-	// return propertyNamespace;
-	// }
-	//
-	// public void setPropertyNamespace(String propertyNamespace) {
-	// this.propertyNamespace = propertyNamespace;
-	// }
 
-	public JsonCls getTarget() {
+	public C getTarget() {
 		return target;
 	}
 
-	public void setTarget(JsonCls target) {
+	public void setTarget(C target) {
 		this.target = target;
 	}
 

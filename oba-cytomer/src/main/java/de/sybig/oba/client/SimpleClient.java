@@ -8,6 +8,7 @@ import java.util.Set;
 
 import de.sybig.oba.server.JsonCls;
 import de.sybig.oba.server.JsonObjectProperty;
+import de.sybig.oba.server.JsonObjectPropertyExpression;
 import de.sybig.oba.server.JsonPropertyList;
 
 public class SimpleClient {
@@ -23,7 +24,6 @@ public class SimpleClient {
 	private void go() {
 
 		cc = new CytomerConnector();
-
 		System.out.println("Getting the root of the ontology:");
 		CytomerClass root = cc.getRoot();
 		System.out.println("\tRoot of Cytomer: " + root);
@@ -50,6 +50,7 @@ public class SimpleClient {
 				"http://cytomer.bioinf.med.uni-goettingen.de/organ");
 		System.out.println("\tGot class " + cls);
 		// //
+		
 		System.out.println("Accessing annotation values");
 		System.out.println("\tACC in the list of annotations : "
 				+ cls.getAnnotationValues("ACC").iterator().next());

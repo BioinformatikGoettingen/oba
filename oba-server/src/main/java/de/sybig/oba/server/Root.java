@@ -32,11 +32,6 @@ public class Root {
 	private OntologyHandler oh = OntologyHandler.getInstance();
 	private StorageHandler storageHandler = new StorageHandler();
 
-	// @Context
-	// private UriInfo uriInfo;
-	// @Context
-	// private Request request;
-
 	@GET
 	@Path("/")
 	public Object listOntologies() {
@@ -67,19 +62,6 @@ public class Root {
 	}
 
 	@GET
-	@Path("/ontologies")
-	@Produces("text/plain")
-	public String getOntologies() {
-		StringBuilder out = new StringBuilder();
-		Set<String> names = oh.getOntologyNames();
-		for (String n : names) {
-			out.append(n);
-			out.append("\n");
-		}
-		return out.toString();
-	}
-
-	@GET
 	@Path("/functions")
 	@Produces("text/plain")
 	public String getFunctions() {
@@ -89,26 +71,6 @@ public class Root {
 			out.append("\n");
 		}
 		return out.toString();
-	}
-
-	// The following to methods have to work on the resource "admin" instead of
-	// "/". It is not allowed to mix subresource (with should not have a HTTP
-	// method) with functions with the equal path. If we move this function in
-	// the OntologyResource (the subresource) we may first have to load the
-	// ontology before it can be deleted and PUT can not work, because the
-	// resource is not available at that moment.
-	@DELETE
-	@Path("admin/{ontology}/")
-	public void deleteOntology(@PathParam("ontology") String ontology) {
-		logger.info("deleting " + ontology);
-		oh.deleteOntology(ontology);
-	}
-
-	@PUT
-	@Path("admin/{ontology}/")
-	public void putOntology(@PathParam("ontology") String ontology) {
-		logger.info("loading ontology {} by request of user ", ontology);
-		oh.addOntology(ontology);
 	}
 
 	/**
@@ -182,6 +144,11 @@ public class Root {
 	public Object handleStorage() {
 		logger.debug("deligation to storage hand");
 		return storageHandler;
+	}
+
+	@Path("admin")
+	public Object adminResource() {
+		return new AdminResource();
 	}
 
 	// /////////////
