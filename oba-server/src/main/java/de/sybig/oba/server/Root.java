@@ -6,9 +6,7 @@ package de.sybig.oba.server;
 
 import java.util.Set;
 
-import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -105,7 +103,7 @@ public class Root {
 	@Path("{ontology}/functions/{fc}.*")
 	public Object getOntologyFunction(@PathParam("ontology") String ontology,
 			@PathParam("fc") String fc) {
-		logger.info("calling function class {} with ontology {}", fc, ontology);
+		logger.trace("calling function class {} with ontology {}", fc, ontology);
 		OntologyFunction c = getFunctionClass(fc);
 		if (c == null) {
 			logger.error("could not get function class " + c);
@@ -131,7 +129,11 @@ public class Root {
 	@Produces("text/html")
 	public String functionClassOverview(@PathParam("fc") String fc) {
 		OntologyFunction c = getFunctionClass(fc);
-		String overview = c.getRoot();
+                if (fc == null){
+                   throw new WebApplicationException(404);
+                }
+                //System.out.println("function class " + c.getClass());
+                String overview = c.getRoot();
 		return overview;
 	}
 

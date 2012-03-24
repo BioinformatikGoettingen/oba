@@ -5,6 +5,7 @@
 package de.sybig.oba.server;
 
 import java.util.Collection;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -12,6 +13,9 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 /**
  * A class representing the a class of the ontology with its important
@@ -25,18 +29,21 @@ public class JsonCls<C extends JsonCls> extends JsonEntity {
 	// children and parents are filled in each case with JsonCls by the
 	// unmarshaller. In the method signature we need the generic type C to allow
 	// sub classes.
-	@XmlElement(name = "children")
-	protected Set<JsonCls> _children;
-	@XmlElement(name = "parents")
-	protected Set<JsonCls> _parents;
 
-	@XmlTransient
-	protected Set<C> children;
-	@XmlTransient
-	protected Set<C> parents;
+	@XmlElement(name = "children")
+	protected Set<JsonCls> _children = new HashSet<JsonCls>();
+	@XmlElement(name = "parents")
+	protected Set<JsonCls> _parents = new HashSet<JsonCls>();
+	// @XmlTransient
+	protected transient Set<C> children = new HashSet<C>();
+	// @XmlTransient
+	protected transient Set<C> parents = new HashSet<C>();;
 	protected Set<JsonAnnotation> annotations;
 	protected Set<JsonObjectPropertyExpression> restrictions;
+	// @XmlTransient
+	private transient boolean isMarshalling = false;
 
+	// private boolean isLazy = true;
 	public JsonCls() {
 		// JAXB needs this
 	}
@@ -48,8 +55,9 @@ public class JsonCls<C extends JsonCls> extends JsonEntity {
 	 * 
 	 * @return the children
 	 */
+	@JsonIgnore
 	public Set<C> getChildren() {
-		if (_children == null) {
+		if (_children == null || isMarshalling) {
 			return null;
 		}
 		children = new HashSet<C>();
@@ -90,8 +98,9 @@ public class JsonCls<C extends JsonCls> extends JsonEntity {
 	 * 
 	 * @return the parents
 	 */
+	@JsonIgnore
 	public Set<C> getParents() {
-		if (_parents == null) {
+		if (_parents == null || isMarshalling) {
 			return null;
 		}
 		parents = new HashSet<C>();
@@ -156,17 +165,35 @@ public class JsonCls<C extends JsonCls> extends JsonEntity {
 		restrictions.add(jp);
 	}
 
+	@XmlTransient
+	@JsonIgnore
+	public boolean isIsMarshalling() {
+		return isMarshalling;
+	}
+
+	public void setIsMarshalling(boolean isMarshalling) {
+		this.isMarshalling = isMarshalling;
+	}
+
+	// public boolean isIsLazy() {
+	// return isLazy;
+	// }
+	//
+	// public void setIsLazy(boolean isLazy) {
+	// this.isLazy = isLazy;
+	// }
 	@Override
 	public String toString() {
 		return "JsonCls: " + name;
 	}
 
+	@JsonProperty("children")
 	public Set<JsonCls> getRawChildren() {
 		return _children;
 	}
 
+	@JsonProperty("parents")
 	public Set<JsonCls> getRawParents() {
 		return _parents;
 	}
-
 }

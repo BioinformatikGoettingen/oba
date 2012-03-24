@@ -19,7 +19,10 @@ public class Cytomer2DClassList extends
 	@Override
 	public List getEntities() {
 		if (_entities == null) {
-			return null;
+			if (entities == null) {
+				return null;
+			}
+			_entities = entities;
 		}
 		if (listEntities == null) {
 			listEntities = new LinkedList<CytomerClassList>();

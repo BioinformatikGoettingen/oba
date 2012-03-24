@@ -4,11 +4,11 @@
  */
 package de.sybig.oba.client;
 
+import de.sybig.oba.server.JsonClsList;
 import java.util.Set;
 
 import de.sybig.oba.server.JsonCls;
 import de.sybig.oba.server.JsonObjectProperty;
-import de.sybig.oba.server.JsonObjectPropertyExpression;
 import de.sybig.oba.server.JsonPropertyList;
 
 public class SimpleClient {
@@ -26,6 +26,7 @@ public class SimpleClient {
 		cc = new CytomerConnector();
 		System.out.println("Getting the root of the ontology:");
 		CytomerClass root = cc.getRoot();
+
 		System.out.println("\tRoot of Cytomer: " + root);
 		System.out.println("\tRoot is in ns " + root.getNamespace());
 		//
@@ -50,7 +51,7 @@ public class SimpleClient {
 				"http://cytomer.bioinf.med.uni-goettingen.de/organ");
 		System.out.println("\tGot class " + cls);
 		// //
-		
+
 		System.out.println("Accessing annotation values");
 		System.out.println("\tACC in the list of annotations : "
 				+ cls.getAnnotationValues("ACC").iterator().next());
@@ -86,6 +87,10 @@ public class SimpleClient {
 				.println("Storing the organList on the server in the partition 'tmp' as list 'localtest'");
 
 		cc.storeList("tmp", "localtest", organList);
+
+		System.out.println("retrieving previous saved list ");
+		JsonClsList storedList = cc.getStoredList("tmp", "localtest");
+		System.out.println("\t" + storedList.size());
 
 		System.out
 				.println("searching coresponding class for hepatocyte in stored set");

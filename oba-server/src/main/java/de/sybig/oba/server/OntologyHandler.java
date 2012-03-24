@@ -268,15 +268,18 @@ public final class OntologyHandler {
 	public void addFunctionClass(String name, String className)
 			throws ClassNotFoundException, InstantiationException,
 			IllegalAccessException {
-		if (functionMap == null) {
-			functionMap = new HashMap<String, OntologyFunction>();
-		}
+
 		Class<? extends OntologyFunction> functionClass = (Class<? extends OntologyFunction>) Class
 				.forName(className);
 		OntologyFunction classInstance = functionClass.newInstance();
-		functionMap.put(name, classInstance);
+		addFunctionClass(name, classInstance);
 	}
-
+    public void addFunctionClass(String name, OntologyFunction classInstance){
+        if (functionMap == null) {
+            functionMap = new HashMap<String, OntologyFunction>();
+        }
+        functionMap.put(name, classInstance);
+    }
 	/**
 	 * Get the names of available loaded ontologies. This includes loaded and
 	 * known but not loaded ontologies. The name of an ontology is the name the

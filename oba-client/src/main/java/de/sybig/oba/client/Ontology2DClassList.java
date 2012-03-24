@@ -7,12 +7,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
 import de.sybig.oba.server.Json2DClsList;
+import de.sybig.oba.server.JsonCls;
 import de.sybig.oba.server.JsonClsList;
 
 @XmlRootElement
 @XmlType
 public class Ontology2DClassList<CL extends OntologyClassList<C>, C extends OntologyClass>
-		extends Json2DClsList<OntologyClassList<OntologyClass>, OntologyClass> {
+		extends Json2DClsList<JsonClsList<JsonCls>, OntologyClass> {
 	private List<OntologyClassList> listEntities;
 
 	@Override

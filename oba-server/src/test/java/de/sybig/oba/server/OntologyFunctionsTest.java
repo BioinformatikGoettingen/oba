@@ -55,7 +55,7 @@ public class OntologyFunctionsTest {
 	}
 
 	@Test
-	public void shortesPathToRoot() {
+	public void shortestPathToRoot() {
 		ObaClass clsA = obaOntology.getOntologyClass("classWithTwoParents",
 				"http://sybig.de/cytomer/testOntology/");
 		List<List<ObaClass>> shortestPathToRoot = testClass

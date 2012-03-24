@@ -12,6 +12,8 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.annotate.JsonProperty;
 
 @XmlRootElement
 @XmlType
@@ -25,6 +27,7 @@ public class JsonClsList<T extends JsonCls> implements Cloneable {
 	/**
 	 * @return the classes
 	 */
+	@JsonIgnore
 	public List<T> getEntities() {
 		if (entities == null) {
 			if (_entities == null) {
@@ -69,7 +72,11 @@ public class JsonClsList<T extends JsonCls> implements Cloneable {
 		return newList;
 	}
 
+	@JsonProperty("entities")
 	protected List<JsonCls> getRawEntities() {
+		if (_entities == null) {
+			return (List<JsonCls>) entities;
+		}
 		return _entities;
 	}
 

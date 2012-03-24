@@ -45,348 +45,337 @@ import org.slf4j.LoggerFactory;
 
 public class ObaOntology {
 
-	private OWLOntology onto;
-	private Properties properties;
-	private static final int MAX_HITS = 500;
-	private final Version luceneVersion = Version.LUCENE_24;
+    private OWLOntology onto;
+    private Properties properties;
+    private static final int MAX_HITS = 500;
+    private final Version luceneVersion = Version.LUCENE_24;
+    private IRI iri;
+    private RAMDirectory idx;
+    private OWLDataFactory dataFactory;
+    private OWLOntologyManager manager;
+    private Set<ObaClass> orphanChildren = new HashSet<ObaClass>();
+    private Set<ObaClass> obsoleteClasses = new HashSet<ObaClass>();
+    private Logger logger = LoggerFactory.getLogger(ObaOntology.class);
+    private List<String> indexAnnotations;
+    private final String OBSOLTE = "is_obsolete";
 
-	private IRI iri;
-	private RAMDirectory idx;
-	private OWLDataFactory dataFactory;
-	private OWLOntologyManager manager;
+    // private boolean initializing = false;
+    public void setOwlURI(IRI uri) {
+        this.iri = uri;
+    }
 
-	private Set<ObaClass> orphanChildren = new HashSet<ObaClass>();
+    public OWLOntology getOntology() {
+        return onto;
+    }
 
-	private Logger logger = LoggerFactory.getLogger(ObaOntology.class);
-	private List<String> indexAnnotations;
+    public Properties getProperties() {
+        return properties;
+    }
 
-	// private boolean initializing = false;
+    public void setProperties(Properties properties) {
+        this.properties = properties;
+    }
 
-	public void setOwlURI(IRI uri) {
-		this.iri = uri;
-	}
+    public synchronized void init() throws OWLOntologyCreationException {
+        if (iri == null) {
+            throw new OWLOntologyCreationException();
+        }
+        if (onto != null) {
+            System.out.println("already initialized");
+            return;
+        }
 
-	public OWLOntology getOntology() {
-		return onto;
-	}
+        manager = OWLManager.createOWLOntologyManager();
 
-	public Properties getProperties() {
-		return properties;
-	}
+        onto = manager.loadOntologyFromOntologyDocument(iri);
+        dataFactory = manager.getOWLDataFactory();
+        idx = new RAMDirectory();
+        try {
+            scanClasses(onto);
+        } catch (CorruptIndexException e) {
+            e.printStackTrace();
+            throw new OWLOntologyCreationException();
+        } catch (LockObtainFailedException e) {
+            e.printStackTrace();
+            throw new OWLOntologyCreationException();
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new OWLOntologyCreationException();
+        }
+        // initializing = false;
+    }
 
-	public void setProperties(Properties properties) {
-		this.properties = properties;
-	}
+    /**
+     * Get the root node of the ontology. The root is returned as proxy from Type ObaClass with the ontology set.
+     *
+     * @return The root of the ontology.
+     */
+    public ObaClass getRoot() {
+        // the root could also be retrieved directly from the ontology with
+        // ontology.getOWLOntologyManager().getOWLDataFactory().getOWLThing()'
+        OWLClass owlRoot = dataFactory.getOWLThing();
+        ObaClass root = new ObaClass(owlRoot, onto);
 
-	public synchronized void init() throws OWLOntologyCreationException {
-		if (iri == null) {
-			throw new OWLOntologyCreationException();
-		}
-		if (onto != null) {
-			System.out.println("already initialized");
-			return;
-		}
-		// while(initializing) {
-		// try {
-		// Thread.sleep(100);
-		// } catch (InterruptedException e) {
-		// e.printStackTrace();
-		// }
-		// }
-		// initializing = true;
-		manager = OWLManager.createOWLOntologyManager();
+        return root;
+    }
 
-		onto = manager.loadOntologyFromOntologyDocument(iri);
-		dataFactory = manager.getOWLDataFactory();
-		idx = new RAMDirectory();
-		try {
-			scanClasses(onto);
-		} catch (CorruptIndexException e) {
-			e.printStackTrace();
-			throw new OWLOntologyCreationException();
-		} catch (LockObtainFailedException e) {
-			e.printStackTrace();
-			throw new OWLOntologyCreationException();
-		} catch (IOException e) {
-			e.printStackTrace();
-			throw new OWLOntologyCreationException();
-		}
-		// initializing = false;
-	}
+    /**
+     * Returns classes without explicit super classes. If a class does not have a explicit super classes the API won't
+     * return it by {@link OWLClass#getSuperClasses(org.semanticweb.owlapi.model.OWLOntology)} . So the classes are
+     * scanned during {@link #init()} and orphaned children are stored.
+     *
+     * @return
+     */
+    public Set<ObaClass> getOrphanChildren() {
+        return orphanChildren;
+    }
 
-	/**
-	 * Get the root node of the ontology. The root is returned as proxy from
-	 * Type ObaClass with the ontology set.
-	 * 
-	 * @return The root of the ontology.
-	 */
-	public ObaClass getRoot() {
-		// the root could also be retrieved directly from the ontology with '
-		// ontology.getOWLOntologyManager().getOWLDataFactory().getOWLThing()'
-		OWLClass owlRoot = dataFactory.getOWLThing();
-		ObaClass root = new ObaClass(owlRoot, onto);
+    /**
+     * Get a list of all obsolete classes. In OBO ontologies, deleted classes are annotated with "is_obsolete = true".
+     * During the initial scan all obsolete classes are found and stored. If the children of the root node are queried
+     * later on, obsolete classes are subtracted.
+     *
+     * @return
+     */
+    public Set<ObaClass> getObsoleteClasses() {
+        return obsoleteClasses;
+    }
 
-		// if (!root.isDefined(onto)) {
-		// // dataFactory will return always a class with the iri for
-		// // owl:Thing, also the class is not defined in the ontology. Later
-		// // on we need to get the ontology for the orphan root node, to get
-		// // the (orphan) children. So save the root node and use it in
-		// // #getOntologyForClass
-		// this.rootNode = root;
-		// }
-		return root;
-	}
+    /**
+     * Gets a class from the ontology. If no class with this name in this namespace is found, <code>null</code> is
+     * returned. A trailing '#' on the namespace will be deleted before processing.
+     *
+     * @param cls The name of the class.
+     * @param ns  The namespace of the class.
+     * @return The class object or <code>null</code>
+     */
+    public ObaClass getOntologyClass(final String cls, final String ns) {
+        String namespace = ns != null ? ns : onto.getOntologyID().getOntologyIRI().toString();
 
-	/**
-	 * Returns classes without explicit super classes. If a class does not have
-	 * a explicit super classes the API won't return it by
-	 * {@link OWLClass#getSuperClasses(org.semanticweb.owlapi.model.OWLOntology)}
-	 * . So the classes are scanned during {@link #init()} and orphaned children
-	 * are stored.
-	 * 
-	 * @return
-	 */
-	public Set<ObaClass> getOrphanChildren() {
-		return orphanChildren;
-	}
+        if (namespace.endsWith("#")) {
+            namespace = namespace.substring(0, namespace.length() - 1);
+        }
+        // if (!namespace.endsWith("/")) {
+        // namespace = namespace+"/";
+        // }
+        OWLClass c = dataFactory.getOWLClass(getIri(namespace, cls));
 
-	/**
-	 * Gets a class from the ontology. If no class with this name in this
-	 * namespace is found, <code>null</code> is returned. A trailing '#' on the
-	 * namespace will be deleted before processing.
-	 * 
-	 * @param cls
-	 *            The name of the class.
-	 * @param ns
-	 *            The namespace of the class.
-	 * @return The class object or <code>null</code>
-	 */
-	public ObaClass getOntologyClass(final String cls, final String ns) {
-		String namespace = ns != null ? ns : onto.getOntologyID()
-				.getOntologyIRI().toString();
+        if (getOntologyForClass(c) == null && !c.isOWLThing()) {
+            // if the class is not in the ontology dataFactory.getOWLClass will
+            // return a new class. So we check if the returned class is part of
+            // the ontology.
+            return null;
+        }
+        return new ObaClass(c, onto);
+    }
 
-		if (namespace.endsWith("#")) {
-			namespace = namespace.substring(0, namespace.length() - 1);
-		}
-		// if (!namespace.endsWith("/")) {
-		// namespace = namespace+"/";
-		// }
-		OWLClass c = dataFactory.getOWLClass(getIri(namespace, cls));
+    public Set<OWLObjectProperty> getObjectProperties() {
+        Set<OWLObjectProperty> restrictions = onto.getObjectPropertiesInSignature();
+        return restrictions;
+    }
 
-		if (getOntologyForClass(c) == null && !c.isOWLThing()) {
-			// if the class is not in the ontology dataFactory.getOWLClass will
-			// return a new class. So we check if the returned class is part of
-			// the ontology.
-			return null;
-		}
-		return new ObaClass(c, onto);
-	}
+    public OWLObjectProperty getPropertyByName(String name, String ns) {
+        String namespace = ns != null ? ns : onto.getOntologyID().getOntologyIRI().toString();
 
-	//
-	// public OWLNamedIndividual getIndividual(String ns, String name) {
-	// OWLNamedIndividual individual = dataFactory
-	// .getOWLNamedIndividual(getIri(ns, name));
-	// return individual;
-	// }
+        if (namespace.endsWith("#")) {
+            namespace = namespace.substring(0, namespace.length() - 1);
+        }
+        OWLObjectProperty property = dataFactory.getOWLObjectProperty(getIri(
+                namespace, name));
+        return property;
+    }
 
-	public Set<OWLObjectProperty> getObjectProperties() {
-		Set<OWLObjectProperty> restrictions = onto
-				.getObjectPropertiesInSignature();
-		return restrictions;
-	}
+    public OWLOntology getOntologyForClass(OWLClass c) {
 
-	public OWLObjectProperty getPropertyByName(String name, String ns) {
-		String namespace = ns != null ? ns : onto.getOntologyID()
-				.getOntologyIRI().toString();
+        if (c instanceof ObaClass) {
+            if (onto.getClassesInSignature().contains(((ObaClass) c).getReal())) {
+                return onto;
+            }
+        } else {
+            if (onto.getClassesInSignature().contains(c)) {
+                return onto;
+            }
+        }
+        return null;
+    }
 
-		if (namespace.endsWith("#")) {
-			namespace = namespace.substring(0, namespace.length() - 1);
-		}
-		OWLObjectProperty property = dataFactory.getOWLObjectProperty(getIri(
-				namespace, name));
-		return property;
-	}
+    protected OWLOntology getOntologyForProperty(OWLObjectProperty c) {
+        if (onto.getObjectPropertiesInSignature().contains(c)) {
+            return onto;
+        }
+        return null;
+    }
 
-	public OWLOntology getOntologyForClass(OWLClass c) {
+    /**
+     * Searches a class in the ontology. The pattern is searched in the indexed class names. The returned classes are
+     * sorted by their relevance. If no matches could be found an empty list is returned.
+     *
+     * @param pattern The search pattern
+     * @return An ordered list of classes matching the pattern.
+     */
+    public List<ObaClass> searchCls(String pattern, String fields) {
 
-		if (c instanceof ObaClass) {
-			if (onto.getClassesInSignature().contains(((ObaClass) c).getReal())) {
-				return onto;
-			}
-		} else {
-			if (onto.getClassesInSignature().contains(c)) {
-				return onto;
-			}
-		}
-		return null;
-	}
+        return searchInIndex(pattern, fields);
+    }
 
-	protected OWLOntology getOntologyForProperty(OWLObjectProperty c) {
-		if (onto.getObjectPropertiesInSignature().contains(c)) {
-			return onto;
-		}
-		return null;
-	}
+    private IRI getIri(String ns, String name) {
+        return IRI.create(String.format("%s#%s", ns, name));
+    }
 
-	/**
-	 * Searches a class in the ontology. The pattern is searched in the indexed
-	 * class names. The returned classes are sorted by their relevance. If no
-	 * matches could be found an empty list is returned.
-	 * 
-	 * @param pattern
-	 *            The search pattern
-	 * @return An ordered list of classes matching the pattern.
-	 */
-	public List<OWLClass> searchCls(String pattern, String fields) {
+    private void scanClasses(OWLOntology ontology)
+            throws CorruptIndexException, LockObtainFailedException,
+            IOException {
+        IndexWriter writer = new IndexWriter(idx, new StandardAnalyzer(
+                luceneVersion), true, IndexWriter.MaxFieldLength.UNLIMITED);
 
-		return searchInIndex(pattern, fields);
-	}
+        Set<OWLDeclarationAxiom> classes = ontology.getAxioms(AxiomType.DECLARATION);
+        int counter = 0;
+        for (OWLDeclarationAxiom c : classes) {
 
-	private IRI getIri(String ns, String name) {
-		return IRI.create(String.format("%s#%s", ns, name));
-	}
+            OWLEntity entity = c.getSignature().iterator().next();
+            if (!(entity instanceof OWLClass)) {
+                // skip AnnotationProperties, ObjectProperties, DataProperites
+                continue;
+            }
+            OWLClass cls = (OWLClass) entity;
+            if (cls.getSuperClasses(ontology) == null
+                    || cls.getSuperClasses(ontology).size() < 1) {
+                for (ObaAnnotation annotation : OntologyHelper.getAnnotationProperties(cls, onto)) {
+                    if (annotation.getName().equals(OBSOLTE)
+                            && annotation.getValue().equals("true")) {
+                        obsoleteClasses.add(new ObaClass(cls, ontology));
+                        break;
+                    }
+                }
+                orphanChildren.add(new ObaClass(cls, ontology));
+            } // if
+            counter++;
+            Document doc = createDocumente(cls);
+            writer.addDocument(doc);
 
-	private void scanClasses(OWLOntology ontology)
-			throws CorruptIndexException, LockObtainFailedException,
-			IOException {
-		IndexWriter writer = new IndexWriter(idx, new StandardAnalyzer(
-				luceneVersion), true, IndexWriter.MaxFieldLength.UNLIMITED);
+        }
+        if (!dataFactory.getOWLThing().isDefined(ontology)) {
+            logger.info("The ontology have no root class defined, creating one");
+            OWLClass r = dataFactory.getOWLClass(IRI.create("http://www.w3.org/2002/07/owl" + "#Thing"));
 
-		Set<OWLDeclarationAxiom> classes = ontology
-				.getAxioms(AxiomType.DECLARATION);
+            for (OWLClass c : orphanChildren) {
+                OWLAxiom axiom = dataFactory.getOWLSubClassOfAxiom(c, r);
 
-		for (OWLDeclarationAxiom c : classes) {
+                AddAxiom addAxiom = new AddAxiom(ontology, axiom);
+                manager.applyChange(addAxiom);
+            }
+        }
+        orphanChildren.removeAll(obsoleteClasses);
+        logger.info("indexed {} classes", counter);
+        logger.info("found {} orphan classes ", orphanChildren.size());
+        writer.optimize();
+        writer.close();
+    }
 
-			OWLEntity entity = c.getSignature().iterator().next();
-			if (!(entity instanceof OWLClass)) {
-				// skip AnnotationProperties, ObjectProperties, DataProperites
-				continue;
-			}
-			OWLClass cls = (OWLClass) entity;
-			if (cls.getSuperClasses(ontology) == null
-					|| cls.getSuperClasses(ontology).size() < 1) {
-				orphanChildren.add(new ObaClass(cls, ontology));
-			}
+    private Document createDocumente(OWLClass cls) {
+        List<String> indexAnnotation = getAnnotationsToIndex();
+        Document doc = new Document();
+        String name;
+        String value;
+        doc.add(new Field("luceneName", cls.getIRI().toString(), Store.YES,
+                Index.ANALYZED));
+        name = "classname";
+        value = cls.getIRI().getFragment();
+        if (value == null) {
+            value = cls.getIRI().toString().replace(cls.getIRI().getStart(), "");
+        }
+        doc.add(new Field(name, value, Store.NO, Index.ANALYZED));
+        if (indexAnnotation != null && indexAnnotation.size() > 0) {
+            for (ObaAnnotation annotation : OntologyHelper.getAnnotationProperties(cls, onto)) {
+                if (indexAnnotation.contains(annotation.getName())) {
+                    name = annotation.getName();
+                    value = annotation.getValue();
+                    doc.add(new Field(name, value, Store.NO, Index.ANALYZED));
+                }
+            }
+        }
+        return doc;
 
-			Document doc = createDocumente(cls);
-			writer.addDocument(doc);
+    }
 
-		}
-		if (!dataFactory.getOWLThing().isDefined(ontology)) {
-			logger.info("The ontology have no root class defined, creating one");
-			OWLClass r = dataFactory.getOWLClass(IRI
-					.create("http://www.w3.org/2002/07/owl" + "#Thing"));
+    /**
+     * Searches the pattern in the luncene index. <code>null</code> is returned if any exception occurs.
+     *
+     * @param searchPattern
+     * @param fields
+     * @return A list of matches or <code>null</code>
+     */
+    private List<ObaClass> searchInIndex(String searchPattern, String fields) {
+        if (idx == null) {
+            logger.error("could not search, because the index is null");
+            return null;
+        }
+        // The pattern is split by white spaces and a term should not start with a wildcard.
+        searchPattern = searchPattern.replaceAll(" \\*", "\\*");
+        String[] searchFields;
+        List<String> fieldList = null;
+        if (fields == null) {
+            fieldList = new LinkedList<String>();
+            fieldList.add("classname");
+            fieldList.addAll(getAnnotationsToIndex());
 
-			for (OWLClass c : orphanChildren) {
-				OWLAxiom axiom = dataFactory.getOWLSubClassOfAxiom(c, r);
+        } else {
+            fieldList = Arrays.asList(fields.split(","));
+        }
+        searchFields = fieldList.toArray(new String[fieldList.size()]);
 
-				AddAxiom addAxiom = new AddAxiom(ontology, axiom);
-				manager.applyChange(addAxiom);
-			}
-		}
+        List<ObaClass> outClasses = new ArrayList<ObaClass>();
+        Searcher searcher;
+        try {
+            searcher = new IndexSearcher(idx);
 
-		logger.info("found {} orphan classes ", orphanChildren.size());
-		writer.optimize();
-		writer.close();
-	}
+            QueryParser parser = new MultiFieldQueryParser(luceneVersion,
+                    searchFields, new StandardAnalyzer(luceneVersion));
+            parser.setDefaultOperator(Operator.AND);
+            Query query = parser.parse(searchPattern);
+            TopDocs hits = searcher.search(query, MAX_HITS);
+            // List<Cls> outClasses = new LinkedList<Cls>();
+            if (hits.totalHits > MAX_HITS) {
+                logger.warn(
+                        "More than {} [{}] hits found for " + searchPattern,
+                        MAX_HITS, hits.totalHits);
+            }
+            for (int x = 0; x < hits.totalHits && x < MAX_HITS; x++) {
+                Document doc = searcher.doc(hits.scoreDocs[x].doc);
+                // System.out.println(hits.scoreDocs[x].score);
+                String className = doc.getField("luceneName").stringValue();
+                OWLClass cls = dataFactory.getOWLClass(IRI.create(className));
+                outClasses.add(new ObaClass(cls, onto));
+            }
+            return outClasses;
+            // return outClasses;
+        } catch (CorruptIndexException e) {
+            logger.error("could not search with lucene because the index is corrupt " + e);
+            e.printStackTrace();
+        } catch (IOException e) {
+            logger.error("could not search with lucene because of an io error " + e);
+            e.printStackTrace();
+        } catch (ParseException e) {
+            logger.error("parse error while searching in lucene " + e);
+//            e.printStackTrace();
+        }
 
-	private Document createDocumente(OWLClass cls) {
-		List<String> indexAnnotation = getAnnotationsToIndex();
-		Document doc = new Document();
-		String name;
-		String value;
-		doc.add(new Field("luceneName", cls.getIRI().toString(), Store.YES,
-				Index.ANALYZED));
-		name = "classname";
-		value = cls.getIRI().getFragment();
-		if (value == null) {
-			value = cls.getIRI().toString()
-					.replace(cls.getIRI().getStart(), "");
-		}
-		doc.add(new Field(name, value, Store.NO, Index.ANALYZED));
-		if (indexAnnotation != null && indexAnnotation.size() > 0) {
-			for (ObaAnnotation annotation : OntologyHelper
-					.getAnnotationProperties(cls, onto)) {
-				if (indexAnnotation.contains(annotation.getName())) {
-					name = annotation.getName();
-					value = annotation.getValue();
-					doc.add(new Field(name, value, Store.NO, Index.ANALYZED));
-				}
-			}
-		}
-		return doc;
+        return null;
+    }
 
-	}
+    private List<String> getAnnotationsToIndex() {
+        if (indexAnnotations == null) {
+            indexAnnotations = new LinkedList<String>();
+            if (properties == null) {
+                return indexAnnotations;
+            }
+            String annotations = properties.getProperty("indexAnnotations");
+            if (annotations != null) {
 
-	private List<OWLClass> searchInIndex(String searchPattern, String fields) {
-		if (idx == null) {
-			logger.error("could not search, because the index is null");
-			return null;
-		}
-		String[] searchFields;
-		List<String> fieldList = null;
-		if (fields == null) {
-			fieldList = new LinkedList<String>();
-			fieldList.add("classname");
-			fieldList.addAll(getAnnotationsToIndex());
-
-		} else {
-			fieldList = Arrays.asList(fields.split(","));
-		}
-		searchFields = fieldList.toArray(new String[fieldList.size()]);
-
-		List<OWLClass> outClasses = new ArrayList<OWLClass>();
-		Searcher searcher;
-		try {
-			searcher = new IndexSearcher(idx);
-
-			QueryParser parser = new MultiFieldQueryParser(luceneVersion,
-					searchFields, new StandardAnalyzer(luceneVersion));
-			parser.setDefaultOperator(Operator.AND);
-			System.out.println(searchPattern);
-			Query query = parser.parse(searchPattern);
-			TopDocs hits = searcher.search(query, MAX_HITS);
-			// List<Cls> outClasses = new LinkedList<Cls>();
-			if (hits.totalHits > MAX_HITS) {
-				logger.warn(
-						"More than {} [{}] hits found for " + searchPattern,
-						MAX_HITS, hits.totalHits);
-			}
-			for (int x = 0; x < hits.totalHits && x < MAX_HITS; x++) {
-				Document doc = searcher.doc(hits.scoreDocs[x].doc);
-				// System.out.println(hits.scoreDocs[x].score);
-				String className = doc.getField("luceneName").stringValue();
-				OWLClass cls = dataFactory.getOWLClass(IRI.create(className));
-				outClasses.add(new ObaClass(cls, onto));
-			}
-			return outClasses;
-			// return outClasses;
-		} catch (CorruptIndexException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (ParseException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	private List<String> getAnnotationsToIndex() {
-		if (indexAnnotations == null) {
-			indexAnnotations = new LinkedList<String>();
-			if (properties == null) {
-				return indexAnnotations;
-			}
-			String annotations = properties.getProperty("indexAnnotations");
-			if (annotations != null) {
-
-				String[] annotationsArray = annotations.split(",");
-				indexAnnotations = Arrays.asList(annotationsArray);
-			}
-		}
-		return indexAnnotations;
-	}
+                String[] annotationsArray = annotations.split(",");
+                indexAnnotations = Arrays.asList(annotationsArray);
+            }
+        }
+        return indexAnnotations;
+    }
 }

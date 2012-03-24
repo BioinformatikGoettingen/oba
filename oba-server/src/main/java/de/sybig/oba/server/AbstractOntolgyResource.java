@@ -6,6 +6,7 @@ import javax.ws.rs.core.PathSegment;
 import org.semanticweb.owlapi.model.OWLClass;
 
 public abstract class AbstractOntolgyResource {
+
 	protected ObaOntology ontology;
 
 	/**
@@ -24,6 +25,10 @@ public abstract class AbstractOntolgyResource {
 	 */
 	public ObaOntology getOntology() {
 		return ontology;
+	}
+
+	protected ObaClass getClassFromPathSegement(PathSegment pathSegment) {
+		return getClassFromPathSegement(pathSegment, null);
 	}
 
 	/**
@@ -55,5 +60,4 @@ public abstract class AbstractOntolgyResource {
 		}
 		return new ObaClass(clsX, ontology.getOntology());
 	}
-
 }

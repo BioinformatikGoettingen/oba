@@ -33,6 +33,8 @@ import org.slf4j.LoggerFactory;
 
 import com.sun.jersey.api.json.JSONJAXBContext;
 import com.sun.jersey.api.json.JSONMarshaller;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 
 /**
  * 
@@ -42,6 +44,7 @@ import com.sun.jersey.api.json.JSONMarshaller;
 @Provider
 @Produces("application/json")
 public class JsonMarshaller implements MessageBodyWriter<Object> {
+
 	private Logger logger = LoggerFactory.getLogger(JsonMarshaller.class);
 
 	@Override
@@ -87,7 +90,7 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
 			if (first instanceof OWLClass) {
 				JsonClsList outList = copyClsList((Collection<OWLClass>) set);
 				outList.setRawEntities(null); // otherwise the list is
-												// duplicated
+				// duplicated
 				marshallObject(outList, JsonClsList.class, os);
 			} else if (first instanceof OWLObjectProperty) {
 				JsonPropertyList outList = copyPropertyList((Collection<OWLObjectProperty>) set);
@@ -112,7 +115,7 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
 					innerList.add(copyCls(value, false));
 				}
 				innerList.setRawEntities(null); // otherwise the list is
-												// duplicated
+				// duplicated
 				outList.add(innerList);
 			}
 			outList.setRawEntities(null);
@@ -137,13 +140,20 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
 	 * @param os
 	 *            The stream to write the output to.
 	 */
-	private void marshallObject(Object o, Class<?> c, OutputStream os) {
+	private void marshallObject(Object o, Class<?> c, OutputStream os)
+			throws IOException {
 		try {
-			JAXBContext ctx = JAXBContext.newInstance(c);
-			JSONMarshaller m = JSONJAXBContext.getJSONMarshaller(ctx
-					.createMarshaller());
-			m.marshallToJSON(o, os);
-		} catch (JAXBException e) {
+			// JAXBContext ctx = JAXBContext.newInstance(c);
+			// JSONMarshaller m =
+			// JSONJAXBContext.getJSONMarshaller(ctx.createMarshaller());
+			// m.marshallToJSON(o, os);
+			ObjectMapper mapper = new ObjectMapper();
+			// mapper.configure(SerializationConfig.WRITE_NULL_PROPERTIES,
+			// false);
+			mapper.getSerializationConfig().setSerializationInclusion(
+					Inclusion.NON_NULL);
+			mapper.writeValue(os, o);
+		} catch (Exception e) {
 			logger.error("could not marshall object {} to json, reason: ", o, e);
 			e.printStackTrace();
 			throw new WebApplicationException(500);
@@ -159,6 +169,7 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
 		out.setAnnotations(getJsonAnnotations(c, ontology));
 
 		if (!fillcomplete) {
+			out.setIsMarshalling(true);
 			return out;
 		}
 
@@ -184,6 +195,7 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
 			out.addRestriction(jp);
 
 		}
+		out.setIsMarshalling(true);
 		return out;
 	}
 
@@ -198,8 +210,9 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
 
 	private Json2DClsList copy2DClsList(Collection<Collection<OWLClass>> list) {
 		Json2DClsList outList = new Json2DClsList();
-		for (Collection<OWLClass> l : list)
+		for (Collection<OWLClass> l : list) {
 			outList.add(copyClsList(l));
+		}
 		return outList;
 	}
 
@@ -265,5 +278,4 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
 	// out.setNamespace(ind.getNamespace());
 	// return out;
 	// }
-
 }

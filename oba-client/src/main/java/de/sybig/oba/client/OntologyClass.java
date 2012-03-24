@@ -14,156 +14,158 @@ import de.sybig.oba.server.JsonObjectPropertyExpression;
 @XmlType
 @XmlRootElement
 public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
-	@XmlTransient
-	protected Set<C> ocChildren;
-	@XmlTransient
-	protected Set<C> ocParents;
-//	@XmlTransient
-//	protected Set<JsonObjectPropertyExpression<C>> ocRestrictions;
 
-	@XmlTransient
-	private GenericConnector connector;
+    @XmlTransient
+    protected Set<C> ocChildren;
+    @XmlTransient
+    protected Set<C> ocParents;
+    // @XmlTransient
+    // protected Set<JsonObjectPropertyExpression<C>> ocRestrictions;
+    @XmlTransient
+    private GenericConnector connector;
 
-	public OntologyClass() {
-		super();
-	}
+    public OntologyClass() {
+        super();
+    }
 
-	public OntologyClass(JsonCls c) {
-		fillWithTemplate(c);
-	}
+    public OntologyClass(JsonCls c) {
+        fillWithTemplate(c);
+    }
 
-	public Set<JsonAnnotation> getLabel() {
-		return getAnnotationValues("label");
-	}
+    public Set<JsonAnnotation> getLabel() {
+        return getAnnotationValues("label");
+    }
 
-	/**
-	 * Get the value of an annotation. If the class has no annotation with this
-	 * name <code>null</code> is returned. If the class has multiple annotations
-	 * with this name but with values in different language only the value of
-	 * the first annotation is returned. The order of the annotations is not
-	 * defined.
-	 * 
-	 * @param name
-	 *            The name of the annotation to get the value for.
-	 * @return The value of the annotation, or <code>null</code>
-	 */
-	public String getSingleAnnotationValue(String name) {
-		Set<JsonAnnotation> annotationsValues = getAnnotationValues(name);
-		if (annotationsValues == null || annotationsValues.size() < 1) {
-			return null;
-		}
-		return annotationsValues.iterator().next().getValue();
-	}
+    /**
+     * Get the value of an annotation. If the class has no annotation with this
+     * name <code>null</code> is returned. If the class has multiple annotations
+     * with this name but with values in different language only the value of
+     * the first annotation is returned. The order of the annotations is not
+     * defined.
+     *
+     * @param name
+     *            The name of the annotation to get the value for.
+     * @return The value of the annotation, or <code>null</code>
+     */
+    public String getSingleAnnotationValue(String name) {
+        Set<JsonAnnotation> annotationsValues = getAnnotationValues(name);
+        if (annotationsValues == null || annotationsValues.size() < 1) {
+            return null;
+        }
+        return annotationsValues.iterator().next().getValue();
+    }
 
-	public Set<JsonAnnotation> getAnnotationValues(String name) {
-		if (annotations == null) {
-			return null;
-		}
-		Set<JsonAnnotation> foundAnnotations = new HashSet<JsonAnnotation>();
-		for (JsonAnnotation annotation : annotations) {
-			if (!name.equals(annotation.getName())) {
-				continue;
-			}
-			foundAnnotations.add(annotation);
-		}
-		return foundAnnotations;
-	}
+    public Set<JsonAnnotation> getAnnotationValues(String name) {
+        if (annotations == null) {
+            return null;
+        }
+        Set<JsonAnnotation> foundAnnotations = new HashSet<JsonAnnotation>();
+        for (JsonAnnotation annotation : annotations) {
+            if (!name.equals(annotation.getName())) {
+                continue;
+            }
+            foundAnnotations.add(annotation);
+        }
+        return foundAnnotations;
+    }
 
-	@Override
-	public Set<C> getChildren() {
-		if (_children == null && !shell) {
-			return null;
-		}
-		if (shell) {
-			fillCls();
-		}
-		if (ocChildren == null && _children != null) {
-			ocChildren = new HashSet<C>();
-			for (Object o : _children) {
-				JsonCls c = (JsonCls) o;
-				C child = (C) createNewOntologyClass(c);
-				child.setConnector(connector);
-				ocChildren.add(child);
-			}
-		}
-		return ocChildren;
-	}
+    @Override
+    public Set<C> getChildren() {
+        if (_children == null && !shell) {
+            return null;
+        }
+        if (shell) {
+            fillCls();
+        }
+        if (ocChildren == null && _children != null) {
+            ocChildren = new HashSet<C>();
+            for (Object o : _children) {
+                JsonCls c = (JsonCls) o;
+                C child = (C) createNewOntologyClass(c);
+                child.setConnector(connector);
+                ocChildren.add(child);
+            }
+        }
+        return ocChildren;
+    }
 
-	@Override
-	public Set<C> getParents() {
-		if (shell) {
-			fillCls();
-		}
-		if (ocParents == null && _parents != null) {
-			ocParents = new HashSet<C>();
-			for (JsonCls c : _parents) {
-				C parent = (C) createNewOntologyClass(c);
-				parent.setConnector(connector);
-				ocParents.add(parent);
-			}
-		}
-		return ocParents;
-	}
+    @Override
+    public Set<C> getParents() {
+        if (shell) {
+            fillCls();
+        }
+        if (ocParents == null && _parents != null) {
+            ocParents = new HashSet<C>();
+            for (JsonCls c : _parents) {
+                C parent = (C) createNewOntologyClass(c);
+                parent.setConnector(connector);
+                ocParents.add(parent);
+            }
+        }
+        return ocParents;
+    }
 
-	public Set<JsonObjectPropertyExpression> getProperties() {
-		
-		if (restrictions != null) {
-			for (JsonObjectPropertyExpression ope : restrictions) {
-				JsonCls target = ope.getTarget();
-				if (!(target instanceof OntologyClass)) {
-					C newTarget = createNewOntologyClass(target);
-					newTarget.setConnector(connector);
-					ope.setTarget(newTarget);
-				}
-			}
-		}
-		
-	return restrictions;
-	}
+    public Set<JsonObjectPropertyExpression> getProperties() {
 
-	public Set<JsonAnnotation> getAnnotations() {
-		if (shell) {
-			fillCls();
-		}
-		return annotations;
-	}
+        if (restrictions != null) {
+            for (JsonObjectPropertyExpression ope : restrictions) {
+                JsonCls target = ope.getTarget();
+                if (!(target instanceof OntologyClass)) {
+                    C newTarget = createNewOntologyClass(target);
+                    newTarget.setConnector(connector);
+                    ope.setTarget(newTarget);
+                }
+            }
+        }
 
-	public void setConnector(GenericConnector connector) {
-		this.connector = connector;
-	}
+        return restrictions;
+    }
 
-	protected C createNewOntologyClass(JsonCls c) {
-		return (C) new OntologyClass(c);
-	}
+    public Set<JsonAnnotation> getAnnotations() {
+        if (shell) {
+            fillCls();
+        }
+        return annotations;
+    }
 
-	private void fillWithTemplate(JsonCls c) {
-		shell = c.isShell();
-		annotations = c.getAnnotations();
-		_children = c.getRawChildren();
-		name = c.getName();
-		namespace = c.getNamespace();
-		_parents = c.getRawParents();
+    public void setConnector(GenericConnector connector) {
+        this.connector = connector;
+    }
 
-		restrictions = c.getProperties();
-	}
+    protected C createNewOntologyClass(JsonCls c) {
+        return (C) new OntologyClass(c);
+    }
 
-	private void fillCls() {
-		if (connector == null) {
-			// The connector is set to null if the class is sent back to the
-			// server. Otherwise the marshaller would fetch the whole ontology.
-			return;
-		}
-		JsonCls filledClass = connector.getCls(this);
-		fillWithTemplate(filledClass);
-	}
+    private void fillWithTemplate(JsonCls c) {
+        shell = c.isShell();
+        annotations = c.getAnnotations();
+        _children = c.getRawChildren();
+        name = c.getName();
+        namespace = c.getNamespace();
+        _parents = c.getRawParents();
 
-	public String toString() {
+        restrictions = c.getProperties();
+    }
 
-		if (getLabel() != null && getLabel().size() == 1) {
-			return getLabel().iterator().next().getValue();
-		}
-		return name;
+    private void fillCls() {
+        if (connector == null) {
+            // The connector is set to null if the class is sent back to the
+            // server. Otherwise the marshaller would fetch the whole ontology.
+            return;
+        }
+        JsonCls filledClass = connector.getCls(this);
+        fillWithTemplate(filledClass);
+    }
 
-		// return "OntologyClass: " + name;
-	}
+    public String toString() {
+
+        if (getLabel() != null && getLabel().size() == 1) {
+            return getLabel().iterator().next().getValue();
+        }
+        return name;
+    }
+
+    public static String getVersion() {
+        return "20111204";
+    }
 }

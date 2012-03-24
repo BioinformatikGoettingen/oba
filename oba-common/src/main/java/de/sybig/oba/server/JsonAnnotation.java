@@ -43,4 +43,7 @@ public class JsonAnnotation {
 		this.value = value;
 	}
 
+	public String toString() {
+		return String.format("%s [%s]: %s", name, language, value);
+	}
 }

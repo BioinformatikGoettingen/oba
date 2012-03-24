@@ -1,5 +1,6 @@
 package de.sybig.oba.cytomer;
 
+import de.sybig.oba.server.CytomerFunctions;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;

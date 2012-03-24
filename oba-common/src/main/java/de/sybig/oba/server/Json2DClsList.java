@@ -8,19 +8,22 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
+import org.codehaus.jackson.annotate.JsonIgnore;
 
 @XmlRootElement
 @XmlType
-public class Json2DClsList<T extends JsonClsList<C>, C extends JsonCls> {
+public class Json2DClsList<T extends JsonClsList<JsonCls>, C extends JsonCls> {
 
 	@XmlElement(name = "entities")
-	protected List<JsonClsList<C>> _entities;
+	protected List<JsonClsList<JsonCls>> _entities;
+
 	@XmlTransient
-	protected List<T> entities;
+	protected transient List<T> entities;
 
 	/**
 	 * @return the classes
 	 */
+
 	public List<T> getEntities() {
 		// if (_entities == null) {
 		// return null;
@@ -53,7 +56,7 @@ public class Json2DClsList<T extends JsonClsList<C>, C extends JsonCls> {
 			entities = new LinkedList<T>();
 		}
 		if (_entities == null) {
-			_entities = new LinkedList<JsonClsList<C>>();
+			_entities = new LinkedList<JsonClsList<JsonCls>>();
 		}
 		_entities.add(cls);
 		return entities.add(cls);
@@ -67,7 +70,7 @@ public class Json2DClsList<T extends JsonClsList<C>, C extends JsonCls> {
 		return getEntities().size();
 	}
 
-	protected void setRawEntities(List<JsonClsList<C>> e) {
+	protected void setRawEntities(List<JsonClsList<JsonCls>> e) {
 		_entities = e;
 	}
 }

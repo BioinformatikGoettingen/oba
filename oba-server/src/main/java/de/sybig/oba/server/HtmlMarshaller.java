@@ -218,7 +218,6 @@ public class HtmlMarshaller extends OntoMarshaller {
 	private String getHtmlLink(IRI iri, String htmlBase) {
 		String name = iri.getFragment();
 		if (name == null) {
-			System.out.println(iri);
 			name = iri.toString().replace(iri.getStart(), "");
 		}
 		return String.format("<a href=%s%s?ns=%s>%s</a>", htmlBase, name,

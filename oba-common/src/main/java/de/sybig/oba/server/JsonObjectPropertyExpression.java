@@ -20,7 +20,6 @@ public class JsonObjectPropertyExpression<C extends JsonCls> {
 		this.property = property;
 	}
 
-
 	public C getTarget() {
 		return target;
 	}

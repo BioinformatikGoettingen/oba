@@ -27,7 +27,7 @@ public class AdminResource {
 	@Path("/version")
 	@Produces("text/plain")
 	public String getServerVersion() {
-		return "1.1";
+		return "1.3";
 	}
 
 	@GET
