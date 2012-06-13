@@ -8,27 +8,27 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.*;
 import javax.ws.rs.core.PathSegment;
 import java.util.*;
+import sun.nio.cs.ext.PCK;
 
 public class TriboliumFunctions extends OntologyFunctions {
 
     private static final String TRIBOLIUM_NS = "http://purl.org/obo/owlapi/tribolium.anatomy"; //TODO move to config
     private static final String DEV_STAGES_ID = "TrOn_0000024";
     private static final Logger log = LoggerFactory.getLogger(TriboliumFunctions.class);
-
     private volatile Map<ObaClass, ObaClass> concreteClasses;
     private Set<ObaClass> devStages;
     private OWLObjectProperty partOfRestriction;
     private Map<ObaClass, Set<ObaClass>> hasParts;
     private Set<ObaClass> genericClasses;
 
-      @GET
+    @GET
     @Path("/")
     @Produces("text/html")
     @Override
     public String getRoot() {
-          return "";
-      }
-    
+        return "";
+    }
+
     /**
      * Get all concrete classes. A concrete class has, direct or indirect, a partOf relation to a developmental stage.
      *
@@ -37,7 +37,7 @@ public class TriboliumFunctions extends OntologyFunctions {
     @GET
     @Path("/concreteClasses")
     @Produces(ALL_TYPES)
-    Set<ObaClass> getConcreteClasses() {
+    public Set<ObaClass> getConcreteClasses() {
 
         if (concreteClasses == null) {
             log.info("creating the list of concrete classes");
@@ -71,6 +71,31 @@ public class TriboliumFunctions extends OntologyFunctions {
         return genericClasses;
     }
 
+    @GET
+    @Path("/mixedClasses")
+    @Produces(ALL_TYPES)
+    public Set<ObaClass> getMixedClasses() {
+        Set<ObaClass> allConcrete = getConcreteClasses();
+        l1:
+        for (ObaClass c : allConcrete) {
+//            if (OntologyHelper.getChildren(c).size() > 0){
+//                continue;}
+            for (ObaClass p : OntologyHelper.getParents(c)) {
+
+                if (isParentDirectGeneric(p)) {
+//                     System.out.println("not mixed "+ labelOf(c));
+                    continue l1;
+                }
+//                if (concreteClasses.containsKey(p)){
+//                    System.out.println("extended mixed " + labelOf(c));
+////                     continue l1;
+//                 }
+            }
+            System.out.println("mixed " + labelOf(c));
+        }
+        return null;
+    }
+
     /**
      * Get all ontology classes of organisms in specific developmental stage. This are all classes below of the node
      * "organism" and their children.
@@ -80,7 +105,7 @@ public class TriboliumFunctions extends OntologyFunctions {
     @GET
     @Path("/devStages")
     @Produces(ALL_TYPES)
-    Set<ObaClass> getDevStages() {
+    public Set<ObaClass> getDevStages() {
         if (devStages == null) {
             devStages = new HashSet<ObaClass>();
             ObaClass devStageCls = ontology.getOntologyClass(DEV_STAGES_ID,
@@ -106,13 +131,16 @@ public class TriboliumFunctions extends OntologyFunctions {
         // In the owl representation of the OBO ontology spaces are replace by '_'
         searchPattern = searchPattern.replaceAll("_", " ");
 
+        try{
         StorageHandler storageHandler = new StorageHandler();
         Set<ObaClass> additional = storageHandler.getStorage("ibeetle",
                 "addGenCls");
         if (additional != null) {
             toRemove.removeAll(additional);
         }
-
+        }catch (WebApplicationException we){
+            // the storage list wasn't found, just use the generic classes.
+        }
         List<ObaClass> hits = ontology.searchCls(searchPattern, null);
         hits.removeAll(toRemove);
 
@@ -143,11 +171,11 @@ public class TriboliumFunctions extends OntologyFunctions {
     @Path("/searchConcreteFor/{cls}")
     @Produces(ALL_TYPES)
     public Set<ObaClass> findConcreteFor(@PathParam("cls") String cls,
-                                         @QueryParam("ns") String ns) {
+            @QueryParam("ns") String ns) {
         //TODO use also hasPart relations.
         ObaClass startClass = ontology.getOntologyClass(cls, ns);
-
-        return findConcrete(startClass);
+        Set<ObaClass> concreteCls = findConcrete(startClass);
+        return concreteCls;
     }
 
     /**
@@ -167,18 +195,22 @@ public class TriboliumFunctions extends OntologyFunctions {
             @PathParam("devStage") PathSegment devStage,
             @QueryParam("ns") String ns) {
         // log.info("search concrete for {} in stage {}", genericCls, devStage);
-        ObaClass concreteCls = getClassFromPathSegement(genericCls);
+        ObaClass genericClass = getClassFromPathSegement(genericCls);
         ObaClass devStageCls = getClassFromPathSegement(devStage, ns);
-        Set<ObaClass> allConcrete = findConcrete(concreteCls);
-
+        Set<ObaClass> allConcrete = findConcrete(genericClass);
+        HashSet<ObaClass> usedDevStages = new HashSet<ObaClass>();
+        usedDevStages.add(devStageCls);
+        //TODO call recursive, reuse addDevStagesDownstream()
+        for (ObaClass child : OntologyHelper.getChildren(devStageCls)) {
+            usedDevStages.add(child);
+        }
         Set<ObaClass> result = new HashSet<ObaClass>();
         for (ObaClass c : allConcrete) {
-            if (concreteClasses.containsKey(c)
-                    && concreteClasses.get(c).equals(devStageCls)) {
+            if (concreteClasses.containsKey(c) && usedDevStages.contains(concreteClasses.get(c))) {
                 result.add(c);
             }
         }
-        // log.info("returning {} results", result.size());
+        log.info("returning {} concrete classes for {} and stage " + devStageCls, result.size(), genericClass);
         return result;
     }
 
@@ -203,9 +235,40 @@ public class TriboliumFunctions extends OntologyFunctions {
         return concreteClasses.get(concreteCls);
     }
 
+    @GET
+    @Path("/allClasses")
+    public Set<ObaClass> getAllClasses() {
+        HashSet<ObaClass> all = new HashSet<ObaClass>();
+        ObaClass r = ontology.getRoot();
+        all.add(r);
+        addChildsToSet(r, all);
+        return all;
+    }
+
+    @GET
+    @Path("/clsLoops")
+    public Set<ObaClass> getClsLoops() {
+        HashSet<ObaClass> all = new HashSet<ObaClass>();
+        ObaClass r = ontology.getRoot();
+        searchClsLoops(r, all);
+        return all;
+    }
+
+    @GET
+    @Path("/relationLoops/{property}")
+    public Set<ObaClass> getRelationLoops(@PathParam("property") String relation) {
+        //TODO realy use parameter ;)
+        HashSet<ObaClass> all = new HashSet<ObaClass>();
+        ObaClass r = ontology.getRoot();
+        searchPropertyLoops(r, all, getPartOfRestriction());
+        return all;
+    }
 
     private void addDevStagesDownstream(ObaClass start) {
         devStages.add(start);
+        //TODO reenable
+        // at the moment we don't find concrete classes for larval head, because
+        // we search with larva and all classes are linked to L1
         for (ObaClass child : OntologyHelper.getChildren(start)) {
             addDevStagesDownstream(child);
         }
@@ -426,6 +489,10 @@ public class TriboliumFunctions extends OntologyFunctions {
         }
 
         for (ObaClass child : OntologyHelper.getChildren(cls)) {
+            if (cls.equals(child)){
+                log.warn("cls-loop " + cls);
+                continue;
+            }
             findHasParts(child);
         }
     }
@@ -442,5 +509,84 @@ public class TriboliumFunctions extends OntologyFunctions {
         for (ObaClass child : children) {
             addToGenericClasses(child);
         }
+    }
+
+    private boolean isParentDirectGeneric(ObaClass parent) {
+//        System.out.println("testing " + labelOf(parent));
+        Set devStages = new HashSet();
+        Set<ObaClass> children = OntologyHelper.getChildren(parent);
+        for (ObaClass c : children) {
+            ObaClass ds = concreteClasses.get(c);
+//            System.out.println("\t " + labelOf(c) + " -> " + ds);
+            if (ds != null) {
+                devStages.add(ds);
+            }
+        }
+//        System.out.println( devStages.size() +" dev stages for " + labelOf(parent));
+        return devStages.size() > 1;
+    }
+
+    private void addChildsToSet(ObaClass parent, Set<ObaClass> set) {
+        Set<ObaClass> children = OntologyHelper.getChildren(parent);
+        if (children == null) {
+            return;
+        }
+        for (ObaClass child : children) {
+            if (child.equals(parent)) {
+                continue;
+            }
+            set.add(child);
+            addChildsToSet(child, set);
+        }
+    }
+
+    private void searchClsLoops(ObaClass parent, Set<ObaClass> set) {
+        Set<ObaClass> children = OntologyHelper.getChildren(parent);
+        if (children == null) {
+            return;
+        }
+        for (ObaClass child : children) {
+            if (child.equals(parent)) {
+                set.add(child);
+                continue;
+            }
+            searchClsLoops(child, set);
+        }
+    }
+
+    private void searchPropertyLoops(ObaClass parent, Set<ObaClass> set, OWLObjectProperty restriction) {
+        HashSet<ObaObjectPropertyExpression> partOf = new HashSet<ObaObjectPropertyExpression>();
+        for (ObaObjectPropertyExpression ope : OntologyHelper.getObjectRestrictions(parent)) {
+            if (!ope.getRestriction().equals(restriction)) {
+                continue;
+            }
+            if (ope.getTarget().equals(parent)) {
+                set.add(parent);
+            }
+        }
+        Set<ObaClass> children = OntologyHelper.getChildren(parent);
+        if (children == null) {
+            return;
+        }
+
+        for (ObaClass child : children) {
+            if (child.equals(parent)) {
+                continue;
+            }
+            searchPropertyLoops(child, set, restriction);
+        }
+    }
+
+    private OWLObjectProperty getRestriction(String restriction) {
+        Set<String> r = new HashSet<String>();
+        r.add(restriction);
+        return OntologyHelper.getObjectProperties(ontology.getOntology(), r).iterator().next();
+    }
+
+    private OWLObjectProperty getPartOfRestriction() {
+        if (partOfRestriction == null) {
+            partOfRestriction = getRestriction("part_of");
+        }
+        return partOfRestriction;
     }
 }

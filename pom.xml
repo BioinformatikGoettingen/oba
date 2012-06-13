@@ -1,180 +1,175 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
+    <modelVersion>4.0.0</modelVersion>
 
-	<groupId>de.sybig</groupId>
-	<artifactId>oba</artifactId>
-	<version>1.2</version>
-	<packaging>pom</packaging>
+    <groupId>de.sybig</groupId>
+    <artifactId>oba</artifactId>
+    <version>1.2.1</version>
+    <packaging>pom</packaging>
 
-	<name>oba</name>
-	<url>http://www.bioinf.med.uni-goettingen.de/projects/oba</url>
-	<description>oba (ontology based answers)</description>
+    <name>oba</name>
+    <url>http://www.bioinf.med.uni-goettingen.de/projects/oba</url>
+    <description>oba (ontology based answers)</description>
 
-	<properties>
+    <properties>
 				
 <!--		<jersey.version>1.8-ea02</jersey.version>-->
-                <jersey.version>1.1.4</jersey.version>
-		<plugin.shade.version>1.4</plugin.shade.version>
-		<slf4j.version>1.5.8</slf4j.version>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jersey.version>1.1.4</jersey.version>
+        <plugin.shade.version>1.4</plugin.shade.version>
+        <slf4j.version>1.5.8</slf4j.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!-- the following is needed for the PMD plugin, it ignores it own config 
 			values -->
-		<targetJdk>1.6</targetJdk>
-	</properties>
-	<profiles>
-		<profile>
-			<id>prod-profile</id>
-			<build>
-				<resources>
-					<resource>
-						<directory>src/main/resources/prod </directory>
-					</resource>
-				</resources>
-			</build>
-		</profile>
-		<profile>
-			<id>ci-profile</id>
-			<build>
-				<resources>
-					<resource>
-						<directory>src/main/resources/ci</directory>
-					</resource>
-				</resources>
-			</build>
-		</profile>
-	</profiles>
+        <targetJdk>1.6</targetJdk>
+    </properties>
+    <profiles>
+        <profile>
+            <id>prod-profile</id>
+            <build>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources/prod </directory>
+                    </resource>
+                </resources>
+            </build>
+        </profile>
+        <profile>
+            <id>ci-profile</id>
+            <build>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources/ci</directory>
+                    </resource>
+                </resources>
+            </build>
+        </profile>
+    </profiles>
 
-	<issueManagement>
-		<system>trac</system>
-		<url>https://genie.sybig.de/projects/oba/</url>
-	</issueManagement>
-	<developers>
-		<developer>
-			<id>jdo</id>
-			<name>Jürgen Dönitz</name>
-			<email>juergen.doenitz@bioinf.med.uni-goettingen.de"</email>
-			<roles>
-				<role>Project Manager</role>
-				<role>Architect</role>
-				<role>Developer</role>
-			</roles>
-			<organization>Dept. Bioinformatics UMG</organization>
-			<timezone>+1</timezone>
-		</developer>
-	</developers>
-	<scm>
-		<connection>scm:svn:https://svn.bioinf.med.uni-goettingen.de/svn/oba/tags/oba-1.2</connection>
-		<developerConnection>scm:svn:https://svn.bioinf.med.uni-goettingen.de/svn/oba/tags/oba-1.2</developerConnection>
-	</scm>
+    <issueManagement>
+        <system>trac</system>
+        <url>https://genie.sybig.de/projects/oba/</url>
+    </issueManagement>
+    <developers>
+        <developer>
+            <id>jdo</id>
+            <name>Jürgen Dönitz</name>
+            <email>juergen.doenitz@bioinf.med.uni-goettingen.de"</email>
+            <roles>
+                <role>Project Manager</role>
+                <role>Architect</role>
+                <role>Developer</role>
+            </roles>
+            <organization>Dept. Bioinformatics UMG</organization>
+            <timezone>+1</timezone>
+        </developer>
+    </developers>
+    <scm>
+        <connection>scm:svn:https://svn.bioinf.med.uni-goettingen.de/svn/oba/tags/oba-1.2.1</connection>
+        <developerConnection>scm:svn:https://svn.bioinf.med.uni-goettingen.de/svn/oba/tags/oba-1.2.1</developerConnection>
+    </scm>
 
-	<distributionManagement>
-		<site>
-			<id>maven-site</id>
-			<url>scp://localhost/var/www/maven/${project.artifactId}</url>
-		</site>
-		<snapshotRepository>
-			<uniqueVersion>false</uniqueVersion>
-			<id>sybig-snapshot</id>
-			<url>http://neidelbaum:8081/nexus/content/repositories/sybig-snapshot</url>
-		</snapshotRepository>
-		<repository>
-			<uniqueVersion>false</uniqueVersion>
-			<id>sybig-repository</id>
-			<url>http://neidelbaum:8081/nexus/content/repositories/sybig</url>
-		</repository>
-	</distributionManagement>
-
-
+    <distributionManagement>
+        <site>
+            <id>maven-site</id>
+            <url>scp://localhost/var/www/maven/${project.artifactId}</url>
+        </site>
+        <snapshotRepository>
+            <uniqueVersion>false</uniqueVersion>
+            <id>sybig-snapshot</id>
+            <url>http://neidelbaum:8081/nexus/content/repositories/sybig-snapshot</url>
+        </snapshotRepository>
+        <repository>
+            <uniqueVersion>false</uniqueVersion>
+            <id>sybig-repository</id>
+            <url>http://neidelbaum:8081/nexus/content/repositories/sybig</url>
+        </repository>
+    </distributionManagement>
 
 
-	<build>
-		<plugins>
-			<plugin>
+
+
+    <build>
+        <plugins>
+            <plugin>
 				<!-- http://mojo.codehaus.org/buildnumber-maven-plugin/usage.html -->
 				<!-- 1.0-beta-4 isn't working -->
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>buildnumber-maven-plugin</artifactId>
-				<version>1.0-beta-3</version>
-				<executions>
-					<execution>
-						<phase>validate</phase>
-						<goals>
-							<goal>create</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<doCheck>false</doCheck>
-					<doUpdate>true</doUpdate>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jar-plugin</artifactId>
-				<version>2.1</version>
-				<configuration>
-					<finalName>${project.artifactId}-${project.version}</finalName>
-					<archive>
-						<manifest>
-							<addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-						</manifest>
-						<manifestEntries>
-							<Implementation-Build>${buildNumber}</Implementation-Build>
-						</manifestEntries>
-					</archive>
-					<includes>
-						<include>src/main/java</include>
-					</includes>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-source-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>attach-sources</id>
-						<goals>
-							<goal>jar</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>2.3.1</version>
-				<configuration>
-					<source>1.6</source>
-					<target>1.6</target>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>exec-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<goals>
-							<goal>java</goal>
-						</goals>
-					</execution>
-				</executions>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>buildnumber-maven-plugin</artifactId>
+                <version>1.0-beta-3</version>
+                <executions>
+                    <execution>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>create</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <doCheck>false</doCheck>
+                    <doUpdate>true</doUpdate>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.1</version>
+                <configuration>
+                    <finalName>${project.artifactId}-${project.version}</finalName>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                        <manifestEntries>
+                            <Implementation-Build>${buildNumber}</Implementation-Build>
+                        </manifestEntries>
+                    </archive>
+                    <includes>
+                        <include>src/main/java</include>
+                    </includes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.1</version>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                    </execution>
+                </executions>
 
-				<configuration>
-					<includeProjectDependencies>false</includeProjectDependencies>
-					<includePluginDependencies>true</includePluginDependencies>
-					<executableDependency>
-						<groupId>de.sybig</groupId>
-						<artifactId>oba-server</artifactId>
-
-
-					</executableDependency>
-					--&gt;
-					<mainClass>de.sybig.oba.server.RestServer</mainClass>
-				</configuration>
-				<!-- <dependencies> <dependency> <groupId>de.sybig</groupId> <artifactId>oba-server</artifactId> 
-					<version>1.0-SNAPSHOT</version> </dependency> </dependencies> -->
-			</plugin>
+                <configuration>
+                    <includeProjectDependencies>false</includeProjectDependencies>
+                    <includePluginDependencies>true</includePluginDependencies>
+                    <executableDependency>
+                        <groupId>de.sybig</groupId>
+                        <artifactId>oba-server</artifactId>
+                    </executableDependency>
+                    <mainClass>de.sybig.oba.server.RestServer</mainClass>
+                </configuration>			
+            </plugin>
 
 			<!-- <plugin> <groupId>org.codehaus.mojo</groupId> <artifactId>cobertura-maven-plugin</artifactId> 
 				<version>2.4</version> <configuration> <instrumentation> <ignores> <ignore>com.example.boringcode.*</ignore> 
@@ -188,13 +183,13 @@
 				<formats> <format>html</format> <format>xml</format> </formats> </configuration> 
 				<executions> <execution> <goals> <goal>clean</goal> <goal>check</goal> </goals> 
 				</execution> </executions> </plugin> -->
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-deploy-plugin</artifactId>
-				<configuration>
-					<uniqueVersion>false</uniqueVersion>
-				</configuration>
-			</plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <configuration>
+                    <uniqueVersion>false</uniqueVersion>
+                </configuration>
+            </plugin>
 
 			<!-- <plugin> <artifactId>maven-assembly-plugin</artifactId> <version>2.2.1</version> 
 				<configuration> <descriptorRefs> <descriptorRef>jar-with-dependencies</descriptorRef> 
@@ -202,74 +197,74 @@
 				<phase>package</phase> <goals> <goal>single</goal> </goals> </execution> 
 				</executions> </plugin> -->
 
-		</plugins>
-		<finalName>${project.artifactId}-${project.version}-r${buildNumber}</finalName>
-	</build>
+        </plugins>
+        <finalName>${project.artifactId}-${project.version}-r${buildNumber}</finalName>
+    </build>
 
-	<reporting>
-		<plugins>
+    <reporting>
+        <plugins>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-checkstyle-plugin</artifactId>
-				<version>2.5</version>
-				<configuration>
-					<configLocation>${basedir}/own_checkstyle.xml</configLocation>
-				</configuration>
-			</plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>2.5</version>
+                <configuration>
+                    <configLocation>${basedir}/own_checkstyle.xml</configLocation>
+                </configuration>
+            </plugin>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-pmd-plugin</artifactId>
-				<version>2.5</version>
-				<configuration>
-					<configuration>
-						<targetJdk>1.6</targetJdk>
-					</configuration>
-				</configuration>
-			</plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>2.5</version>
+                <configuration>
+                    <configuration>
+                        <targetJdk>1.6</targetJdk>
+                    </configuration>
+                </configuration>
+            </plugin>
 
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>findbugs-maven-plugin</artifactId>
-				<version>2.0.1</version>
-			</plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>2.0.1</version>
+            </plugin>
 
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-jxr-plugin</artifactId>
-				<version>2.2</version>
-			</plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jxr-plugin</artifactId>
+                <version>2.2</version>
+            </plugin>
 
-			<plugin>
-				<artifactId>maven-surefire-plugin</artifactId>
-				<version>2.3</version>
-			</plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.3</version>
+            </plugin>
 
-		</plugins>
-	</reporting>
+        </plugins>
+    </reporting>
 
-	<dependencies>
+    <dependencies>
 		<!-- <dependency> <groupId>log4j</groupId> <artifactId>log4j</artifactId> 
 			<version>1.2.12</version> </dependency> -->
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.0</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-log4j12</artifactId>
-			<version>${slf4j.version}</version>
-		</dependency>
-	</dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-log4j12</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+    </dependencies>
 
-	<modules>
-		<module>oba-server</module>
-		<module>oba-common</module>
-		<module>oba-client</module>
-		<module>oba-cytomer</module>
-		<module>oba-tribolium</module>
-	</modules>
+    <modules>
+        <module>oba-server</module>
+        <module>oba-common</module>
+        <module>oba-client</module>
+        <module>oba-cytomer</module>
+        <module>oba-tribolium</module>
+    </modules>
 </project>

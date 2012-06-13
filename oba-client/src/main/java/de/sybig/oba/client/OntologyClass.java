@@ -32,7 +32,7 @@ public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
         fillWithTemplate(c);
     }
 
-    public Set<JsonAnnotation> getLabel() {
+    public Set<JsonAnnotation> getLabels() {
         return getAnnotationValues("label");
     }
 
@@ -159,8 +159,8 @@ public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
 
     public String toString() {
 
-        if (getLabel() != null && getLabel().size() == 1) {
-            return getLabel().iterator().next().getValue();
+        if (getLabels() != null && getLabels().size() == 1) {
+            return getLabels().iterator().next().getValue();
         }
         return name;
     }

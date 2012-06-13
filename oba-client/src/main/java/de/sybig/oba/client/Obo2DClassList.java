@@ -1,20 +1,25 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
 package de.sybig.oba.client;
 
+import de.sybig.oba.server.JsonClsList;
 import java.util.LinkedList;
 import java.util.List;
-
 import javax.xml.bind.annotation.XmlRootElement;
 import javax.xml.bind.annotation.XmlType;
 
-import de.sybig.oba.server.JsonClsList;
-
+/**
+ *
+ * @author juergen.doenitz@bioinf.med.uni-goettingen.de
+ */
 @XmlType
 @XmlRootElement
-public class Cytomer2DClassList extends
-		AbstractOntology2DClassList<CytomerClassList, CytomerClass> {
+public class Obo2DClassList extends AbstractOntology2DClassList<OboClassList, OboClass>{
 
-	// Json2DClsList<CytomerClassList, CytomerClass> {
-	private List<CytomerClassList> listEntities;
+    
+    private List<OboClassList> listEntities;
 
 	@Override
 	public List getEntities() {
@@ -25,12 +30,12 @@ public class Cytomer2DClassList extends
 			_entities = entities;
 		}
 		if (listEntities == null) {
-			listEntities = new LinkedList<CytomerClassList>();
+			listEntities = new LinkedList<OboClassList>();
 			for (JsonClsList c : _entities) {
 				if (c instanceof OntologyClassList) {
-					listEntities.add((CytomerClassList) c);
+					listEntities.add((OboClassList) c);
 				}
-				CytomerClassList nc = (CytomerClassList) new CytomerClassList(
+				OboClassList nc = (OboClassList) new OboClassList(
 						(JsonClsList) c);
 				listEntities.add(nc);
 			}

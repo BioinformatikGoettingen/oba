@@ -12,7 +12,7 @@ import de.sybig.oba.server.JsonEntity;
 
 @XmlType
 @XmlRootElement
-public class CytomerClassList extends OntologyClassList<CytomerClass> {
+public class CytomerClassList extends AbstractOntologyClassList<CytomerClass> {
 	// protected List<CytomerClass> ontologyEntities;
 	public CytomerClassList() {
 		super();

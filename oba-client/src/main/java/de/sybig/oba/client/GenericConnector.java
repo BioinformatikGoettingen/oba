@@ -4,38 +4,29 @@
  */
 package de.sybig.oba.client;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Properties;
-
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.UriBuilder;
-
-import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.UniformInterfaceException;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
-
-import de.sybig.oba.server.Json2DClsList;
 import de.sybig.oba.server.JsonCls;
 import de.sybig.oba.server.JsonClsList;
 import de.sybig.oba.server.JsonObjectProperty;
 import de.sybig.oba.server.JsonPropertyList;
+import java.io.*;
+import java.net.URI;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Properties;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.UriBuilder;
+import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class GenericConnector<C extends OntologyClass, CL extends OntologyClassList<C>, C2L extends Ontology2DClassList<CL, C>> {
+public class GenericConnector<C extends OntologyClass, CL extends AbstractOntologyClassList<C>, C2L extends AbstractOntology2DClassList<CL, C>> {
 
     private Logger logger = LoggerFactory.getLogger(GenericConnector.class);
     protected String ontology;
@@ -105,6 +96,7 @@ public class GenericConnector<C extends OntologyClass, CL extends OntologyClassL
             list.setConnector(this);
             return list;
         } catch (Exception ex) {
+            ex.printStackTrace();
             // an empty document results in errors in the json unmarshaller
             return null;
         }
@@ -216,23 +208,23 @@ public class GenericConnector<C extends OntologyClass, CL extends OntologyClassL
         WebResource webResource = getWebResource();
         webResource = webResource.path(path);
         JsonClsList putList;
-        if (list instanceof OntologyClassList) {
+        if (list instanceof AbstractOntologyClassList) {
             // reset the connector to hinder the marshaller to load more classes
-            putList = ((OntologyClassList) list).clone();
-            ((OntologyClassList) putList).setConnector(null);
+            putList = ((AbstractOntologyClassList) list).clone();
+            ((AbstractOntologyClassList) putList).setConnector(null);
         } else {
             putList = list;
         }
         if (putList != null && putList.getEntities() != null) {
             for (JsonCls jc : (List<JsonCls>) putList.getEntities()) {
                 if (jc instanceof OntologyClass) {
-                    ((OntologyClass) jc).setConnector(null);
+                    System.out.println("resetting connector");
+                    ((OntologyClass) jc).setConnector(null);                    
                 }
 
             }
         }
         webResource.type(MediaType.APPLICATION_JSON).put(putList);
-
     }
 
     public JsonClsList getStoredList(String partition, String id) {
@@ -296,17 +288,18 @@ public class GenericConnector<C extends OntologyClass, CL extends OntologyClassL
         }
     }
 
-    public CL reduceStoredSetToLevel(int level, String partition, String set) {
+    public C2L reduceStoredSetToLevel(int level, String partition, String set) {
         String path;
         path = String.format("%s/functions/basic/reduceToLevel/%d/%s/%s",
                 getOntology(), level, partition, set);
         WebResource webResource = getWebResource();
         webResource = webResource.path(path);
         try {
-            CL response = (CL) webResource.accept(MediaType.APPLICATION_JSON).get(getOntologyClassList());
+            C2L response = (C2L) webResource.accept(MediaType.APPLICATION_JSON).get(getOntology2DClassList());
             response.setConnector(this);
             return response;
         } catch (Exception ex) {
+            ex.printStackTrace();
             // an empty document results in errors in the json unmarshaller
             return null;
         }
@@ -450,6 +443,12 @@ public class GenericConnector<C extends OntologyClass, CL extends OntologyClassL
         this.baseURI = baseURI;
     }
 
+    public static void main (String[] args){
+        GenericConnector c = new GenericConnector("go");
+        AbstractOntology2DClassList result = c.reduceStoredSetToLevel(2, "tmp", "obaWebDemo");
+            System.out.println("result " + result);
+
+    }
     protected <T> T getResponse(WebResource webResource, Class<T> cl) {
 
         T returnObject;
@@ -492,14 +491,14 @@ public class GenericConnector<C extends OntologyClass, CL extends OntologyClassL
         return JsonPropertyList.class;
     }
 
-    protected Ontology2DClassList convert2DClassList(Object o) {
-        Json2DClsList<JsonClsList<JsonCls>, JsonCls> list = (Json2DClsList<JsonClsList<JsonCls>, JsonCls>) o;
-        Ontology2DClassList ol = new Ontology2DClassList();
-        for (JsonClsList jl : list.getEntities()) {
-            ol.add(convertClassList(jl));
-        }
-        return ol;
-    }
+//    protected Ontology2DClassList convert2DClassList(Object o) {
+//        Json2DClsList<JsonClsList<JsonCls>, JsonCls> list = (Json2DClsList<JsonClsList<JsonCls>, JsonCls>) o;
+//        Ontology2DClassList ol = new Ontology2DClassList();
+//        for (JsonClsList jl : list.getEntities()) {
+////            ol.add(convertClassList(jl)); //FIXME
+//        }
+//        return ol;
+//    }
 
     protected OntologyClassList convertClassList(JsonClsList<JsonCls> jl) {
         OntologyClassList ol = new OntologyClassList();

@@ -129,10 +129,10 @@ public class Root {
 	@Produces("text/html")
 	public String functionClassOverview(@PathParam("fc") String fc) {
 		OntologyFunction c = getFunctionClass(fc);
-                if (fc == null){
+                if (c == null){
                    throw new WebApplicationException(404);
                 }
-                //System.out.println("function class " + c.getClass());
+//                System.out.println("function class " + c.getClass());
                 String overview = c.getRoot();
 		return overview;
 	}

@@ -296,6 +296,8 @@ public class StorageHandler {
                 ObaClass c = oh.getClass(splitLine[1], splitLine[0]);
                 if (c != null) {
                     out.add(c);
+                }else{
+                    logger.warn("could not get class for stored line {}", line);
                 }
             }
             br.close();

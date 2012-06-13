@@ -24,14 +24,6 @@ import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.sybig.oba.server.HtmlBase;
-import de.sybig.oba.server.ObaAnnotation;
-import de.sybig.oba.server.ObaClass;
-import de.sybig.oba.server.ObaObjectPropertyExpression;
-import de.sybig.oba.server.OntologyFunction;
-import de.sybig.oba.server.OntologyFunctions;
-import de.sybig.oba.server.OntologyHelper;
-import de.sybig.oba.server.StorageHandler;
 
 public class CytomerFunctions extends OntologyFunctions implements
         OntologyFunction {
@@ -328,7 +320,7 @@ public class CytomerFunctions extends OntologyFunctions implements
         if (resultSet.size() > 0 || parents.size() < 1) {
             return resultSet;
         }
-        return searchDownStreamToSet(parents, referenceSet);
+        return searchUpStreamToSet(parents, referenceSet);
     }
 
     protected Set<ObaClass> getOrgans() {

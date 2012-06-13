@@ -4,6 +4,7 @@
  */
 package de.sybig.oba.server;
 
+import com.sun.corba.se.pept.transport.ContactInfo;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -138,6 +139,7 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
         LinkedList<List<ObaClass>> outList = new LinkedList<List<ObaClass>>();
         StorageHandler storageHandler = new StorageHandler();
         Set<ObaClass> startClasses = storageHandler.getStorage(partition, name);
+        ObaClass ancestor;
 
         for (ObaClass startClass : startClasses) {
             LinkedList<ObaClass> clsPath = new LinkedList<ObaClass>();
@@ -145,7 +147,10 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
             List<List<ObaClass>> path = getShortestPathsToRoot(startClass);
             if (path != null && path.size() > 0 && path.get(0).size() >= level) {
                 for (List<ObaClass> p : path) {
-                    clsPath.add(p.get(p.size() - level));
+                    ancestor = p.get(p.size() - level);
+                    if (! clsPath.contains(ancestor)){
+                    clsPath.add(ancestor);
+                    }
                 }
             }
             outList.add(clsPath);
@@ -175,6 +180,7 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
         LinkedList<List<ObaClass>> outList = new LinkedList<List<ObaClass>>();
         StorageHandler storageHandler = new StorageHandler();
         Set<ObaClass> startClasses = storageHandler.getStorage(partition, name);
+        ObaClass ancestor;
 
         for (ObaClass startClass : startClasses) {
             List<List<ObaClass>> pathes = getAllPathsToRoot(startClass);
@@ -182,7 +188,11 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
             list.add(startClass);
             for (List<ObaClass> p : pathes) {
                 if (p.size() >= level) {
-                    list.add(p.get(p.size() - level));
+                    ancestor = p.get(p.size() - level);
+                    if (!list.contains(ancestor)){
+                        list.add(ancestor);
+                    }
+//                    list.add(p.get(p.size() - level));
                 }
             }
             outList.add(list);
@@ -259,6 +269,7 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
             }
             allPaths.addAll(shortest);
         }
+        ObaClass c;
         for (; maxSteps > 0; maxSteps--) {
             Map<OWLClass, List<OWLClass>> map = new HashMap<OWLClass, List<OWLClass>>();
             for (List<ObaClass> path : allPaths) {
@@ -267,7 +278,10 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
                 if (!map.containsKey(cls)) {
                     map.put(cls, new LinkedList<OWLClass>());
                 }
-                map.get(cls).add(path.get(0));
+                c = path.get(0);
+                if (! map.get(cls).contains(c)){
+                map.get(cls).add(c);
+                }
             }
             if (map.keySet().size() <= size) {
                 return map;

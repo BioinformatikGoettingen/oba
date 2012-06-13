@@ -76,7 +76,7 @@ public class SimpleClient {
 		System.out.println();
 
 		System.out.println("Getting all organs");
-		OntologyClassList organList = cc.getOrganList();
+		AbstractOntologyClassList organList = cc.getOrganList();
 		System.out.println("\tNumber of organs: "
 				+ cc.getOrganList().getEntities().size());
 

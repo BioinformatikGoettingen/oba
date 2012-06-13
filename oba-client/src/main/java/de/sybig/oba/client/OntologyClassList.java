@@ -13,12 +13,12 @@ import de.sybig.oba.server.JsonEntity;
 
 @XmlRootElement
 @XmlType
-public class OntologyClassList<C extends OntologyClass> extends JsonClsList<C> {
+public class OntologyClassList extends AbstractOntologyClassList<OntologyClass> {
 
-	protected List<C> ontologyEntities;
+//	protected List<C> ontologyEntities;
 
-	@XmlTransient
-	public GenericConnector connector;
+//	@XmlTransient
+//	public GenericConnector connector;
 
 	public OntologyClassList() {
 		super();
@@ -32,20 +32,20 @@ public class OntologyClassList<C extends OntologyClass> extends JsonClsList<C> {
 	 * @return the classes
 	 */
 	@Override
-	public List<C> getEntities() {
+	public List<OntologyClass> getEntities() {
 		if (ontologyEntities == null) {
 			if (_entities == null) {
 				return null;
 			}
 			if (ontologyEntities == null) {
-				ontologyEntities = new LinkedList<C>();
+				ontologyEntities = new LinkedList<OntologyClass>();
 
 				for (JsonEntity c : _entities) {
 					if (c instanceof OntologyClass) {
-						ontologyEntities.add((C) c);
+						ontologyEntities.add((OntologyClass) c);
 						continue;
 					}
-					C nc = (C) new OntologyClass((JsonCls) c);
+					OntologyClass nc =  new OntologyClass((JsonCls) c);
 					nc.setConnector(connector);
 					ontologyEntities.add(nc);
 				}
@@ -54,48 +54,39 @@ public class OntologyClassList<C extends OntologyClass> extends JsonClsList<C> {
 		return ontologyEntities;
 	}
 
-	public void setConnector(GenericConnector connector) {
-		this.connector = connector;
-		if (connector == null && ontologyEntities != null) {
-			// remove connector from all entities
-			for (OntologyClass e : ontologyEntities) {
-				e.setConnector(null);
-			}
-		}
-	}
-
-	public OntologyClassList<C> clone() {
-		OntologyClassList<C> newList = new OntologyClassList<C>();
+	
+	public OntologyClassList clone() {
+		OntologyClassList newList = new OntologyClassList();
 		newList.setRawEntities(getRawEntities());
 		newList.setConnector(connector);
 		return newList;
 	}
 
-	/**
-	 * @param classes
-	 *            the classes to set
-	 */
-	@Override
-	public void setEntities(List<C> entities) {
-		this.entities = entities;
-		if (entities == null) {
-			return;
-		}
-		if (_entities == null) {
-			_entities = new LinkedList<JsonCls>();
-		}
-		for (C e : entities) {
-			_entities.add(e);
-		}
-
-	}
+//	/**
+//	 * @param classes
+//	 *            the classes to set
+//	 */
+//	@Override
+//	public void setEntities(List<C> entities) {
+//		this.entities = entities;
+//		if (entities == null) {
+//			return;
+//		}
+//		if (_entities == null) {
+//			_entities = new LinkedList<JsonCls>();
+//		}
+//		for (C e : entities) {
+//			_entities.add(e);
+//		}
+//
+//	}
 
 	private void fillWithTemplate(JsonClsList list) {
 		this._entities = list.getEntities();
 	}
 
-	private GenericConnector getConnector() {
-		return connector;
-	}
+//	private GenericConnector getConnector() {
+//		return connector;
+//	}
 
 }

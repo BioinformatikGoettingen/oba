@@ -3,18 +3,53 @@
     <parent>
         <groupId>de.sybig</groupId>
         <artifactId>oba</artifactId>
-        <version>1.2</version>
+        <version>1.2.1</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>de.sybig</groupId>
     <artifactId>oba-client</artifactId>
-    <version>1.2</version>
+    <version>1.2.1</version>
     <packaging>jar</packaging>
 
     <name>oba client</name>
-
+    <profiles>
+        <profile>
+            <id>default</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources/dev</directory>
+                    </resource>
+                </resources>
+            </build>
+        </profile>
+        <profile>
+            <id>prod-profile</id>
+            <build>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources/prod </directory>
+                    </resource>
+                </resources>
+            </build>
+        </profile>
+        <profile>
+            <id>ci-profile</id>
+            <build>
+                <resources>
+                    <resource>
+                        <directory>src/main/resources/ci</directory>
+                    </resource>
+                </resources>
+            </build>
+        </profile>
+    </profiles>
+        
     <build>
         <plugins>
             <plugin>
@@ -36,6 +71,36 @@
                     </includes>
                 </configuration>
             </plugin>
+             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${plugin.shade.version}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>${project.artifactId}-with-dependencies-${project.version}</finalName>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>junit:junit</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>de.sybig.oba.client.SimpleClient</Main-Class>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
@@ -43,7 +108,7 @@
         <dependency>
             <groupId>de.sybig</groupId>
             <artifactId>oba-common</artifactId>
-            <version>1.2</version>
+            <version>1.2.1</version>
         </dependency>
         <dependency>
             <groupId>com.sun.jersey</groupId>

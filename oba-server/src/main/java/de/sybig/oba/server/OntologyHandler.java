@@ -240,6 +240,10 @@ public final class OntologyHandler {
 		ontologyPropertiesMap.put(name, p);
 	}
 
+        public Properties getOntologyProperties(String name){
+           return ontologyPropertiesMap.get(name);
+        }
+
 	public void deleteOntology(ObaOntology ontology) {
 		for (String name : ontologyMap.keySet()) {
 			if (ontology.equals(ontologyMap.get(name).getOntology())) {

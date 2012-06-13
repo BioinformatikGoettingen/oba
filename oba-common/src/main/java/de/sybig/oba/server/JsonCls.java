@@ -174,14 +174,7 @@ public class JsonCls<C extends JsonCls> extends JsonEntity {
 	public void setIsMarshalling(boolean isMarshalling) {
 		this.isMarshalling = isMarshalling;
 	}
-
-	// public boolean isIsLazy() {
-	// return isLazy;
-	// }
-	//
-	// public void setIsLazy(boolean isLazy) {
-	// this.isLazy = isLazy;
-	// }
+	
 	@Override
 	public String toString() {
 		return "JsonCls: " + name;
