@@ -136,10 +136,12 @@ public class OntologyHelper {
             ontology = getOntology(cls);
         }
         HashSet<ObaClass> out = new HashSet<ObaClass>();
-
         if (ontology == null) {
             WebApplicationException ex = new WebApplicationException(404);
             throw ex;
+        }
+        if (cls.isOWLThing()){
+            return out;
         }
         Set<OWLClassExpression> parents = cls.getSuperClasses(ontology);
         if (parents.size() < 1 && !cls.isOWLThing()) {

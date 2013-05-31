@@ -5,6 +5,7 @@
 package de.sybig.oba.client;
 
 import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.UniformInterfaceException;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
@@ -15,8 +16,10 @@ import de.sybig.oba.server.JsonClsList;
 import de.sybig.oba.server.JsonObjectProperty;
 import de.sybig.oba.server.JsonPropertyList;
 import java.io.*;
+import java.net.ConnectException;
 import java.net.URI;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import javax.ws.rs.core.MediaType;
@@ -35,8 +38,9 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
     private Properties props;
 
     /**
-     * Creates a new connector to work with the specified ontology. For a list of the loaded ontologies and their names,
-     * please refer to the front page of the oba server.
+     * Creates a new connector to work with the specified ontology. For a list
+     * of the loaded ontologies and their names, please refer to the front page
+     * of the oba server.
      *
      * @param ontology
      */
@@ -46,28 +50,40 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
     }
 
     /**
-     * Searches a class in the ontology. The pattern is searched in the class name and the annotation fields indexed on
-     * the server during the loading of the ontology. Using the property file for the ontology on the server, it is
-     * possible to limit the fields to index to a subset. On client side the method {@link #searchCls(String, List)}
-     * restrict the search to a set of annotation fields.
+     * Searches a class in the ontology. The pattern is searched in the class
+     * name and the annotation fields indexed on the server during the loading
+     * of the ontology. Using the property file for the ontology on the server,
+     * it is possible to limit the fields to index to a subset. On client side
+     * the method {@link #searchCls(String, List)} restrict the search to a set
+     * of annotation fields.
      *
      * @param pattern The search pattern
      * @return Ontology classes matching the pattern.
      */
-    public CL searchCls(final String pattern) {
-        return searchCls(pattern, null);
+    public CL searchCls(final String pattern) throws ConnectException {
+        return searchCls(pattern, (String) null);
+    }
+
+    public CL searchCls(final String pattern, final String field) throws ConnectException {
+        List fieldList = new LinkedList<String>();
+        return searchCls(pattern, fieldList);
     }
 
     /**
-     * Searches the ontology for classes matching the pattern. The search is limited to the annotation fields listed in
-     * the second parameter. To include the name of the ontology class in the search scope, 'classname' has to be added
-     * to the list of fields.
+     * Searches the ontology for classes matching the pattern. The search is
+     * limited to the annotation fields listed in the second parameter. To
+     * include the name of the ontology class in the search scope, 'classname'
+     * has to be added to the list of fields.
      *
-     * @param pattern          The search pattern
+     * @param pattern The search pattern
      * @param annotationFields The annotation fields to search in
      * @return A list of classes matching the search pattern.
      */
-    public CL searchCls(final String pattern, List<String> annotationFields) {
+    public CL searchCls(final String pattern, List<String> annotationFields) throws ConnectException {
+        return searchCls(pattern, annotationFields, 0);
+    }
+
+    public CL searchCls(final String pattern, List<String> annotationFields, int maxResults) throws ConnectException {
         String path = String.format("%s/functions/basic/", getOntology());
         WebResource webResource = getWebResource();
         // webResource.
@@ -86,6 +102,9 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
                 }
             }
             uriBuilder = uriBuilder.matrixParam("field", paramValue.toString());
+            if (maxResults > 0) {
+                uriBuilder = uriBuilder.matrixParam("max", maxResults);
+            }
         }
         uriBuilder = uriBuilder.segment(pattern);
         URI uri = uriBuilder.build();
@@ -95,12 +114,20 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
                     getOntologyClassList());
             list.setConnector(this);
             return list;
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            // an empty document results in errors in the json unmarshaller
-            return null;
+        } catch (ClientHandlerException ex) {
+            if (ex.getCause() instanceof ConnectException) {
+                throw (ConnectException) ex.getCause();
+            }
+            logger.error("error while communicating the OBA server", ex);
+        } catch (UniformInterfaceException ex) {
+            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
+                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 204) {
+                    return null;
+                }
+            }
+            logger.error("error while communicating the OBA server", ex);
         }
-
+        return null;
     }
 
     /**
@@ -108,24 +135,40 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      *
      * @return
      */
-    public C getRoot() {
+    public C getRoot() throws ConnectException {
         String path = String.format("%s/cls/", getOntology());
         WebResource webResource = getWebResource();
         webResource = webResource.path(path);
         Class c = getOntologyClass();
-        C response = (C) webResource.accept(MediaType.APPLICATION_JSON).get(c);
-        response.setConnector(this);
-        return response;
+        try {
+            C response = (C) webResource.accept(MediaType.APPLICATION_JSON).get(c);
+            response.setConnector(this);
+            return response;
+        } catch (ClientHandlerException ex) {
+            if (ex.getCause() instanceof ConnectException) {
+                throw (ConnectException) ex.getCause();
+            }
+            logger.error("error while communicating the OBA server", ex);
+        } catch (UniformInterfaceException ex) {
+            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
+                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
+                    return null;
+                }
+            }
+            logger.error("error while communicating the OBA server", ex);
+        }
+        return null;
     }
 
     /**
-     * Gets the same class from the ontology as specified as parameter. A class with all parents and children are
-     * returned also if the parameter object is a shell for the class.
+     * Gets the same class from the ontology as specified as parameter. A class
+     * with all parents and children are returned also if the parameter object
+     * is a shell for the class.
      *
      * @param c The class to get the name and namespace from.
      * @return The complete class from the ontology server.
      */
-    public C getCls(final OntologyClass c) {
+    public C getCls(final OntologyClass c) throws ConnectException {
 
         C cls = getCls(c.getName(), c.getNamespace());
         cls.setConnector(this);
@@ -133,14 +176,15 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
     }
 
     /**
-     * Get a class with the given name in the given namespace. The class should exists on in the ontology, otherwise the
-     * HTTP status code 404 is returned.
+     * Get a class with the given name in the given namespace. The class should
+     * exists on in the ontology, otherwise the HTTP status code 404 is
+     * returned.
      *
      * @param name The name of the ontology class.
-     * @param ns   The namespace of the ontology class.
+     * @param ns The namespace of the ontology class.
      * @return The requested ontology class or <code>null</code>.
      */
-    public C getCls(final String name, final String ns) {
+    public C getCls(final String name, final String ns) throws ConnectException {
         String path;
         path = String.format("%s/cls/%s", getOntology(), name);
         WebResource webResource = getWebResource();
@@ -154,22 +198,66 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
             C response = (C) webResource.accept(MediaType.APPLICATION_JSON).get(getOntologyClass());
             response.setConnector(this);
             return response;
+        } catch (ClientHandlerException ex) {
+            if (ex.getCause() instanceof ConnectException) {
+                throw (ConnectException) ex.getCause();
+            }
+            logger.error("error while communicating the OBA server", ex);
         } catch (UniformInterfaceException ex) {
-            // an empty document results in errors in the json unmarshaller
-            return null;
+            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
+                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
+                    return null;
+                }
+            }
+            logger.error("error while communicating the OBA server", ex);
         }
+        return null;
+    }
+
+    public CL getDescendants(final C cls) throws ConnectException {
+        return getDescendants(cls.getName(), cls.getNamespace());
+    }
+
+    public CL getDescendants(final String name, final String ns) throws ConnectException {
+        String path = String.format("%s/functions/basic/descendants/%s", getOntology(), name);
+        WebResource webResource = getWebResource();
+        if (ns != null && ns.trim().length() > 0) {
+            MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
+            queryParams.add("ns", ns);
+            webResource = webResource.queryParams(queryParams);
+        }
+        webResource = webResource.path(path);
+        try {
+            CL response = (CL) webResource.accept(MediaType.APPLICATION_JSON).get(getOntologyClassList());
+            response.setConnector(this);
+            return response;
+        } catch (ClientHandlerException ex) {
+            if (ex.getCause() instanceof ConnectException) {
+                throw (ConnectException) ex.getCause();
+            }
+            logger.error("error while communicating the OBA server", ex);
+        } catch (UniformInterfaceException ex) {
+            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
+                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
+                    return null;
+                }
+            }
+            logger.error("error while communicating the OBA server", ex);
+        }
+        return null;
     }
 
     /**
-     * Returns the paths between clsX and clsY. All shortest paths between the two classes are returned, where clsX
-     * should be an ancestor of clsY. If no path between the classes are found, or clsY is downstream of clsX no path is
-     * returned.
+     * Returns the paths between clsX and clsY. All shortest paths between the
+     * two classes are returned, where clsX should be an ancestor of clsY. If no
+     * path between the classes are found, or clsY is downstream of clsX no path
+     * is returned.
      *
      * @param clsX The downstream class
      * @param clsY The upstream class
      * @return The shortest paths between the two classes.
      */
-    public C2L xDownstreamOfY(OntologyClass clsX, OntologyClass clsY) {
+    public C2L xDownstreamOfY(OntologyClass clsX, OntologyClass clsY) throws ConnectException {
         String path;
         path = String.format("%s/functions/basic/XdownstreamOfY", getOntology());
         WebResource webResource = getWebResource();
@@ -188,21 +276,30 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
             C2L list = (C2L) webResource.accept(MediaType.APPLICATION_JSON).get(getOntology2DClassList());
             list.setConnector(this);
             return list;
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            // an empty document results in errors in the json unmarshaller
-            return null;
+        } catch (ClientHandlerException ex) {
+            if (ex.getCause() instanceof ConnectException) {
+                throw (ConnectException) ex.getCause();
+            }
+            logger.error("error while communicating the OBA server", ex);
+        } catch (UniformInterfaceException ex) {
+            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
+                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
+                    return null;
+                }
+            }
+            logger.error("error while communicating the OBA server", ex);
         }
+        return null;
     }
 
     /**
      * Stores a list of ontology classes on the server.
      *
      * @param partition The partition to store the list in
-     * @param id        the Name of the list
-     * @param list      The list with the ontology classes
+     * @param id the Name of the list
+     * @param list The list with the ontology classes
      */
-    public void storeList(String partition, String id, JsonClsList list) {
+    public void storeList(String partition, String id, JsonClsList list) throws ConnectException {
         String path;
         path = String.format("/storage/%s/%s", partition, id);
         WebResource webResource = getWebResource();
@@ -219,15 +316,28 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
             for (JsonCls jc : (List<JsonCls>) putList.getEntities()) {
                 if (jc instanceof OntologyClass) {
                     System.out.println("resetting connector");
-                    ((OntologyClass) jc).setConnector(null);                    
+                    ((OntologyClass) jc).setConnector(null);
                 }
 
             }
         }
-        webResource.type(MediaType.APPLICATION_JSON).put(putList);
+        try {
+            webResource.type(MediaType.APPLICATION_JSON).put(putList);
+        } catch (ClientHandlerException ex) {
+            if (ex.getCause() instanceof ConnectException) {
+                throw (ConnectException) ex.getCause();
+            }
+            logger.error("error while communicating the OBA server", ex);
+        } catch (UniformInterfaceException ex) {
+            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
+                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
+                }
+            }
+            logger.error("error while communicating the OBA server", ex);
+        }
     }
 
-    public JsonClsList getStoredList(String partition, String id) {
+    public JsonClsList getStoredList(String partition, String id) throws ConnectException {
         String path;
         path = String.format("/storage/%s/%s", partition, id);
         WebResource webResource = getWebResource();
@@ -237,10 +347,20 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
                     getOntologyClassList());
             list.setConnector(this);
             return list;
-        } catch (Exception ex) {
-            // an empty document results in errors in the json unmarshaller
-            return null;
+        } catch (ClientHandlerException ex) {
+            if (ex.getCause() instanceof ConnectException) {
+                throw (ConnectException) ex.getCause();
+            }
+            logger.error("error while communicating the OBA server", ex);
+        } catch (UniformInterfaceException ex) {
+            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
+                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
+                    return null;
+                }
+            }
+            logger.error("error while communicating the OBA server", ex);
         }
+        return null;
     }
 
     /**
@@ -248,7 +368,7 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      *
      * @return All object properties
      */
-    public JsonPropertyList<JsonObjectProperty> getObjectProperties() {
+    public JsonPropertyList<JsonObjectProperty> getObjectProperties() throws ConnectException {
         String path = String.format("%s/objectProperty/", getOntology());
         WebResource webResource = getWebResource();
         webResource = webResource.path(path);
@@ -257,16 +377,27 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
             JsonPropertyList response = (JsonPropertyList) webResource.accept(
                     MediaType.APPLICATION_JSON).get(clazz);
             return response;
+        } catch (ClientHandlerException ex) {
+            if (ex.getCause() instanceof ConnectException) {
+                throw (ConnectException) ex.getCause();
+            }
+            logger.error("error while communicating the OBA server", ex);
         } catch (UniformInterfaceException ex) {
-            return null;
+            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
+                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
+                    return null;
+                }
+            }
+            logger.error("error while communicating the OBA server", ex);
         }
+        return null;
     }
 
-    public CL reduceToLevel(int level, OntologyClass cls) {
+    public CL reduceToLevel(int level, OntologyClass cls) throws ConnectException {
         return reduceToLevel(level, cls.getName(), cls.getNamespace());
     }
 
-    public CL reduceToLevel(int level, String name, String ns) {
+    public CL reduceToLevel(int level, String name, String ns) throws ConnectException {
         String path;
         path = String.format("%s/functions/basic/reduceToLevel/%d/%s",
                 getOntology(), level, name);
@@ -282,13 +413,23 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
             CL response = (CL) webResource.accept(MediaType.APPLICATION_JSON).get(getOntologyClassList());
             response.setConnector(this);
             return response;
-        } catch (Exception ex) {
-            // an empty document results in errors in the json unmarshaller
-            return null;
+        } catch (ClientHandlerException ex) {
+            if (ex.getCause() instanceof ConnectException) {
+                throw (ConnectException) ex.getCause();
+            }
+            logger.error("error while communicating the OBA server", ex);
+        } catch (UniformInterfaceException ex) {
+            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
+                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
+                    return null;
+                }
+            }
+            logger.error("error while communicating the OBA server", ex);
         }
+        return null;
     }
 
-    public C2L reduceStoredSetToLevel(int level, String partition, String set) {
+    public C2L reduceStoredSetToLevel(int level, String partition, String set) throws ConnectException {
         String path;
         path = String.format("%s/functions/basic/reduceToLevel/%d/%s/%s",
                 getOntology(), level, partition, set);
@@ -298,19 +439,28 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
             C2L response = (C2L) webResource.accept(MediaType.APPLICATION_JSON).get(getOntology2DClassList());
             response.setConnector(this);
             return response;
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            // an empty document results in errors in the json unmarshaller
-            return null;
+        } catch (ClientHandlerException ex) {
+            if (ex.getCause() instanceof ConnectException) {
+                throw (ConnectException) ex.getCause();
+            }
+            logger.error("error while communicating the OBA server", ex);
+        } catch (UniformInterfaceException ex) {
+            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
+                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
+                    return null;
+                }
+            }
+            logger.error("error while communicating the OBA server", ex);
         }
+        return null;
     }
 
-    public CL reduceToLevelShortestPath(int level, OntologyClass cls) {
+    public CL reduceToLevelShortestPath(int level, OntologyClass cls) throws ConnectException {
         return reduceToLevelShortestPath(level, cls.getName(),
                 cls.getNamespace());
     }
 
-    public CL reduceToLevelShortestPath(int level, String name, String ns) {
+    public CL reduceToLevelShortestPath(int level, String name, String ns) throws ConnectException {
         String path;
         path = String.format(
                 "%s/functions/basic/reduceToLevelShortestPath/%d/%s",
@@ -327,14 +477,24 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
             CL response = (CL) webResource.accept(MediaType.APPLICATION_JSON).get(getOntologyClassList());
             response.setConnector(this);
             return response;
-        } catch (Exception ex) {
-            // an empty document results in errors in the json unmarshaller
-            return null;
+        } catch (ClientHandlerException ex) {
+            if (ex.getCause() instanceof ConnectException) {
+                throw (ConnectException) ex.getCause();
+            }
+            logger.error("error while communicating the OBA server", ex);
+        } catch (UniformInterfaceException ex) {
+            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
+                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
+                    return null;
+                }
+            }
+            logger.error("error while communicating the OBA server", ex);
         }
+        return null;
     }
 
     public CL reduceStoredSetToLevelShortestPath(int level, String partition,
-                                                 String set) {
+            String set) throws ConnectException {
         String path;
         path = String.format(
                 "%s/functions/basic/reduceToLevelShortestPath/%d/%s/%s",
@@ -345,13 +505,23 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
             CL response = (CL) webResource.accept(MediaType.APPLICATION_JSON).get(getOntologyClassList());
             response.setConnector(this);
             return response;
-        } catch (Exception ex) {
-            // an empty document results in errors in the json unmarshaller
-            return null;
+        } catch (ClientHandlerException ex) {
+            if (ex.getCause() instanceof ConnectException) {
+                throw (ConnectException) ex.getCause();
+            }
+            logger.error("error while communicating the OBA server", ex);
+        } catch (UniformInterfaceException ex) {
+            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
+                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
+                    return null;
+                }
+            }
+            logger.error("error while communicating the OBA server", ex);
         }
+        return null;
     }
 
-    public C2L reduceToClusterSize(int size, String partition, String set) {
+    public C2L reduceToClusterSize(int size, String partition, String set) throws ConnectException {
         String path;
         path = String.format("%s/functions/basic/reduceToClusterSize/%d/%s/%s",
                 getOntology(), size, partition, set);
@@ -362,10 +532,20 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
             C2L response = (C2L) webResource.accept(MediaType.APPLICATION_JSON).get(getOntology2DClassList());
 
             return response;
-        } catch (Exception ex) {
-            // an empty document results in errors in the json unmarshaller
-            return null;
+        } catch (ClientHandlerException ex) {
+            if (ex.getCause() instanceof ConnectException) {
+                throw (ConnectException) ex.getCause();
+            }
+            logger.error("error while communicating the OBA server", ex);
+        } catch (UniformInterfaceException ex) {
+            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
+                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
+                    return null;
+                }
+            }
+            logger.error("error while communicating the OBA server", ex);
         }
+        return null;
     }
 
     protected void init() {
@@ -443,12 +623,20 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
         this.baseURI = baseURI;
     }
 
-    public static void main (String[] args){
-        GenericConnector c = new GenericConnector("go");
-        AbstractOntology2DClassList result = c.reduceStoredSetToLevel(2, "tmp", "obaWebDemo");
+    public static void main(String[] args) {
+        try {
+            GenericConnector c = new GenericConnector("go");
+            AbstractOntology2DClassList result = c.reduceStoredSetToLevel(2, "tmp", "obaWebDemo");
             System.out.println("result " + result);
-
+        } catch (ConnectException ex) {
+            System.out.println("OBA server could not be reached.");
+        }
     }
+
+    public String toString() {
+        return "oba connector for " + ontology + " on " + getBaseURI();
+    }
+
     protected <T> T getResponse(WebResource webResource, Class<T> cl) {
 
         T returnObject;
@@ -499,7 +687,6 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
 //        }
 //        return ol;
 //    }
-
     protected OntologyClassList convertClassList(JsonClsList<JsonCls> jl) {
         OntologyClassList ol = new OntologyClassList();
         for (JsonCls jc : jl.getEntities()) {

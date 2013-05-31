@@ -12,7 +12,8 @@ import java.util.Set;
  *
  * @author juergen.doenitz@bioinf.med.uni-goettingen.de
  */
-public class OboClass extends OntologyClass {
+public class OboClass extends OntologyClass
+implements  Comparable<OboClass> {
 
     public OboClass() {
         super();
@@ -23,8 +24,8 @@ public class OboClass extends OntologyClass {
     }
 
     public String getLabel() {
-        if (getLabels() != null && getLabels().size() == 1) {
-            return ((JsonAnnotation) super.getLabels().iterator().next()).getValue(); //FIXME remove cast?
+        if (getLabels() != null && getLabels().size() > 0) {
+            return ((JsonAnnotation) super.getLabels().iterator().next()).getValue(); 
         }
         return null;
     }
@@ -36,8 +37,36 @@ public class OboClass extends OntologyClass {
         }
         return null;
     }
+
+    public String getSubsets() {
+        Set<JsonAnnotation> subsets = getAnnotationValues("subset");
+        if (subsets != null && subsets.size() > 0) {
+            return subsets.iterator().next().getValue();
+        }
+        return null;
+    }
+
+    public boolean isObsolete(){
+        Set<JsonAnnotation> defs = getAnnotationValues("is_obsolete");
+        if (defs != null &&  defs.size() > 0){
+            if (defs.iterator().next().getValue().equals("true")){
+                return true;
+            }
+        }        
+        return false;
+    }
     @Override
 	protected OntologyClass createNewOntologyClass(JsonCls c) {
 		return new OboClass(c);
 	}
+
+    public int compareTo(OboClass t) {
+        if (this.getLabel() == null){
+            return 1;
+        }
+        if (t.getLabel() == null){
+            return -1;
+        }
+        return this.getLabel().compareTo(t.getLabel());
+    }
 }

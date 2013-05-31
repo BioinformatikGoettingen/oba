@@ -24,4 +24,8 @@ public interface OntologyFunction {
 	 * @return
 	 */
 	public String getRoot();
+
+        public String getVersion();
+
+    public void reset();
 }

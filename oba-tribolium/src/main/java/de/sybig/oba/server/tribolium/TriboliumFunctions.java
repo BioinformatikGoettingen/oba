@@ -8,7 +8,6 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.*;
 import javax.ws.rs.core.PathSegment;
 import java.util.*;
-import sun.nio.cs.ext.PCK;
 
 public class TriboliumFunctions extends OntologyFunctions {
 
@@ -16,10 +15,17 @@ public class TriboliumFunctions extends OntologyFunctions {
     private static final String DEV_STAGES_ID = "TrOn_0000024";
     private static final Logger log = LoggerFactory.getLogger(TriboliumFunctions.class);
     private volatile Map<ObaClass, ObaClass> concreteClasses;
+    private Set<ObaClass> mixedClasses;
     private Set<ObaClass> devStages;
     private OWLObjectProperty partOfRestriction;
     private Map<ObaClass, Set<ObaClass>> hasParts;
     private Set<ObaClass> genericClasses;
+    private Set<ObaClass> concreteAndAdditinalClasses;
+
+    @Override
+    public String getVersion() {
+        return "1.3";
+    }
 
     @GET
     @Path("/")
@@ -29,8 +35,19 @@ public class TriboliumFunctions extends OntologyFunctions {
         return "";
     }
 
+    public void reset() {
+        concreteClasses = null;
+        mixedClasses = null;
+        devStages = null;
+        partOfRestriction = null;
+        hasParts = null;
+        genericClasses = null;
+        concreteAndAdditinalClasses = null;
+    }
+
     /**
-     * Get all concrete classes. A concrete class has, direct or indirect, a partOf relation to a developmental stage.
+     * Get all concrete classes. A concrete class has, direct or indirect, a
+     * partOf relation to a developmental stage.
      *
      * @return The concrete classes
      */
@@ -43,6 +60,7 @@ public class TriboliumFunctions extends OntologyFunctions {
             log.info("creating the list of concrete classes");
             ObaClass root = ontology.getRoot();
             concreteClasses = new HashMap<ObaClass, ObaClass>();
+            addDevStagesToConcreteClasses();
             HashSet<String> restrictions = new HashSet<String>();
 
             restrictions.add("part_of");
@@ -54,10 +72,34 @@ public class TriboliumFunctions extends OntologyFunctions {
             // for (ObaClass child : OntologyHelper.getChildren(root)) {
             // findConcreteClassesDownstream(child);
             // }
+            fixPodomer();
             log.info("{} classes found", concreteClasses.size());
         }
 
         return concreteClasses.keySet();
+    }
+
+    private void addDevStagesToConcreteClasses() {
+        for (ObaClass stage : getDevStages()) {
+            concreteClasses.put(stage, stage);
+        }
+    }
+
+    private Set<ObaClass> getConcreteAndAdditClasses() {
+        if (concreteAndAdditinalClasses == null) {
+            concreteAndAdditinalClasses = new HashSet<ObaClass>();
+            concreteAndAdditinalClasses.addAll(getConcreteClasses());
+//            System.out.println("concrete classes " + concreteAndAdditinalClasses.size());
+            StorageHandler sh = new StorageHandler();
+//            Set<ObaClass> storedList = sh.getStorage("ibeetle", "addGenCls");
+//            if (storedList != null) {
+//                concreteAndAdditinalClasses.addAll(storedList);
+//            }
+//            System.out.println("concretea and additiaonl classes " + concreteAndAdditinalClasses.size());
+        }
+//        System.out.println("returning " + concreteAndAdditinalClasses.size());
+        return concreteAndAdditinalClasses;
+//        return getConcreteClasses();
     }
 
     @GET
@@ -67,6 +109,7 @@ public class TriboliumFunctions extends OntologyFunctions {
         if (genericClasses == null) {
             genericClasses = new HashSet<ObaClass>();
             addToGenericClasses(ontology.getRoot());
+            fixPodomer();
         }
         return genericClasses;
     }
@@ -75,30 +118,43 @@ public class TriboliumFunctions extends OntologyFunctions {
     @Path("/mixedClasses")
     @Produces(ALL_TYPES)
     public Set<ObaClass> getMixedClasses() {
-        Set<ObaClass> allConcrete = getConcreteClasses();
-        l1:
-        for (ObaClass c : allConcrete) {
+        if (mixedClasses == null) {
+            mixedClasses = new HashSet<ObaClass>();
+            final String adult = "adult";
+            final String pupa = "pupa";
+            String larva = "larva";
+
+            Set<ObaClass> allConcrete = getConcreteClasses();
+            String label;
+            l1:
+            for (ObaClass c : allConcrete) {
 //            if (OntologyHelper.getChildren(c).size() > 0){
 //                continue;}
-            for (ObaClass p : OntologyHelper.getParents(c)) {
+                for (ObaClass p : OntologyHelper.getParents(c)) {
+//                if (p.getIRI().getFragment().endsWith("0000004")) {
+//                    mixed.add(c);
+//                    continue l1;
+//                }
 
-                if (isParentDirectGeneric(p)) {
-//                     System.out.println("not mixed "+ labelOf(c));
-                    continue l1;
+                    if (isParentDirectGeneric(p)) {
+                        continue l1;
+                    }
+                    label = labelOf(c);
+                    if (label.contains(adult)
+                            || label.contains(larva) || label.contains(pupa)) {
+                        continue l1;
+                    }
                 }
-//                if (concreteClasses.containsKey(p)){
-//                    System.out.println("extended mixed " + labelOf(c));
-////                     continue l1;
-//                 }
+                mixedClasses.add(c);
             }
-            System.out.println("mixed " + labelOf(c));
         }
-        return null;
+
+        return mixedClasses;
     }
 
     /**
-     * Get all ontology classes of organisms in specific developmental stage. This are all classes below of the node
-     * "organism" and their children.
+     * Get all ontology classes of organisms in specific developmental stage.
+     * This are all classes below of the node "organism" and their children.
      *
      * @return The developmental stages.
      */
@@ -118,29 +174,31 @@ public class TriboliumFunctions extends OntologyFunctions {
     }
 
     /**
-     * Searches a generic class matching the search pattern. All concrete classes are excluded from the result set.
+     * Searches a generic class matching the search pattern. All concrete
+     * classes are excluded from the result set. In the search pattern "_" is
+     * replaced by a white space.
      *
      * @param searchPattern The pattern to search for.
      * @return Generic classes matching the pattern
      */
     @GET
-    @Path("/searchGeneric/{pattern}")
+    @Path("/searchInGeneric/{pattern}")
     @Produces(ALL_TYPES)
-    public List<ObaClass> findGeneric(@PathParam("pattern") String searchPattern) {
+    public List<ObaClass> searchInGeneric(@PathParam("pattern") String searchPattern) {
         Set<ObaClass> toRemove = getConcreteClasses();
         // In the owl representation of the OBO ontology spaces are replace by '_'
         searchPattern = searchPattern.replaceAll("_", " ");
 
-        try{
-        StorageHandler storageHandler = new StorageHandler();
-        Set<ObaClass> additional = storageHandler.getStorage("ibeetle",
-                "addGenCls");
-        if (additional != null) {
-            toRemove.removeAll(additional);
-        }
-        }catch (WebApplicationException we){
-            // the storage list wasn't found, just use the generic classes.
-        }
+//        try {
+//            StorageHandler storageHandler = new StorageHandler();
+//            Set<ObaClass> additional = storageHandler.getStorage("ibeetle",
+//                    "addGenCls");
+//            if (additional != null) {
+//                toRemove.removeAll(additional);
+//            }
+//        } catch (WebApplicationException we) {
+//            // the storage list wasn't found, just use the generic classes.
+//        }
         List<ObaClass> hits = ontology.searchCls(searchPattern, null);
         hits.removeAll(toRemove);
 
@@ -148,23 +206,55 @@ public class TriboliumFunctions extends OntologyFunctions {
     }
 
     @GET
-    @Path("/searchConcrete/{pattern}")
+    @Path("/searchInGenericAndMixed/{pattern}")
     @Produces(ALL_TYPES)
-    public List<ObaClass> findConcrete(
+    public List<ObaClass> searchInGenericAndMixed(@PathParam("pattern") String searchPattern) {
+        Set<ObaClass> toRemove = new HashSet<ObaClass>();
+        toRemove.addAll(getConcreteClasses());
+        toRemove.removeAll(getMixedClasses());
+        // In the owl representation of the OBO ontology spaces are replace by '_'
+        searchPattern = searchPattern.replaceAll("_", " ");
+
+        List<ObaClass> hits = ontology.searchCls(searchPattern, null);
+        hits.removeAll(toRemove);
+
+        return hits;
+    }
+
+    @GET
+    @Path("/searchInConcrete/{pattern}")
+    @Produces(ALL_TYPES)
+    public List<ObaClass> searchInConcrete(
             @PathParam("pattern") String searchPattern) {
+        searchPattern = searchPattern.replaceAll("_", " ");
         List<ObaClass> hits = ontology.searchCls(searchPattern, null);
         hits.retainAll(getConcreteClasses());
         return hits;
     }
 
+    @GET
+    @Path("/searchInConcreteAndMixed/{pattern}")
+    @Produces(ALL_TYPES)
+    public List<ObaClass> searchInConcreteAndMixed(
+            @PathParam("pattern") String searchPattern) {
+        searchPattern = searchPattern.replaceAll("_", " ");
+        List<ObaClass> hits = ontology.searchCls(searchPattern, null);
+        Set<ObaClass> concreteAndMixed = new HashSet<ObaClass>(); //TODO cache?
+        concreteAndMixed.addAll(getConcreteClasses());
+        concreteAndMixed.addAll(getMixedClasses());
+        hits.retainAll(concreteAndMixed);
+        return hits;
+    }
+
     /**
-     * Get the concrete classes downstream of a generic class. Therefor a breath-first-search is started at the start
-     * class. The graph is traversed down along the class hierarchy and the "hasPart" relations. From each branch the
-     * first concrete class is added to the result list. It is not assumed, that a concrete class has further sub
-     * classes.
+     * Get the concrete classes downstream of a generic class. Therefor a
+     * breath-first-search is started at the start class. The graph is traversed
+     * down along the class hierarchy and the "hasPart" relations. From each
+     * branch the first concrete class is added to the result list. It is not
+     * assumed, that a concrete class has further sub classes.
      *
      * @param cls A generic class to start the search from.
-     * @param ns  The name space of the class.
+     * @param ns The name space of the class.
      * @return Concrete classes downstream of the given generic class.
      */
     @GET
@@ -172,19 +262,20 @@ public class TriboliumFunctions extends OntologyFunctions {
     @Produces(ALL_TYPES)
     public Set<ObaClass> findConcreteFor(@PathParam("cls") String cls,
             @QueryParam("ns") String ns) {
-        //TODO use also hasPart relations.
         ObaClass startClass = ontology.getOntologyClass(cls, ns);
         Set<ObaClass> concreteCls = findConcrete(startClass);
         return concreteCls;
     }
 
     /**
-     * Get all concrete classes, linked to the given developmental stage, downstream of the start class. See also {@link
+     * Get all concrete classes, linked to the given developmental stage,
+     * downstream of the start class. See also {@link
      * #findConcreteFor(String, String)}
      *
-     * @param genericCls The generic class with optional name space as matrix parameter
-     * @param devStage   The developmental stage
-     * @param ns         The optional name space of the developmental stage
+     * @param genericCls The generic class with optional name space as matrix
+     * parameter
+     * @param devStage The developmental stage
+     * @param ns The optional name space of the developmental stage
      * @return
      */
     @GET
@@ -204,13 +295,25 @@ public class TriboliumFunctions extends OntologyFunctions {
         for (ObaClass child : OntologyHelper.getChildren(devStageCls)) {
             usedDevStages.add(child);
         }
+//        StorageHandler stoargeHandler = new StorageHandler();
+//        Set<ObaClass> storedList = stoargeHandler.getStorage("ibeetle", "addGenCls"); // see also line 133
+//        if (storedList == null) {
+//            storedList = new HashSet<ObaClass>();
+//        }
+//        System.out.println("stored classes added " + storedList);
         Set<ObaClass> result = new HashSet<ObaClass>();
+//        System.out.println("downstream classes " + allConcrete.size());
         for (ObaClass c : allConcrete) {
-            if (concreteClasses.containsKey(c) && usedDevStages.contains(concreteClasses.get(c))) {
+            if (mixedClasses.contains(c)
+                    || (concreteClasses.containsKey(c) && usedDevStages.contains(concreteClasses.get(c)))) {
                 result.add(c);
+//            } else if (storedList.contains(c)) {
+//                result.add(c);
+            } else {
+//                System.out.println("skipping " + c);
             }
         }
-        log.info("returning {} concrete classes for {} and stage " + devStageCls, result.size(), genericClass);
+//        log.debug("returning {} concrete classes for {} and stage " + devStageCls, result.size(), genericClass);
         return result;
     }
 
@@ -264,6 +367,16 @@ public class TriboliumFunctions extends OntologyFunctions {
         return all;
     }
 
+    private void fixPodomer() {
+        ObaClass podomer = ontology.getOntologyClass("TrOn_0000035", null);
+        if (genericClasses != null) {
+            genericClasses.add(podomer);
+        }
+        if (concreteClasses != null) {
+            concreteClasses.remove(podomer);
+        }
+    }
+
     private void addDevStagesDownstream(ObaClass start) {
         devStages.add(start);
         //TODO reenable
@@ -275,8 +388,9 @@ public class TriboliumFunctions extends OntologyFunctions {
     }
 
     /**
-     * Do a breath-first search starting at the start node. From each branch the first concrete class is added to the
-     * result list. It is not assumed, that a concrete class has further sub classes.
+     * Do a breath-first search starting at the start node. From each branch the
+     * first concrete class is added to the result list. It is not assumed, that
+     * a concrete class has further sub classes.
      *
      * @param startClass
      * @return
@@ -323,7 +437,8 @@ public class TriboliumFunctions extends OntologyFunctions {
     }
 
     /**
-     * Get the partOf restrictions of a class. If no partOf restrictions are found an empty set is returned.
+     * Get the partOf restrictions of a class. If no partOf restrictions are
+     * found an empty set is returned.
      *
      * @param cls
      * @return
@@ -340,12 +455,13 @@ public class TriboliumFunctions extends OntologyFunctions {
     }
 
     /**
-     * Checks if the given class is concrete. A class is concrete if: <ul> <li>If the class was already added to the
-     * list of concrete classes (by its parents)</li> <li>The class has a direct partOf relation to one of the
-     * stages.</li> <li>recursion</li> </ul> The class is not added to the list of concrete classes, only a boolean is
-     * returned.
+     * Checks if the given class is concrete. A class is concrete if: <ul>
+     * <li>If the class was already added to the list of concrete classes (by
+     * its parents)</li> <li>The class has a direct partOf relation to one of
+     * the stages.</li> <li>recursion</li> </ul> The class is not added to the
+     * list of concrete classes, only a boolean is returned.
      *
-     * @param start       The class to test
+     * @param start The class to test
      * @param upstreamCls
      * @return
      */
@@ -381,8 +497,9 @@ public class TriboliumFunctions extends OntologyFunctions {
     }
 
     /**
-     * Checks if the given class is a concrete class. A class is concrete, if it was already added to the list of
-     * concrete classes (through it parents), has a direct partOf relation to a developmental stage, or has a concrete
+     * Checks if the given class is a concrete class. A class is concrete, if it
+     * was already added to the list of concrete classes (through it parents),
+     * has a direct partOf relation to a developmental stage, or has a concrete
      * parent.
      *
      * @param cls
@@ -413,15 +530,18 @@ public class TriboliumFunctions extends OntologyFunctions {
     }
 
     /**
-     * If the start class is a concrete class, the class is added to the result list. Otherwise
-     * <code>findDownToConcrete</code> is called for each child of the start class and for each class connected. with
-     * "hasPart".
+     * If the start class is a concrete class, the class is added to the result
+     * list. Otherwise
+     * <code>findDownToConcrete</code> is called for each child of the start
+     * class and for each class connected. with "hasPart".
      *
-     * @param cls    The start class
+     * @param cls The start class
      * @param result
      */
     private void findDownToConcrete(ObaClass cls, Set<ObaClass> result) {
-        if (getConcreteClasses().contains(cls)) {
+//        if (getConcreteClasses().contains(cls)) {
+//        System.out.println("test " + labelOf(cls));
+        if (getConcreteClasses().contains(cls) || getMixedClasses().contains(cls)) {
             result.add(cls);
         }
         Set<ObaClass> downstreamClasses = new HashSet<ObaClass>();
@@ -456,8 +576,9 @@ public class TriboliumFunctions extends OntologyFunctions {
     }
 
     /**
-     * Returns a list of classes with a partOf relation to the given class. If no relations are found, <code>null</code>
-     * is returned.
+     * Returns a list of classes with a partOf relation to the given class. If
+     * no relations are found,
+     * <code>null</code> is returned.
      *
      * @param cls
      * @return
@@ -489,7 +610,7 @@ public class TriboliumFunctions extends OntologyFunctions {
         }
 
         for (ObaClass child : OntologyHelper.getChildren(cls)) {
-            if (cls.equals(child)){
+            if (cls.equals(child)) {
                 log.warn("cls-loop " + cls);
                 continue;
             }
@@ -511,19 +632,37 @@ public class TriboliumFunctions extends OntologyFunctions {
         }
     }
 
+    /**
+     * Checks if the children of the class belongs to more than one
+     * developmental stage.
+     *
+     * @param parent
+     * @return
+     */
     private boolean isParentDirectGeneric(ObaClass parent) {
-//        System.out.println("testing " + labelOf(parent));
-        Set devStages = new HashSet();
+
+        Set<ObaClass> childrenDevStages = new HashSet();
+        ObaClass multi = null;
         Set<ObaClass> children = OntologyHelper.getChildren(parent);
         for (ObaClass c : children) {
             ObaClass ds = concreteClasses.get(c);
-//            System.out.println("\t " + labelOf(c) + " -> " + ds);
-            if (ds != null) {
-                devStages.add(ds);
+            if (ds == null) {
+                continue;
             }
+            if (labelOf(ds).endsWith("male")) {
+                ds = OntologyHelper.getParents(ds).iterator().next();
+            }
+            if (childrenDevStages.contains(ds)) {
+                if (multi == null) {
+                    multi = ds;
+                }
+                if (multi != ds) {
+                    return false;
+                }
+            }
+            childrenDevStages.add(ds);
         }
-//        System.out.println( devStages.size() +" dev stages for " + labelOf(parent));
-        return devStages.size() > 1;
+        return childrenDevStages.size() > 1;
     }
 
     private void addChildsToSet(ObaClass parent, Set<ObaClass> set) {

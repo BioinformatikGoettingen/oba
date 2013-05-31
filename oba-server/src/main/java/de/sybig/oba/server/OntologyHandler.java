@@ -206,7 +206,7 @@ public final class OntologyHandler {
 	 * @param p
 	 */
 	public void addOntology(Properties p) {
-		File ontoFile = new File(p.getProperty("file"));
+		File ontoFile = new File(p.getProperty("file").trim());
 
 		if (!ontoFile.isAbsolute()) {
 			ontoFile = new File(generalProps.getProperty("ontology_directory",
@@ -320,7 +320,16 @@ public final class OntologyHandler {
 	public Set<String> getFunctionNames() {
 		return functionMap.keySet();
 	}
-
+        public void resetFunctionClass(String functionName){
+            for (String name : getFunctionNames()){
+                if (name.equals(functionName)){
+                OntologyFunction function = functionMap.get(name);
+                                            function.reset();
+                    return;
+                }
+            }
+            throw new IllegalArgumentException("unknown function class");
+        }
 	// public OWLOntologyWalker getWalker() {
 	// return walker;
 	// }

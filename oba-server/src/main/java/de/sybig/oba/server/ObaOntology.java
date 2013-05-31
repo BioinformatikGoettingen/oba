@@ -27,6 +27,7 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
+import org.omg.CORBA.MARSHAL;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.AddAxiom;
 import org.semanticweb.owlapi.model.AxiomType;
@@ -86,7 +87,7 @@ public class ObaOntology {
         }
 
         manager = OWLManager.createOWLOntologyManager();
-
+        System.out.println("loading  " + iri);
         onto = manager.loadOntologyFromOntologyDocument(iri);
         dataFactory = manager.getOWLDataFactory();
         idx = new RAMDirectory();
@@ -106,7 +107,8 @@ public class ObaOntology {
     }
 
     /**
-     * Get the root node of the ontology. The root is returned as proxy from Type ObaClass with the ontology set.
+     * Get the root node of the ontology. The root is returned as proxy from
+     * Type ObaClass with the ontology set.
      *
      * @return The root of the ontology.
      */
@@ -120,9 +122,11 @@ public class ObaOntology {
     }
 
     /**
-     * Returns classes without explicit super classes. If a class does not have a explicit super classes the API won't
-     * return it by {@link OWLClass#getSuperClasses(org.semanticweb.owlapi.model.OWLOntology)} . So the classes are
-     * scanned during {@link #init()} and orphaned children are stored.
+     * Returns classes without explicit super classes. If a class does not have
+     * a explicit super classes the API won't return it by
+     * {@link OWLClass#getSuperClasses(org.semanticweb.owlapi.model.OWLOntology)}
+     * . So the classes are scanned during {@link #init()} and orphaned children
+     * are stored.
      *
      * @return
      */
@@ -131,9 +135,10 @@ public class ObaOntology {
     }
 
     /**
-     * Get a list of all obsolete classes. In OBO ontologies, deleted classes are annotated with "is_obsolete = true".
-     * During the initial scan all obsolete classes are found and stored. If the children of the root node are queried
-     * later on, obsolete classes are subtracted.
+     * Get a list of all obsolete classes. In OBO ontologies, deleted classes
+     * are annotated with "is_obsolete = true". During the initial scan all
+     * obsolete classes are found and stored. If the children of the root node
+     * are queried later on, obsolete classes are subtracted.
      *
      * @return
      */
@@ -142,11 +147,13 @@ public class ObaOntology {
     }
 
     /**
-     * Gets a class from the ontology. If no class with this name in this namespace is found, <code>null</code> is
-     * returned. A trailing '#' on the namespace will be deleted before processing.
+     * Gets a class from the ontology. If no class with this name in this
+     * namespace is found,
+     * <code>null</code> is returned. A trailing '#' on the namespace will be
+     * deleted before processing.
      *
      * @param cls The name of the class.
-     * @param ns  The namespace of the class.
+     * @param ns The namespace of the class.
      * @return The class object or <code>null</code>
      */
     public ObaClass getOntologyClass(final String cls, final String ns) {
@@ -207,21 +214,36 @@ public class ObaOntology {
     }
 
     /**
-     * Searches a class in the ontology. The pattern is searched in the indexed class names. The returned classes are
-     * sorted by their relevance. If no matches could be found an empty list is returned.
+     * Searches a class in the ontology. The pattern is searched in the indexed
+     * class names. The returned classes are sorted by their relevance. If no
+     * matches could be found an empty list is returned.
      *
      * @param pattern The search pattern
      * @return An ordered list of classes matching the pattern.
      */
     public List<ObaClass> searchCls(String pattern, String fields) {
 
-        return searchInIndex(pattern, fields);
+        return searchInIndex(pattern, fields, MAX_HITS);
+    }
+
+    public List<ObaClass> searchCls(String pattern, String fields, int maxResults) {
+
+        return searchInIndex(pattern, fields, maxResults);
     }
 
     private IRI getIri(String ns, String name) {
         return IRI.create(String.format("%s#%s", ns, name));
     }
 
+    /**
+     * Walk over all ontology classes and index them. Obsolete classes are
+     * ignored.
+     *
+     * @param ontology
+     * @throws CorruptIndexException
+     * @throws LockObtainFailedException
+     * @throws IOException
+     */
     private void scanClasses(OWLOntology ontology)
             throws CorruptIndexException, LockObtainFailedException,
             IOException {
@@ -230,6 +252,7 @@ public class ObaOntology {
 
         Set<OWLDeclarationAxiom> classes = ontology.getAxioms(AxiomType.DECLARATION);
         int counter = 0;
+        clsLoop:
         for (OWLDeclarationAxiom c : classes) {
 
             OWLEntity entity = c.getSignature().iterator().next();
@@ -244,7 +267,7 @@ public class ObaOntology {
                     if (annotation.getName().equals(OBSOLTE)
                             && annotation.getValue().equals("true")) {
                         obsoleteClasses.add(new ObaClass(cls, ontology));
-                        break;
+                        continue clsLoop;
                     }
                 }
                 orphanChildren.add(new ObaClass(cls, ontology));
@@ -299,13 +322,14 @@ public class ObaOntology {
     }
 
     /**
-     * Searches the pattern in the luncene index. <code>null</code> is returned if any exception occurs.
+     * Searches the pattern in the luncene index.
+     * <code>null</code> is returned if any exception occurs.
      *
      * @param searchPattern
      * @param fields
      * @return A list of matches or <code>null</code>
      */
-    private List<ObaClass> searchInIndex(String searchPattern, String fields) {
+    private List<ObaClass> searchInIndex(String searchPattern, String fields, int maxResults) {
         if (idx == null) {
             logger.error("could not search, because the index is null");
             return null;
@@ -333,14 +357,14 @@ public class ObaOntology {
                     searchFields, new StandardAnalyzer(luceneVersion));
             parser.setDefaultOperator(Operator.AND);
             Query query = parser.parse(searchPattern);
-            TopDocs hits = searcher.search(query, MAX_HITS);
+            TopDocs hits = searcher.search(query, maxResults);
             // List<Cls> outClasses = new LinkedList<Cls>();
-            if (hits.totalHits > MAX_HITS) {
+            if (hits.totalHits > maxResults) {
                 logger.warn(
                         "More than {} [{}] hits found for " + searchPattern,
-                        MAX_HITS, hits.totalHits);
+                        maxResults, hits.totalHits);
             }
-            for (int x = 0; x < hits.totalHits && x < MAX_HITS; x++) {
+            for (int x = 0; x < hits.totalHits && x < maxResults; x++) {
                 Document doc = searcher.doc(hits.scoreDocs[x].doc);
                 // System.out.println(hits.scoreDocs[x].score);
                 String className = doc.getField("luceneName").stringValue();

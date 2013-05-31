@@ -68,8 +68,10 @@ public class RestServer {
         logger.info("Starting server at {}", baseUri);
         
         Map<String, String> initParams = new HashMap<String, String>();
+//        initParams.put("com.sun.jersey.config.property.packages",
+//                "de.sybig.oba.server;org.codehaus.jackson.jaxrs");
         initParams.put("com.sun.jersey.config.property.packages",
-                "de.sybig.oba.server;org.codehaus.jackson.jaxrs");
+                "de.sybig.oba.server");
         SelectorThread threadSelector = GrizzlyWebContainerFactory.create(
                 baseUri, initParams);
         threadSelector.setCompression("force");
@@ -235,6 +237,7 @@ public class RestServer {
                     manifest = jar.getManifest();
                 } catch (IOException e) {
                     logger.warn("File {} is not a valid jar file. The file is ignored", f);
+                    continue;
                 }
                 
                 Attributes entries = manifest.getMainAttributes();
@@ -244,15 +247,13 @@ public class RestServer {
                 if (entries.containsKey(pathAttribute) && entries.containsKey(functionClassAttribute)) {
                     String name = (String) entries.get(pathAttribute);
                     String className = (String) entries.get(functionClassAttribute);
-//                    URL url = new URL("jar","",f.getAbsolutePath().toString()+"!/");
-
-                    
+           
                     try {
                         URLClassLoader loader = new URLClassLoader(new URL[]{f.toURI().toURL()});
                         
                         OntologyFunction instance = (OntologyFunction) loader.loadClass(className).newInstance();
                         oh.addFunctionClass(name, instance);
-                        logger.info("registering plugin class {} under the name {}", instance, name);
+                        logger.info("registering plugin class {} in version {} under the name "+ name, instance, instance.getVersion());
                     } catch (ClassNotFoundException e) {
                         logger.error("The class {} specified in the plugin {} is not found in the jar.", className, f);
                     } catch (InstantiationException e) {

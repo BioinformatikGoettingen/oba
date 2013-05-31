@@ -10,10 +10,11 @@ import java.util.Set;
 import de.sybig.oba.server.JsonCls;
 import de.sybig.oba.server.JsonObjectProperty;
 import de.sybig.oba.server.JsonPropertyList;
+import java.net.ConnectException;
 
 public class SimpleClient {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws ConnectException {
 
 		SimpleClient client = new SimpleClient();
 		client.go();
@@ -21,7 +22,7 @@ public class SimpleClient {
 
 	private CytomerConnector cc;
 
-	private void go() {
+	private void go() throws ConnectException {
 
 		cc = new CytomerConnector();
 		System.out.println("Getting the root of the ontology:");
@@ -51,7 +52,6 @@ public class SimpleClient {
 				"http://cytomer.bioinf.med.uni-goettingen.de/organ");
 		System.out.println("\tGot class " + cls);
 		// //
-
 		System.out.println("Accessing annotation values");
 		System.out.println("\tACC in the list of annotations : "
 				+ cls.getAnnotationValues("ACC").iterator().next());

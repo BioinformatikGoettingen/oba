@@ -4,7 +4,10 @@
  */
 package de.sybig.oba.server;
 
-import com.sun.corba.se.pept.transport.ContactInfo;
+import java.util.*;
+import javax.ws.rs.*;
+import javax.ws.rs.core.PathSegment;
+import javax.ws.rs.core.Response;
 import org.semanticweb.owlapi.model.AxiomType;
 import org.semanticweb.owlapi.model.OWLAxiom;
 import org.semanticweb.owlapi.model.OWLClass;
@@ -13,26 +16,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import uk.ac.manchester.cs.owl.owlapi.OWLSubClassOfAxiomImpl;
 
-import javax.ws.rs.*;
-import javax.ws.rs.core.PathSegment;
-import javax.ws.rs.core.Response;
-import java.util.*;
-
 public class OntologyFunctions extends AbstractOntolgyResource implements
         OntologyFunction {
 
-    private Logger logger = LoggerFactory.getLogger(OntologyFunctions.class);
+    private Logger log = LoggerFactory.getLogger(OntologyFunctions.class);
     protected static final String ALL_TYPES = "text/plain, text/html, application/json";
+
+    @Override
+    public String getVersion() {
+        return "1.3";
+    }
+
     @GET
     @Path("/")
     @Produces("text/html")
     @Override
     public String getRoot() {
-        StringBuffer out = new StringBuffer();
+        StringBuilder out = new StringBuilder();
         out.append("<h1>Available functions</h1>\n");
         out.append("<dl>");
         out.append("<dt>/searchCls/{cls}</dt><dd>Searches for a class in the ontology. {cls} should be replaced with the name of the searched class. The namespace can be defined by the query parameter 'ns'</dd>");
-        out.append("<dt>XdownstreamOfY/{x}/{y}</dt><dd>Searches the class x below  of class y, i. e. x is a sibling of y. The namespace of the classes can be defined as matrix or query parameter 'ns'</dd>");
+        out.append("<dt>/descendants/{cls}</dt><dd>Get all descendants of a class. {cls} should be replaced with the name of the searched class. The namespace can be defined by the query parameter 'ns'</dd>");
+        out.append("<dt>XdownstreamOfY/{x}/{y}</dt><dd>Searches the class x below  of class y, i. e. x is a descendant of y. The namespace of the classes can be defined as matrix or query parameter 'ns'</dd>");
         out.append("<dt>reduceToLevel/{level}/{cls}</dt><dd>Returns a list of ancestor of the class at the given level below of owl:Thing. If the level of the given class is less then the required level, the class itself is returned in the list. The namespace of the classes can be defined as matrix or query parameter 'ns'</dd>");
         out.append("<dt>reduceToLevel/{level}/{partition}/{name}</dt><dd>Similar to the function above, but uses a reference to a stored list as input and returns a list of list.</dd>");
         out.append("<dt>reduceToLevelShortestPath/{level}/{cls}</dt><dd>Same 'reduceToLevel' above, but only the shortest paths are honored.</dd>");
@@ -47,15 +52,15 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
     @Path("{function:.*}")
     @Produces("text/plain, application/json, text/html")
     public Object catchAll(@PathParam("function") String function) {
-        logger.warn("could not find function '{}'", function);
+        log.warn("could not find function '{}'", function);
         javax.ws.rs.core.Response.ResponseBuilder builder = Response
                 .status(404);
         return builder.build();
     }
 
     /**
-     * Searches a class in the ontology. The class is searched by its name in the lucene index. An ordered list of
-     * classes is returned
+     * Searches a class in the ontology. The class is searched by its name in
+     * the lucene index. An ordered list of classes is returned
      *
      * @param searchPattern
      * @param ns
@@ -68,23 +73,39 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
     public List<ObaClass> searchCls(
             @PathParam("searchCls") PathSegment searchPathSeg,
             @PathParam("cls") String searchPattern, @QueryParam("ns") String ns) {
-        logger.debug("searching for pattern '{}' in ontology {}",
+        log.debug("searching for pattern '{}' in ontology {}",
                 searchPattern, ontology);
 
         String fields = null;
         if (searchPathSeg.getMatrixParameters().get("field") != null) {
             fields = searchPathSeg.getMatrixParameters().get("field").get(0);
         }
-
-        return ontology.searchCls(searchPattern, fields);
-
+        int max = 0;
+        try {
+            if (searchPathSeg.getMatrixParameters().get("max") != null) {
+                max = Integer.parseInt(searchPathSeg.getMatrixParameters().get("max").get(0));
+            }
+        } catch (NumberFormatException e) {
+            // keep 0 for max;
+        }
+        List<ObaClass> result = null;
+        if (max > 0) {
+            result = ontology.searchCls(searchPattern, fields, max);
+        }
+        result = ontology.searchCls(searchPattern, fields);
+        if (result == null || result.size() < 1) {
+            throw new WebApplicationException(Response.Status.NO_CONTENT);
+        }
+        return result;
     }
 
     /**
-     * Maps a class to its parents at the given level below the root node. If the level of the given class is below or
-     * equal to the requested level, the input class is returned as only member of the list.
+     * Maps a class to its parents at the given level below the root node. If
+     * the level of the given class is below or equal to the requested level,
+     * the input class is returned as only member of the list.
      * <p/>
-     * If the input class is not found in the ontology, a web application exception 404 is thrown.
+     * If the input class is not found in the ontology, a web application
+     * exception 404 is thrown.
      *
      * @param level
      * @param clsPathSegment
@@ -117,8 +138,8 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
     @Path("reduceToLevel/{level}/{cls}")
     @Produces("text/html, text/plain, application/json")
     public List<ObaClass> reduceToLevel(@PathParam("level") Integer level,
-                                        @PathParam("cls") PathSegment clsPathSegment,
-                                        @QueryParam("ns") String ns) {
+            @PathParam("cls") PathSegment clsPathSegment,
+            @QueryParam("ns") String ns) {
         ObaClass cls = getClassFromPathSegement(clsPathSegment, ns);
 
         List<List<ObaClass>> pathes = getAllPathsToRoot(cls);
@@ -148,8 +169,8 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
             if (path != null && path.size() > 0 && path.get(0).size() >= level) {
                 for (List<ObaClass> p : path) {
                     ancestor = p.get(p.size() - level);
-                    if (! clsPath.contains(ancestor)){
-                    clsPath.add(ancestor);
+                    if (!clsPath.contains(ancestor)) {
+                        clsPath.add(ancestor);
                     }
                 }
             }
@@ -159,11 +180,12 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
     }
 
     /**
-     * Get all ancestors at a given level for the classes in the set. For the search for the ancestors all paths are
-     * honored, not only the shortest.
+     * Get all ancestors at a given level for the classes in the set. For the
+     * search for the ancestors all paths are honored, not only the shortest.
      * <p/>
-     * The result is a list of list of ontology classes. The result of each input class is stored in one list, with the
-     * input class at the first place.
+     * The result is a list of list of ontology classes. The result of each
+     * input class is stored in one list, with the input class at the first
+     * place.
      *
      * @param level
      * @param partition
@@ -189,7 +211,7 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
             for (List<ObaClass> p : pathes) {
                 if (p.size() >= level) {
                     ancestor = p.get(p.size() - level);
-                    if (!list.contains(ancestor)){
+                    if (!list.contains(ancestor)) {
                         list.add(ancestor);
                     }
 //                    list.add(p.get(p.size() - level));
@@ -201,33 +223,36 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
     }
 
     /**
-     * <p> Is X a child of Y? Starting from class X the ontology is searched upstream along the "is_a" relation until
-     * class Y or owl:Thing is found. If class Y is found on a path, the path between class Y and X is returned.<br />
-     * For both classes the namespace can be defined as matrix parameter. <em>'/' is not encoded correct, and has to be
-     * replaced by '$'</em><br /> Both class names should be names of existing classes in the ontology. </p> Response
-     * codes <ul> <li>404: if class X or Y could not be found in the ontology</li> </ul>
+     * <p> Is X a child of Y? Starting from class X the ontology is searched
+     * upstream along the "is_a" relation until class Y or owl:Thing is found.
+     * If class Y is found on a path, the path between class Y and X is
+     * returned.<br /> For both classes the namespace can be defined as matrix
+     * parameter. <em>'/' is not encoded correct, and has to be replaced by
+     * '$'</em><br /> Both class names should be names of existing classes in
+     * the ontology. </p> Response codes <ul> <li>404: if class X or Y could not
+     * be found in the ontology</li> </ul>
      *
      * @param x The name of the successor class
      * @param y The name of the precursor parent
-     * @return The path between the both class, <code>null</code> if X is not a successor of Y or one of the response
-     *         codes above.
+     * @return The path between the both class, <code>null</code> if X is not a
+     * successor of Y or one of the response codes above.
      */
     @GET
     @Path("XdownstreamOfY/{x}/{y}")
     @Produces("text/plain, text/html, application/json")
     public Object xdownStreamOfY(@PathParam("x") PathSegment x,
-                                 @PathParam("y") PathSegment y, @QueryParam("ns") String ns) {
+            @PathParam("y") PathSegment y, @QueryParam("ns") String ns) {
         // http://localhost:9998/cytomer/functions/basic/XbelowY/liver;ns=http:$$protege.stanford.edu$plugins$owl$protege/organ?ns=http://protege.stanford.edu/plugins/owl/protege
         ObaClass clsX = getClassFromPathSegement(x);
         ObaClass clsY = getClassFromPathSegement(y, ns);
-        logger.info("search class {} downstream of class {}", clsX, clsY);
+//        log.info("search class {} downstream of class {}", clsX, clsY);
         if (clsX == null || clsY == null) {
             javax.ws.rs.core.Response.ResponseBuilder builder = Response
                     .status(404);
             return builder.build();
         }
         List<List<ObaClass>> downstreamList = searchXdownstreamOfY(clsX, clsY);
-        logger.info("-> " + downstreamList.size() + " downstream");
+//        log.info("-> " + downstreamList.size() + " downstream");
         return downstreamList;
     }
 
@@ -249,7 +274,6 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
     // pathes.add(path);
     // return getPartOfPath(clsY, pathes, partOf);
     // }
-
     @GET
     @Path("reduceToClusterSize/{size}/{partition}/{name}")
     @Produces("text/html, text/plain, application/json")
@@ -279,8 +303,8 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
                     map.put(cls, new LinkedList<OWLClass>());
                 }
                 c = path.get(0);
-                if (! map.get(cls).contains(c)){
-                map.get(cls).add(c);
+                if (!map.get(cls).contains(c)) {
+                    map.get(cls).add(c);
                 }
             }
             if (map.keySet().size() <= size) {
@@ -297,7 +321,7 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
             @PathParam("restriction") String cls, @QueryParam("ns") String ns) {
         Set<ObaClass> out = new HashSet<ObaClass>();
         OWLObjectProperty restriction = ontology.getPropertyByName(cls, ns);
-        System.out.println("search axioms");
+//        System.out.println("search axioms");
         Set<OWLAxiom> axioms = restriction.getReferencingAxioms(ontology
                 .getOntology());
         for (OWLAxiom axiom : axioms) {
@@ -314,16 +338,42 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
         return out;
     }
 
+    @GET
+    @Path("descendants/{cls}")
+    @Produces("text/plain, application/json, text/html")
+    public List<ObaClass> getDescendants(@PathParam("cls") PathSegment className, @QueryParam("ns") String ns) {
+        ObaClass cls = getClassFromPathSegement(className, ns);
+        LinkedList<ObaClass> children = new LinkedList<ObaClass>();
+        addChildren(cls, children);
+        return children;
+    }
+
+    public void reset() {
+        // we do not have fields to reset
+    }
+
+    protected void addChildren(ObaClass startCls, List<ObaClass> descendants) {
+        Set<ObaClass> children = OntologyHelper.getChildren(startCls);
+        if (children == null) {
+            return;
+        }
+        for (ObaClass child : children) {
+            descendants.add(child);
+            addChildren(child, descendants);
+        }
+    }
+
     /**
-     * Searches the class X downstream of class Y, i. e. X should be a ancestor of Y. On success all shortest paths
-     * between the two classes are returned. On the first position class X is stored, on the last one class Y.
+     * Searches the class X downstream of class Y, i. e. X should be a ancestor
+     * of Y. On success all shortest paths between the two classes are returned.
+     * On the first position class X is stored, on the last one class Y.
      *
      * @param clsX
      * @param clsY
      * @return
      */
     protected List<List<ObaClass>> searchXdownstreamOfY(ObaClass clsX,
-                                                        ObaClass clsY) {
+            ObaClass clsY) {
 
         List<ObaClass> path = new LinkedList<ObaClass>();
         path.add(clsX);
@@ -392,9 +442,10 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
     }
 
     /**
-     * Extends a list of OWLClasses until the target class or owl:Thing is hit. If a class has more than one parent the
-     * path to the current last are copied so many time as parents are available. The new paths are added to the list of
-     * paths.
+     * Extends a list of OWLClasses until the target class or owl:Thing is hit.
+     * If a class has more than one parent the path to the current last are
+     * copied so many time as parents are available. The new paths are added to
+     * the list of paths.
      */
     protected List<List<ObaClass>> extendUpstream(
             List<List<ObaClass>> allPaths, ObaClass targetClass) {
@@ -412,6 +463,10 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
             Set<ObaClass> parentsOfLastNode = OntologyHelper.getParents(
                     lastNode, ontology.getOntology());
             for (ObaClass parent : parentsOfLastNode) {
+                if (lastNode.equals(parent)) {
+                    log.error("loop detected {}", lastNode.getIRI().getFragment());
+                    continue;
+                }
                 LinkedList<ObaClass> newPath = new LinkedList<ObaClass>();
                 newPath.addAll(currentPath);
                 newPath.add(parent);
@@ -439,7 +494,7 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
     }
 
     private List<ObaClass> getPartOfPath(ObaClass y,
-                                         List<List<ObaClass>> pathes, OWLObjectProperty partOf) {
+            List<List<ObaClass>> pathes, OWLObjectProperty partOf) {
         Iterator<List<ObaClass>> pathIterator = pathes.iterator();
         while (pathIterator.hasNext()) {
             List<ObaClass> path = pathIterator.next();
@@ -482,8 +537,8 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
     }
 
     /**
-     * Returns the list of shortest paths from the given node to owl:Thing One the index 0 is the start class, on the
-     * last place owl:Thing
+     * Returns the list of shortest paths from the given node to owl:Thing One
+     * the index 0 is the start class, on the last place owl:Thing
      *
      * @param startNode
      * @return
@@ -493,5 +548,4 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
         List<List<ObaClass>> path = searchXdownstreamOfY(startNode, rootNode);
         return path;
     }
-
 }

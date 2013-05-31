@@ -5,15 +5,8 @@
 package de.sybig.oba.server;
 
 import java.util.Set;
-
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.*;
 import javax.ws.rs.core.PathSegment;
-
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.slf4j.Logger;
@@ -32,8 +25,8 @@ public class OntologyResource extends AbstractOntolgyResource {
     @Produces("application/json, text/plain, text/html")
     @Path("cls")
     public OWLClass getClsRoot() {
-        logger.debug("getting root node for ontology: {} by ressource {}",
-                ontology, this);
+//        logger.debug("getting root node for ontology: {} by ressource {}",
+//                ontology, this);
         OWLClass c = ontology.getRoot();
         return c;
 

@@ -26,6 +26,6 @@ public class OboConnector extends GenericConnector<OboClass, OboClassList, Obo2D
 
     @Override
     protected Class getOntology2DClassList() {
-        return Ontology2DClassList.class;
+        return Obo2DClassList.class;
     }
 }

@@ -1,6 +1,5 @@
 package de.sybig.oba.server;
 
-import com.sun.org.apache.bcel.internal.generic.BREAKPOINT;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,8 +8,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.ws.rs.*;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,7 +26,7 @@ public class AdminResource {
     @Path("/version")
     @Produces("text/plain")
     public String getServerVersion() {
-        return "1.2.1\n";
+        return "1.3\n";
     }
 
     @GET
@@ -63,15 +60,15 @@ public class AdminResource {
     @Path("/ontology/{ontology}/properties")
     public String getProperties(@PathParam("ontology") String ontology) {
         Properties props = oh.getOntologyProperties(ontology);
-        if (props == null){
-            throw  new WebApplicationException(500);
+        if (props == null) {
+            throw new WebApplicationException(500);
         }
-       return propertyToString(props);
+        return propertyToString(props);
     }
 
     @POST
     @Path("/ontology/")
-    public void createOntology(InputStream is){
+    public void createOntology(InputStream is) {
         String[] kv;
         Properties props = new Properties();
         try {
@@ -81,11 +78,11 @@ public class AdminResource {
                 kv = line.split("=");
                 props.put(kv[0].trim(), kv[1].trim());
             }
-            if (!(props.containsKey("identifier") && props.containsKey("file"))){
+            if (!(props.containsKey("identifier") && props.containsKey("file"))) {
                 throw new WebApplicationException(500);
             }
             OntologyResource existing = oh.getOntology(props.getProperty("identifier"));
-            if (existing != null){
+            if (existing != null) {
                 throw new WebApplicationException(500);
             }
             oh.addOntology(props);
@@ -96,15 +93,28 @@ public class AdminResource {
     }
 
     @GET
+    @Path("/reset/{function}")
+    public String resetFunctionClass(@PathParam("function") String function) {
+        try {
+            oh.resetFunctionClass(function);
+            return "ok";
+        } catch (Exception ex) {
+            return "failed";
+        }
+
+    }
+
+    @GET
     @Path("/stop")
     public String stop() {
         logger.info("stopping oba server");
-        System.exit(0);  
-    return "";
-}
-    private String propertyToString(Properties props){
-         StringBuffer sb = new StringBuffer();
-        for (Object key :  props.keySet()){
+        System.exit(0);
+        return "";
+    }
+
+    private String propertyToString(Properties props) {
+        StringBuffer sb = new StringBuffer();
+        for (Object key : props.keySet()) {
             sb.append(key);
             sb.append("=");
             sb.append(props.get(key));

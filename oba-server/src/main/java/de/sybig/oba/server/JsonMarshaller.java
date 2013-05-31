@@ -20,8 +20,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.ext.MessageBodyWriter;
 import javax.ws.rs.ext.Provider;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
 
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLEntity;
@@ -31,8 +29,6 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.jersey.api.json.JSONJAXBContext;
-import com.sun.jersey.api.json.JSONMarshaller;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 
@@ -46,7 +42,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 public class JsonMarshaller implements MessageBodyWriter<Object> {
 
 	private Logger logger = LoggerFactory.getLogger(JsonMarshaller.class);
-
+    private final int CACHE_TIME = 3600 * 24 * 30;
 	@Override
 	public boolean isWriteable(Class arg0, Type arg1, Annotation[] arg2,
 			MediaType arg3) {
@@ -70,8 +66,9 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
 	}
 
 	public void writeTo(Object arg0, Class arg1, Type arg2, Annotation[] arg3,
-			MediaType arg4, MultivaluedMap arg5, OutputStream os)
+			MediaType arg4, MultivaluedMap httpHeader, OutputStream os)
 			throws IOException, WebApplicationException {
+             setCachControle(httpHeader);
 		if (arg0 instanceof OWLClass || arg0 instanceof ObaClass) {
 			OWLClass c = (OWLClass) arg0;
 			JsonCls oc = copyCls(c, true);
@@ -272,10 +269,10 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
 		}
 		return out;
 	}
-	// private JsonIndividual copyIndividual(OWLIndividual ind) {
-	// JsonIndividual out = new JsonIndividual();
-	// out.setName(ind.getLocalName());
-	// out.setNamespace(ind.getNamespace());
-	// return out;
-	// }
+	         protected void setCachControle(MultivaluedMap httpHeader) {
+        if (!httpHeader.containsKey("Cache-Control")) {
+            httpHeader.add("Cache-Control", String.format(
+                    "public,max-age=%d,s-maxage=%d", CACHE_TIME, CACHE_TIME));
+        }
+    }
 }

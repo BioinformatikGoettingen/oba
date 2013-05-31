@@ -35,6 +35,7 @@ public class HtmlMarshaller extends OntoMarshaller {
 			throws WebApplicationException, IOException {
 
 		httpHeader.add("Content-Type", "text/html; charset=UTF-8");
+                setCachControle(httpHeader);
 		super.writeTo(arg0, arg1, arg2, arg3, arg4, httpHeader, os);
 	}
 

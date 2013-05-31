@@ -5,38 +5,26 @@
 package de.sybig.oba.server;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Properties;
-import java.util.Set;
-
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.WebApplicationException;
+import java.util.*;
+import javax.ws.rs.*;
 import javax.ws.rs.core.PathSegment;
-
 import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 public class CytomerFunctions extends OntologyFunctions implements
         OntologyFunction {
 
-    private Logger logger = LoggerFactory.getLogger(CytomerFunctions.class);
+    private Logger log = LoggerFactory.getLogger(CytomerFunctions.class);
     private Properties cytomerProps;
     private ObaClass organCls;
     private Set<ObaClass> organList;
+    private Set<ObaObjectPropertyExpression> organRestrictions;
     private ObaClass physiologicalSystemClass;
+    private Set<ObaClass> nonOrgans;
 
-    // private static Map<ObaOntology, Set<OWLObjectProperty>>
-    // organRestrictionsMap = new HashMap<ObaOntology,
-    // Set<OWLObjectProperty>>();
+
     /**
      * A class providing ontology functions specific for Cytomer.
      *
@@ -48,11 +36,14 @@ public class CytomerFunctions extends OntologyFunctions implements
             cytomerProps.load(getClass().getResourceAsStream(
                     "/cytomer.properties"));
         } catch (IOException e) {
-            logger.error("could not load properties for cytomer function class");
+            log.error("could not load properties for cytomer function class");
             e.printStackTrace();
         }
     }
-
+    @Override
+    public String getVersion(){
+        return "1.3";
+    }
     // @Override
     // public void setOntology(ObaOntology ontology) {
     // this.ontology = ontology;
@@ -71,8 +62,8 @@ public class CytomerFunctions extends OntologyFunctions implements
         out.append("<dt>/organList</dt><dd>Gets a list of all organs</dd>");
         out.append("<dt>/organsOf/{cls}</dt><dd>Gets a list of organs this class is associated with. The class may be a subclass of an organ or is connected to the organ through the restrictions 'isPartOf', 'isCellOf' and 'isPartOfOrgan'</dd>");
         out.append("<dt>/systemsOf/{cls}</dt><dd>similar to 'getOrgansOf' but returns the list of physiological systems a class belongs to.</dd>");
-        out.append("<dt>/findUpstreamInSet/{cls}/{partition}/{set}</dt><dd>From the given starting class an upstream search is started until a class of the stored list is found. Besides of the class hierarchy the following relations are used: 'isPartOf', 'isCellOf' and 'isPartOfOrgan'. If at least one class from the stored set is found, all classes found in this step are returned.</dd>");
-        out.append("<dt>/findDownstreamInSet/{cls}/{partition}/{set}</dt><dd>From the given starting class an downs search is started until a class of the stored list is found. Besides of the class hierarchy the following relations are used: 'hasPart', 'hasCell' and 'hasOrganPart'. If at least one class from the stored set is found, all classes found in this step are returned.</dd>");
+        out.append("<dt>/findUpstreamInSet/{cls}/{partition}/{set}</dt><dd>From the given starting class an upstream search is started until a class of the stored list is found. Besides of the class hierarchy the following relations are used: 'isPartOf', 'isCellOf' and 'isPartOfOrgan'. All classes found are returned.</dd>");
+        out.append("<dt>/findDownstreamInSet/{cls}/{partition}/{set}</dt><dd>From the given starting class an downs search is started until a class of the stored list is found. Besides of the class hierarchy the following relations are used: 'hasPart', 'hasCell' and 'hasOrganPart'. All classes found are returned.</dd>");
         out.append("</dl>");
         return out.toString();
     }
@@ -91,7 +82,7 @@ public class CytomerFunctions extends OntologyFunctions implements
     @Produces("text/plain, text/html, application/json")
     @HtmlBase("../../cls/")
     public Set<ObaClass> getOrganList() {
-        logger.info("getting the list of organs");
+        log.info("getting the list of organs");
         return getOrgans();
     }
 
@@ -111,15 +102,15 @@ public class CytomerFunctions extends OntologyFunctions implements
             @QueryParam("ns") String ns) {
         // http://localhost:9998/cytomer/functions/cytomer/organsOf/left_medial_segment_of_liver?ns=http://cytomer.bioinf.med.uni-goettingen.de/organ#
         // cuboidal_epithelial_cell
-        logger.info("getting organs for {} in namespace {}", cls, ns);
+        log.info("getting organs for {} in namespace {}", cls, ns);
 
         ObaClass startClass = ontology.getOntologyClass(cls, ns);
         if (startClass == null) {
-            logger.warn("The start class could not be found in the ontology");
+            log.warn("The start class could not be found in the ontology");
             throw new WebApplicationException(404);
         }
         Set<ObaClass> organSet = findOrgans(startClass);
-        System.out.println("organs found " + organSet.size());
+        log.info("organs found " + organSet.size());
         return organSet;
     }
 
@@ -129,13 +120,13 @@ public class CytomerFunctions extends OntologyFunctions implements
     @HtmlBase("../../../cls/")
     public Set<ObaClass> getsystemsFor(@PathParam("cls") String cls,
             @QueryParam("ns") String ns) {
-        // http://localhost:9998/cytomer/functions/cytomer/organsOf/left_medial_segment_of_liver?ns=http://cytomer.bioinf.med.uni-goettingen.de/organ#
+        // http://localhost:9998/cytomer/functions/cytomer/organsOf/left_medial_segment_of_liver?ns=http://cytomer.bioinf.med.uni-goettingen.de#
         // cuboidal_epithelial_cell
-        logger.info("getting organs for {} in namespace {}", cls, ns);
+        log.info("getting systems for {} in namespace {}", cls, ns);
 
         ObaClass startClass = ontology.getOntologyClass(cls, ns);
         if (startClass == null) {
-            logger.warn("The start class could not be found in the ontology");
+            log.warn("The start class could not be found in the ontology");
             throw new WebApplicationException(404);
         }
         Set<ObaClass> organSet = findSystems(startClass);
@@ -170,31 +161,41 @@ public class CytomerFunctions extends OntologyFunctions implements
         try {
             startClass = this.getClassFromPathSegement(startCls, null);
         } catch (IllegalArgumentException ex) {
-            logger.error("could not get the start class for 'findUpstreamInSet'");
+            log.error("could not get the start class for 'findUpstreamInSet'");
             throw new WebApplicationException(404);
         }
 
         // is the class itself member of the refernce set?
         StorageHandler storageHandler = new StorageHandler();
         Set<ObaClass> referenceSet = storageHandler.getStorage(partition, set);
-        Set<ObaClass> resultSet = new HashSet<ObaClass>();
-        if (referenceSet.contains(startClass)) {
-            resultSet.add(startClass);
-            return resultSet;
-        }
 
-        // first test if we have an ancestors of a class of the set
+//        Set<ObaClass> resultSet = new HashSet<ObaClass>();
+//        if (referenceSet.contains(startClass)) {
+//            resultSet.add(startClass);
+//            return resultSet;
+//        }
+//
+//        // first test if we have an ancestors of a class of the set
+//        Set<ObaClass> startClasses = new HashSet<ObaClass>();
+//        startClasses.add(startClass);
+//        resultSet = searchUpStreamToSet(startClasses, referenceSet);
+//        if (resultSet.size() > 0) {
+//            return resultSet;
+//        }
+//
+//        // search along the properties
+//        Set<OWLObjectProperty> searchRestrictions = getSearchUpToSetRestrictions();
+//        Set<ObaClass> found = new HashSet<ObaClass>();
+//        searchAlongRelationsToSet(startClasses, referenceSet, found,
+//                searchRestrictions, true, false, new HashSet<ObaClass>());
         Set<ObaClass> startClasses = new HashSet<ObaClass>();
         startClasses.add(startClass);
-        resultSet = searchUpStreamToSet(startClasses, referenceSet);
-        if (resultSet.size() > 0) {
-            return resultSet;
-        }
 
         // search along the properties
         Set<OWLObjectProperty> searchRestrictions = getSearchUpToSetRestrictions();
-        Set<ObaClass> found = searchAlongRelationsToSet(startClasses,
-                searchRestrictions, referenceSet);
+        Set<ObaClass> found = new HashSet<ObaClass>();
+        searchAlongRelationsToSet(startClasses, referenceSet, found,
+                searchRestrictions, false, true, new HashSet<ObaClass>());
         return found;
     }
 
@@ -216,61 +217,86 @@ public class CytomerFunctions extends OntologyFunctions implements
         try {
             startClass = this.getClassFromPathSegement(startCls, null);
         } catch (IllegalArgumentException ex) {
-            logger.error("could not get the start class for 'findUpstreamInSet'");
+            log.error("could not get the start class for 'findUpstreamInSet'");
             throw new WebApplicationException(400);
         }
 
         // is the class in the reference set?
         StorageHandler storageHandler = new StorageHandler();
         Set<ObaClass> referenceSet = storageHandler.getStorage(partition, set);
-        Set<ObaClass> resultSet = new HashSet<ObaClass>();
-        if (referenceSet.contains(startClass)) {
-            resultSet.add(startClass);
-            return resultSet;
-        }
-
-        // search along the class hierarchy
         Set<ObaClass> startClasses = new HashSet<ObaClass>();
         startClasses.add(startClass);
-        resultSet = searchDownStreamToSet(startClasses, referenceSet);
-        if (resultSet.size() > 0) {
-            return resultSet;
-        }
 
         // search along the properties
         Set<OWLObjectProperty> searchRestrictions = getSearchDownToSetRestrictions();
-        Set<ObaClass> found = searchAlongRelationsToSet(startClasses,
-                searchRestrictions, referenceSet);
+        Set<ObaClass> found = new HashSet<ObaClass>();
+        searchAlongRelationsToSet(startClasses, referenceSet, found,
+                searchRestrictions, true, false, new HashSet<ObaClass>());
         return found;
     }
 
-    // public void _get
-    private Set<ObaClass> searchAlongRelationsToSet(Set<ObaClass> startClasses,
-            Set<OWLObjectProperty> searchRestrictions,
-            Set<ObaClass> referenceSet) {
-        Set<ObaClass> resultSet = new HashSet<ObaClass>();
+    /**
+     *
+     * @param startClasses
+     * @param searchRestrictions
+     * @param referenceSet
+     * @return
+     */
+    private void searchAlongRelationsToSet(Set<ObaClass> startClasses, Set<ObaClass> referenceSet, Collection<ObaClass> resultSet,
+            Set<OWLObjectProperty> searchRestrictions, boolean includeChildren, boolean includeParents, Collection<ObaClass> visited) {
+
         Set<ObaClass> children = new HashSet<ObaClass>();
-        for (OWLClass startClass : startClasses) {
+        for (ObaClass startClass : startClasses) {
             for (ObaObjectPropertyExpression relation : OntologyHelper.getObjectRestrictions(startClass)) {
                 if (!searchRestrictions.contains(relation.getRestriction())) {
                     continue;
                 }
                 if (referenceSet.contains(relation.getTarget())) {
                     resultSet.add(relation.getTarget());
-                } else {
+                }
+                if (!visited.contains(relation.getTarget())) {
                     children.add(relation.getTarget());
                 }
             }
+            if (includeChildren) {
+                for (ObaClass child : OntologyHelper.getChildren(startClass)) {
+                    if (referenceSet.contains(child)) {
+                        resultSet.add(child);
+                    }
+                    if (!visited.contains(child)) {
+                        children.add(child);
+                    }
+                }
+            } // if children
+            if (includeParents) {
+                for (ObaClass parent : OntologyHelper.getParents(startClass)) {
+                    if (referenceSet.contains(parent)) {
+                        resultSet.add(parent);
+                    }
+
+                    if (!visited.contains(parent)) {
+                        children.add(parent);
+                    }
+                }
+            } // if parents
+
+        }// for start classes
+
+//        if (resultSet.size() > 0 || children.size() < 1) {
+//            return resultSet;
+//        }
+        visited.addAll(children);
+        if (children.size() > 0) {
+            searchAlongRelationsToSet(children, referenceSet, resultSet, searchRestrictions, includeChildren, includeParents, visited);
         }
-        if (resultSet.size() > 0 || children.size() < 1) {
-            return resultSet;
-        }
-        return searchAlongRelationsToSet(children, searchRestrictions,
-                referenceSet);
     }
 
     /**
-     * Searches downstream using the is_a relations
+     * Searches downstream using the is_a relations. In each recursive call the
+     * children of the classes in the list of classes given as first parameter
+     * are tested. If at least one hit is found, a list of children which are
+     * part of the reference set are returned. Otherwise the function is called
+     * recursive starting with the children.
      *
      * @param startClasses
      * @param referenceSet
@@ -382,7 +408,7 @@ public class CytomerFunctions extends OntologyFunctions implements
                     "organ_ns",
                     "http://cytomer.bioinf.med.uni-goettingen.de#"));
             //"http://protege.stanford.edu/plugins/owl/protege#"));
-            logger.info("getting organ cls with {} in NS {}",
+            log.info("getting organ cls with {} in NS {}",
                     cytomerProps.getProperty("organ_name"),
                     cytomerProps.getProperty("organ_ns"));
         }
@@ -403,27 +429,18 @@ public class CytomerFunctions extends OntologyFunctions implements
      * Searches the organs the entity belongs to. First it is tested, if the
      * start class is a direct successor of the organ class. In this case the
      * real organ is searched in the paths from the start class to the organ
-     * class. These organs are returned and the search is stopped.
+     * class. The found organs are returned and the search is stopped.
      *
-     * If the start class is not a successor of the organ class, the start class
-     * is expanded upstream using the object property restrictions
+     * If the start class is not a descendant of the organ class, the start
+     * class is expanded upstream using the object property restrictions
      *
      * @param startClass
      * @return
      */
     private Set<ObaClass> findOrgans(ObaClass startClass) {
-        Set<ObaClass> organSet = new HashSet<ObaClass>();
-        // search organs in the class hierarchies
-        List<List<ObaClass>> pathsToOrgan = searchXdownstreamOfY(startClass,
-                getOrganCls());
-        if (pathsToOrgan != null) {
-            for (List<ObaClass> path : pathsToOrgan) {
-                for (ObaClass cls : path) {
-                    if (isClsOrgan(cls)) {
-                        organSet.add(cls);
-                    }
-                }
-            }
+        Set<ObaClass> organSet = upstreamOrgans(startClass);
+        if (organSet.size() > 0) {
+            return organSet;
         }
         Set<ObaObjectPropertyExpression> restrictions = OntologyHelper.getObjectRestrictions(startClass, ontology.getOntology());
         for (ObaObjectPropertyExpression restriction : restrictions) {
@@ -434,11 +451,44 @@ public class CytomerFunctions extends OntologyFunctions implements
                 }
             }
         }
-
         return organSet;
     }
 
+    private Set<ObaClass> upstreamOrgans(ObaClass startClass) {
+        Set<ObaClass> organSet = new HashSet<ObaClass>();
+        // search organs in the class hierarchies
+        if (getNonOrgans().contains(startClass)) {
+            return organSet;
+        }
+        List<List<ObaClass>> pathsToOrgan = searchXdownstreamOfY(startClass,
+                getOrganCls());
+        if (pathsToOrgan != null && pathsToOrgan.size() > 0) {
+            for (List<ObaClass> path : pathsToOrgan) {
+                for (ObaClass cls : path) {
+                    if (isClsOrgan(cls)) {
+                        organSet.add(cls);
+                    }
+                }
+            }
+        } else {
+            List<List<ObaClass>> pathsToRoot = getAllPathsToRoot(startClass);
+            for (List<ObaClass> path : pathsToRoot) {
+                getNonOrgans().addAll(path);
+            }
+
+            getNonOrgans().add(startClass);
+        }
+        return organSet;
+    }
+
+    private Set<ObaClass> getNonOrgans() {
+        if (nonOrgans == null) {
+            nonOrgans = new HashSet<ObaClass>();
+        }
+        return nonOrgans;
+    }
     // merge with findOrgans?
+
     private Set<ObaClass> findSystems(ObaClass startClass) {
         Set<ObaClass> systemSet = new HashSet<ObaClass>();
         List<List<ObaClass>> pathsToSystem = searchXdownstreamOfY(startClass,
@@ -454,7 +504,7 @@ public class CytomerFunctions extends OntologyFunctions implements
         }
         Set<ObaObjectPropertyExpression> restrictions = OntologyHelper.getObjectRestrictions(startClass, ontology.getOntology());
         for (ObaObjectPropertyExpression restriction : restrictions) {
-            if (isOrganRestriction(restriction.getRestriction())) {
+            if (isOrganRestriction(restriction.getRestriction())) {  // organRestrictions?
                 if (restriction.getTarget().equals(startClass)) {
                     // we have a loop
                     continue;

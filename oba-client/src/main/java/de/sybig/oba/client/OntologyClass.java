@@ -10,11 +10,14 @@ import javax.xml.bind.annotation.XmlType;
 import de.sybig.oba.server.JsonAnnotation;
 import de.sybig.oba.server.JsonCls;
 import de.sybig.oba.server.JsonObjectPropertyExpression;
+import java.net.ConnectException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @XmlType
 @XmlRootElement
 public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
-
+    private static Logger log = LoggerFactory.getLogger(OntologyClass.class);
     @XmlTransient
     protected Set<C> ocChildren;
     @XmlTransient
@@ -105,6 +108,7 @@ public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
         return ocParents;
     }
 
+    @Override
     public Set<JsonObjectPropertyExpression> getProperties() {
 
         if (restrictions != null) {
@@ -153,13 +157,19 @@ public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
             // server. Otherwise the marshaller would fetch the whole ontology.
             return;
         }
-        JsonCls filledClass = connector.getCls(this);
+        JsonCls filledClass;
+        try {
+            filledClass = connector.getCls(this);
+        } catch (ConnectException ex) {
+            log.error("Could not reach the oba server to fill this class", ex);
+            return;
+        }
         fillWithTemplate(filledClass);
     }
 
     public String toString() {
 
-        if (getLabels() != null && getLabels().size() == 1) {
+        if (getLabels() != null && getLabels().size() > 0) {
             return getLabels().iterator().next().getValue();
         }
         return name;
