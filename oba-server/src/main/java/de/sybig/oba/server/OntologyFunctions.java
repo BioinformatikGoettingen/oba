@@ -24,7 +24,7 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
 
     @Override
     public String getVersion() {
-        return "1.3";
+        return "1.4";
     }
 
     @GET
@@ -75,6 +75,7 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
             @PathParam("cls") String searchPattern, @QueryParam("ns") String ns) {
         log.debug("searching for pattern '{}' in ontology {}",
                 searchPattern, ontology);
+        System.out.println(searchPattern + " searching in " + ontology.getOntology());
 
         String fields = null;
         if (searchPathSeg.getMatrixParameters().get("field") != null) {
@@ -93,6 +94,7 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
             result = ontology.searchCls(searchPattern, fields, max);
         }
         result = ontology.searchCls(searchPattern, fields);
+        System.out.println("results " + result);
         if (result == null || result.size() < 1) {
             throw new WebApplicationException(Response.Status.NO_CONTENT);
         }

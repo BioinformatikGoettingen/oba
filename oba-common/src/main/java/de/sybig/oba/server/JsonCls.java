@@ -20,7 +20,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 /**
  * A class representing the a class of the ontology with its important
  * properties. This class can be easily be serialized to a JSON object and
- * transfered to a client.
+ * transferred to a client.
  */
 @XmlType
 @XmlRootElement

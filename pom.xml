@@ -4,7 +4,7 @@
 
     <groupId>de.sybig</groupId>
     <artifactId>oba</artifactId>
-    <version>1.3</version>
+    <version>1.4-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>oba</name>
@@ -90,9 +90,9 @@
 
     <build>
         <plugins>
-            <plugin>
-				<!-- http://mojo.codehaus.org/buildnumber-maven-plugin/usage.html -->
-				<!-- 1.0-beta-4 isn't working -->
+<!--            <plugin>
+				 http://mojo.codehaus.org/buildnumber-maven-plugin/usage.html 
+				 1.0-beta-4 isn't working 
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
                 <version>1.0-beta-3</version>
@@ -108,7 +108,7 @@
                     <doCheck>false</doCheck>
                     <doUpdate>true</doUpdate>
                 </configuration>
-            </plugin>
+            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -119,9 +119,9 @@
                         <manifest>
                             <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
                         </manifest>
-                        <manifestEntries>
+<!--                        <manifestEntries>
                             <Implementation-Build>${buildNumber}</Implementation-Build>
-                        </manifestEntries>
+                        </manifestEntries>-->
                     </archive>
                     <includes>
                         <include>src/main/java</include>

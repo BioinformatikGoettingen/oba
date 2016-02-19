@@ -14,6 +14,7 @@ import javax.ws.rs.core.UriBuilder;
 import com.sun.jersey.api.client.WebResource;
 
 import de.sybig.oba.server.JsonCls;
+import java.io.EOFException;
 import java.net.ConnectException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +70,10 @@ public class TriboliumConnector extends OboConnector {
         try {
             OboClassList genericClasses = (OboClassList) getResponse(
                     webResource, OboClassList.class);
+            if (genericClasses == null){
+                logger.error("No generic classes found in the ontology. The suggestion tree is not available.");
+                return null;
+            }
             genericClasses.setConnector(this);
             return genericClasses;
         } catch (ClientHandlerException ex) {
@@ -121,6 +126,7 @@ public class TriboliumConnector extends OboConnector {
         try {
             OboClassList devStages = (OboClassList) getResponse(
                     webResource, OboClassList.class);
+           
             devStages.setConnector(this);
             return devStages;
         } catch (ClientHandlerException ex) {
@@ -356,6 +362,9 @@ public OboClassList searchInGenericAndMixed(final String pattern) throws Connect
         } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
+            }else if (ex.getCause() instanceof EOFException){
+                //ok
+                return null;
             }
             logger.error("error while communicating the OBA server", ex);
         } catch (UniformInterfaceException ex) {

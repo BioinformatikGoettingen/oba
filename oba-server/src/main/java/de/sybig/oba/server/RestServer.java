@@ -272,7 +272,7 @@ public class RestServer {
     
     private File getBaseDir() {
         String url = getClass().getResource("/" + this.getClass().getName().replaceAll("\\.", "/") + ".class").toString();
-        url = url.substring(url.indexOf(File.separator)).replaceFirst("/[^/]+\\.jar!.*$", "/");
+        url = url.substring(url.indexOf("/")).replaceFirst("/[^/]+\\.jar!.*$", "/");
         File baseDir = new File(url);
         if (!(baseDir.exists() && baseDir.isDirectory())) {
             baseDir = new File(System.getProperty("user.dir"));

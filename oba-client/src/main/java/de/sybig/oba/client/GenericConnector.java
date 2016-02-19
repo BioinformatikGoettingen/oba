@@ -165,12 +165,22 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      * with all parents and children are returned also if the parameter object
      * is a shell for the class.
      *
+     * <code>null</code> is returned when the class could not be retrieved from
+     * the ontology.
+     *
      * @param c The class to get the name and namespace from.
-     * @return The complete class from the ontology server.
+     * @return The complete class from the ontology server, or
+     * <code>null</code>.
      */
     public C getCls(final OntologyClass c) throws ConnectException {
-
+        if (c == null) {
+            throw new IllegalArgumentException("The query ontolgoy class may not be null");
+        }
         C cls = getCls(c.getName(), c.getNamespace());
+        if (cls == null) {
+            logger.error("Could not get the class {} in namespace {} from the ontology", c.getName(), c.getNamespace());
+            return null;
+        }
         cls.setConnector(this);
         return cls;
     }
@@ -651,6 +661,8 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
             } else if (status == 406) {
                 logger.error("the method is available on the server but can not return the response with the JSON media type [status 406]");
             }
+            return null;
+        } catch (Exception e) {
             return null;
         }
         return returnObject;

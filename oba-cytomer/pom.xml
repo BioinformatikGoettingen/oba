@@ -3,14 +3,14 @@
     <parent>
         <groupId>de.sybig</groupId>
         <artifactId>oba</artifactId>
-        <version>1.3</version>
+        <version>1.4-SNAPSHOT</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>de.sybig</groupId>
     <artifactId>oba-cytomer</artifactId>
-    <version>1.3</version>
+    <version>1.4-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>oba cytomer</name>
@@ -76,17 +76,17 @@
         <dependency>
             <groupId>de.sybig</groupId>
             <artifactId>oba-common</artifactId>
-            <version>1.3</version>
+            <version>1.4-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>de.sybig</groupId>
             <artifactId>oba-client</artifactId>
-            <version>1.3</version>
+            <version>1.4-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>de.sybig</groupId>
             <artifactId>oba-server</artifactId>
-            <version>1.3</version>
+            <version>1.4-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

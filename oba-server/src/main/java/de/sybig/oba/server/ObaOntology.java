@@ -313,7 +313,7 @@ public class ObaOntology {
                 if (indexAnnotation.contains(annotation.getName())) {
                     name = annotation.getName();
                     value = annotation.getValue();
-                    doc.add(new Field(name, value, Store.NO, Index.ANALYZED));
+                    doc.add(new Field(name, value, Store.NO, Index.ANALYZED));                 
                 }
             }
         }
@@ -357,6 +357,7 @@ public class ObaOntology {
                     searchFields, new StandardAnalyzer(luceneVersion));
             parser.setDefaultOperator(Operator.AND);
             Query query = parser.parse(searchPattern);
+            System.out.println(searchPattern + " search query " + query );
             TopDocs hits = searcher.search(query, maxResults);
             // List<Cls> outClasses = new LinkedList<Cls>();
             if (hits.totalHits > maxResults) {
