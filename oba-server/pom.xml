@@ -110,11 +110,20 @@
         </plugins>
     </build>
     <dependencies>
+	<!--
         <dependency>
             <groupId>owlapi</groupId>
             <artifactId>owlapi-parent</artifactId>
             <version>3.0.0</version>
         </dependency>
+	-->
+<dependency>
+    <groupId>owlapi</groupId>
+    <artifactId>owlapi-parent</artifactId>
+    <version>3.0.0</version>
+    <scope>system</scope>
+    <systemPath>${project.basedir}/src/main/resources/owlapi-parent-3.0.0.jar</systemPath>
+</dependency>
         <dependency>
             <groupId>de.sybig</groupId>
             <artifactId>oba-common</artifactId>
