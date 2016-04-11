@@ -1,0 +1,85 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>de.sybig</groupId>
+        <artifactId>oba</artifactId>
+        <version>1.4-SNAPSHOT</version>
+    </parent>
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>de.sybig</groupId>
+    <artifactId>oba-go</artifactId>
+    <version>1.4-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>oba go</name>
+    <build>
+        <plugins>
+            <!-- <plugin> <artifactId>maven-assembly-plugin</artifactId> <version>2.2-beta-5</version>
+                   <configuration> <descriptorRefs> <descriptorRef>jar-with-dependencies</descriptorRef>
+                   </descriptorRefs> <archive> <manifest> <mainClass>de.sybig.oba.client.SimpleClient</mainClass>
+                   </manifest> </archive> </configuration> </plugin> -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${plugin.shade.version}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>${project.artifactId}-with-dependencies-${project.version}</finalName>
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>junit:junit</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <transformers>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                </transformer>
+                            </transformers>
+
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.1</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+                        </manifest>
+                        <manifestEntries>
+                            <function-path-name>go</function-path-name>
+                            <function-main-class>de.sybig.oba.server.go.GoFunctions</function-main-class>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+
+    </build>
+
+    <dependencies>
+    
+        <dependency>
+            <groupId>de.sybig</groupId>
+            <artifactId>oba-common</artifactId>
+            <version>1.4-SNAPSHOT</version>
+        </dependency>
+       
+        <dependency>
+            <groupId>de.sybig</groupId>
+            <artifactId>oba-server</artifactId>
+            <version>1.4-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

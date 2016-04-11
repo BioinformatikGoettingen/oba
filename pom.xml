@@ -264,5 +264,6 @@
         <module>oba-client</module>
         <module>oba-cytomer</module>
         <module>oba-tribolium</module>
+        <module>oba-go</module>
     </modules>
 </project>

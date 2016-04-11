@@ -265,5 +265,6 @@
 		<module>../oba-common</module>
 		<module>../oba-client</module>
 		<module>../oba-cytomer</module>
+	 <module>../oba-go</module>
 	</modules>
 </project>
