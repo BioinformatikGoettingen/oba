@@ -1,1 +1,5 @@
 /oba-go/target/
+/oba-common/target/
+/oba-tribolium/target/
+/oba-client/target/
+/oba-cytomer/target/

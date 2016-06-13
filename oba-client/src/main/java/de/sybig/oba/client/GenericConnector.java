@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 public class GenericConnector<C extends OntologyClass, CL extends AbstractOntologyClassList<C>, C2L extends AbstractOntology2DClassList<CL, C>> {
 
-    private Logger logger = LoggerFactory.getLogger(GenericConnector.class);
+    private final Logger logger = LoggerFactory.getLogger(GenericConnector.class);
     protected String ontology;
     protected Client client;// = Client.create();
     protected String baseURI;
@@ -59,14 +59,15 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      *
      * @param pattern The search pattern
      * @return Ontology classes matching the pattern.
+     * @throws java.net.ConnectException when the connection to the server fails.
      */
     public CL searchCls(final String pattern) throws ConnectException {
         return searchCls(pattern, (String) null);
     }
 
     public CL searchCls(final String pattern, final String field) throws ConnectException {
-        List fieldList = new LinkedList<String>();
-        return searchCls(pattern, fieldList);
+        List<String> fieldList = new LinkedList<String>();
+        return searchCls(pattern, fieldList, 0);
     }
 
     /**
@@ -77,6 +78,7 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      *
      * @param pattern The search pattern
      * @param annotationFields The annotation fields to search in
+     * @throws java.net.ConnectException when the connection to the server fails.
      * @return A list of classes matching the search pattern.
      */
     public CL searchCls(final String pattern, List<String> annotationFields) throws ConnectException {
@@ -132,6 +134,7 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
 
     /**
      * Get the root of the ontology, that will be owl:Thing
+     * @throws java.net.ConnectException when the connection to the server fails.
      *
      * @return
      */
@@ -169,6 +172,7 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      * the ontology.
      *
      * @param c The class to get the name and namespace from.
+     * @throws java.net.ConnectException when the connection to the server fails.
      * @return The complete class from the ontology server, or
      * <code>null</code>.
      */
@@ -192,6 +196,7 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      *
      * @param name The name of the ontology class.
      * @param ns The namespace of the ontology class.
+     * @throws java.net.ConnectException when the connection to the server fails.
      * @return The requested ontology class or <code>null</code>.
      */
     public C getCls(final String name, final String ns) throws ConnectException {
@@ -265,6 +270,7 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      *
      * @param clsX The downstream class
      * @param clsY The upstream class
+     * @throws java.net.ConnectException when the connection to the server fails.
      * @return The shortest paths between the two classes.
      */
     public C2L xDownstreamOfY(OntologyClass clsX, OntologyClass clsY) throws ConnectException {
@@ -307,6 +313,7 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      *
      * @param partition The partition to store the list in
      * @param id the Name of the list
+     * @throws java.net.ConnectException when the connection to the server fails.
      * @param list The list with the ontology classes
      */
     public void storeList(String partition, String id, JsonClsList list) throws ConnectException {
@@ -376,6 +383,7 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
     /**
      * Get all object properties from the ontology.
      *
+     * @throws java.net.ConnectException when the connection to the server fails.
      * @return All object properties
      */
     public JsonPropertyList<JsonObjectProperty> getObjectProperties() throws ConnectException {
@@ -570,8 +578,7 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
             defaultProps.load(stream);
             stream.close();
         } catch (IOException e) {
-            logger.error("could not load properties for the client");
-            e.printStackTrace();
+            logger.error("could not load properties for the client", e);
         }
         File userPropFile = new File(System.getProperty("user.home"),
                 ".oba-client.properties");
@@ -643,6 +650,7 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
         }
     }
 
+    @Override
     public String toString() {
         return "oba connector for " + ontology + " on " + getBaseURI();
     }
@@ -662,9 +670,7 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
                 logger.error("the method is available on the server but can not return the response with the JSON media type [status 406]");
             }
             return null;
-        } catch (Exception e) {
-            return null;
-        }
+        } 
         return returnObject;
     }
 
