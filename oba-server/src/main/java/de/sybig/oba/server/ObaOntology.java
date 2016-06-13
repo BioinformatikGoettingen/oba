@@ -27,7 +27,6 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.LockObtainFailedException;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.Version;
-import org.omg.CORBA.MARSHAL;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.AddAxiom;
 import org.semanticweb.owlapi.model.AxiomType;
@@ -56,7 +55,7 @@ public class ObaOntology {
     private OWLOntologyManager manager;
     private Set<ObaClass> orphanChildren = new HashSet<ObaClass>();
     private Set<ObaClass> obsoleteClasses = new HashSet<ObaClass>();
-    private Logger logger = LoggerFactory.getLogger(ObaOntology.class);
+    private final Logger logger = LoggerFactory.getLogger(ObaOntology.class);
     private List<String> indexAnnotations;
     private final String OBSOLTE = "is_obsolete";
 
@@ -82,25 +81,25 @@ public class ObaOntology {
             throw new OWLOntologyCreationException();
         }
         if (onto != null) {
-            System.out.println("already initialized");
+            logger.warn("Ontology is already initialized");
             return;
         }
 
         manager = OWLManager.createOWLOntologyManager();
-        System.out.println("loading  " + iri);
+        logger.info("Loading ontology %s " ,iri);
         onto = manager.loadOntologyFromOntologyDocument(iri);
         dataFactory = manager.getOWLDataFactory();
         idx = new RAMDirectory();
         try {
             scanClasses(onto);
         } catch (CorruptIndexException e) {
-            e.printStackTrace();
+            logger.error("Could not index classes from ontology %s", iri, e);
             throw new OWLOntologyCreationException();
         } catch (LockObtainFailedException e) {
-            e.printStackTrace();
+            logger.error("Could not index classes from ontology %s", iri, e);
             throw new OWLOntologyCreationException();
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Could not index classes from ontology %s", iri, e);
             throw new OWLOntologyCreationException();
         }
         // initializing = false;
@@ -162,9 +161,7 @@ public class ObaOntology {
         if (namespace.endsWith("#")) {
             namespace = namespace.substring(0, namespace.length() - 1);
         }
-        // if (!namespace.endsWith("/")) {
-        // namespace = namespace+"/";
-        // }
+        
         OWLClass c = dataFactory.getOWLClass(getIri(namespace, cls));
 
         if (getOntologyForClass(c) == null && !c.isOWLThing()) {
@@ -357,7 +354,7 @@ public class ObaOntology {
                     searchFields, new StandardAnalyzer(luceneVersion));
             parser.setDefaultOperator(Operator.AND);
             Query query = parser.parse(searchPattern);
-            System.out.println(searchPattern + " search query " + query );
+           logger.debug("Search pattern: %s ; search query %s" , searchPattern, query );
             TopDocs hits = searcher.search(query, maxResults);
             // List<Cls> outClasses = new LinkedList<Cls>();
             if (hits.totalHits > maxResults) {
@@ -367,7 +364,6 @@ public class ObaOntology {
             }
             for (int x = 0; x < hits.totalHits && x < maxResults; x++) {
                 Document doc = searcher.doc(hits.scoreDocs[x].doc);
-                // System.out.println(hits.scoreDocs[x].score);
                 String className = doc.getField("luceneName").stringValue();
                 OWLClass cls = dataFactory.getOWLClass(IRI.create(className));
                 outClasses.add(new ObaClass(cls, onto));
@@ -376,13 +372,10 @@ public class ObaOntology {
             // return outClasses;
         } catch (CorruptIndexException e) {
             logger.error("could not search with lucene because the index is corrupt " + e);
-            e.printStackTrace();
         } catch (IOException e) {
             logger.error("could not search with lucene because of an io error " + e);
-            e.printStackTrace();
         } catch (ParseException e) {
             logger.error("parse error while searching in lucene " + e);
-//            e.printStackTrace();
         }
 
         return null;
