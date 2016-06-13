@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
  * @author juergen.doenitz@bioinf.med.uni-goettingen.de
  */
 public class TriboliumConnector extends OboConnector {
+
     private static Logger logger = LoggerFactory.getLogger(TriboliumConnector.class);
     protected final String SUB_RESOURCE = "functions/tribolium";
 
@@ -33,9 +34,11 @@ public class TriboliumConnector extends OboConnector {
     public TriboliumConnector(String ontology) {
         super(ontology);
     }
- public static String getVersion() {
+
+    public static String getVersion() {
         return "20130516";
     }
+
     public OboClassList getConcreteClasses() throws ConnectException {
         String path = String.format("%s/%s/concreteClasses", getOntology(),
                 SUB_RESOURCE);
@@ -70,7 +73,7 @@ public class TriboliumConnector extends OboConnector {
         try {
             OboClassList genericClasses = (OboClassList) getResponse(
                     webResource, OboClassList.class);
-            if (genericClasses == null){
+            if (genericClasses == null) {
                 logger.error("No generic classes found in the ontology. The suggestion tree is not available.");
                 return null;
             }
@@ -126,7 +129,7 @@ public class TriboliumConnector extends OboConnector {
         try {
             OboClassList devStages = (OboClassList) getResponse(
                     webResource, OboClassList.class);
-           
+
             devStages.setConnector(this);
             return devStages;
         } catch (ClientHandlerException ex) {
@@ -162,7 +165,7 @@ public class TriboliumConnector extends OboConnector {
                     MediaType.APPLICATION_JSON).get(getOntologyClassList());
             list.setConnector(this);
             return list;
-        }catch (ClientHandlerException ex) {
+        } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
             }
@@ -177,7 +180,8 @@ public class TriboliumConnector extends OboConnector {
         }
         return null;
     }
-public OboClassList searchInGenericAndMixed(final String pattern) throws ConnectException {
+
+    public OboClassList searchInGenericAndMixed(final String pattern) throws ConnectException {
         String path = String.format("%s/%s/", getOntology(), SUB_RESOURCE);
         WebResource webResource = getWebResource();
         // webResource.
@@ -209,6 +213,7 @@ public OboClassList searchInGenericAndMixed(final String pattern) throws Connect
         }
         return null;
     }
+
     public OboClassList searchInConcrete(final String pattern) throws ConnectException {
         String path = String.format("%s/%s/", getOntology(), SUB_RESOURCE);
         WebResource webResource = getWebResource();
@@ -310,7 +315,7 @@ public OboClassList searchInGenericAndMixed(final String pattern) throws Connect
                     concreteCls.getNamespace());
             OboClass cls = (OboClass) getResponse(webResource,
                     getOntologyClass());
-            if (cls == null){
+            if (cls == null) {
                 logger.warn("could not get dev stage of class {}", concreteCls);
                 return null;
             }
@@ -362,7 +367,7 @@ public OboClassList searchInGenericAndMixed(final String pattern) throws Connect
         } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
-            }else if (ex.getCause() instanceof EOFException){
+            } else if (ex.getCause() instanceof EOFException) {
                 //ok
                 return null;
             }
@@ -450,9 +455,7 @@ public OboClassList searchInGenericAndMixed(final String pattern) throws Connect
         return null;
     }
 
-   
-
-    public static void main(String[] args)  {
+    public static void main(String[] args) {
         try {
             TriboliumConnector connector = new TriboliumConnector();
             OboClassList cc = connector.getConcreteClasses();
@@ -474,7 +477,7 @@ public OboClassList searchInGenericAndMixed(final String pattern) throws Connect
             }
             System.out.println();
         } catch (ConnectException ex) {
-           logger.error("Error ", ex);
+            logger.error("Error ", ex);
         }
     }
 }

@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import javax.ws.rs.*;
 import javax.ws.rs.core.PathSegment;
 import java.util.*;
+import javax.ws.rs.core.Response;
 
 public class TriboliumFunctions extends OntologyFunctions {
 
@@ -208,7 +209,7 @@ public class TriboliumFunctions extends OntologyFunctions {
     @GET
     @Path("/searchInGenericAndMixed/{pattern}")
     @Produces(ALL_TYPES)
-    public List<ObaClass> searchInGenericAndMixed(@PathParam("pattern") String searchPattern) {
+    public Object searchInGenericAndMixed(@PathParam("pattern") String searchPattern) {
         Set<ObaClass> toRemove = new HashSet<ObaClass>();
         toRemove.addAll(getConcreteClasses());
         toRemove.removeAll(getMixedClasses());
@@ -217,7 +218,11 @@ public class TriboliumFunctions extends OntologyFunctions {
 
         List<ObaClass> hits = ontology.searchCls(searchPattern, null);
         hits.removeAll(toRemove);
-
+        if (hits.size() < 1) {
+            javax.ws.rs.core.Response.ResponseBuilder builder = Response
+                    .status(204);
+            return builder.build();
+        }
         return hits;
     }
 
@@ -281,7 +286,7 @@ public class TriboliumFunctions extends OntologyFunctions {
     @GET
     @Path("/concreteClassInDevStage/{cls}/{devStage}")
     @Produces(ALL_TYPES)
-    public Set<ObaClass> devStageOfCls(
+    public Object devStageOfCls(
             @PathParam("cls") PathSegment genericCls,
             @PathParam("devStage") PathSegment devStage,
             @QueryParam("ns") String ns) {
@@ -295,25 +300,19 @@ public class TriboliumFunctions extends OntologyFunctions {
         for (ObaClass child : OntologyHelper.getChildren(devStageCls)) {
             usedDevStages.add(child);
         }
-//        StorageHandler stoargeHandler = new StorageHandler();
-//        Set<ObaClass> storedList = stoargeHandler.getStorage("ibeetle", "addGenCls"); // see also line 133
-//        if (storedList == null) {
-//            storedList = new HashSet<ObaClass>();
-//        }
-//        System.out.println("stored classes added " + storedList);
+
         Set<ObaClass> result = new HashSet<ObaClass>();
-//        System.out.println("downstream classes " + allConcrete.size());
         for (ObaClass c : allConcrete) {
             if (mixedClasses.contains(c)
                     || (concreteClasses.containsKey(c) && usedDevStages.contains(concreteClasses.get(c)))) {
                 result.add(c);
-//            } else if (storedList.contains(c)) {
-//                result.add(c);
-            } else {
-//                System.out.println("skipping " + c);
             }
         }
-//        log.debug("returning {} concrete classes for {} and stage " + devStageCls, result.size(), genericClass);
+        if (result.size() < 1) {
+            javax.ws.rs.core.Response.ResponseBuilder builder = Response
+                    .status(204);
+            return builder.build();
+        }
         return result;
     }
 
@@ -531,9 +530,8 @@ public class TriboliumFunctions extends OntologyFunctions {
 
     /**
      * If the start class is a concrete class, the class is added to the result
-     * list. Otherwise
-     * <code>findDownToConcrete</code> is called for each child of the start
-     * class and for each class connected. with "hasPart".
+     * list. Otherwise <code>findDownToConcrete</code> is called for each child
+     * of the start class and for each class connected. with "hasPart".
      *
      * @param cls The start class
      * @param result
@@ -577,8 +575,7 @@ public class TriboliumFunctions extends OntologyFunctions {
 
     /**
      * Returns a list of classes with a partOf relation to the given class. If
-     * no relations are found,
-     * <code>null</code> is returned.
+     * no relations are found, <code>null</code> is returned.
      *
      * @param cls
      * @return
