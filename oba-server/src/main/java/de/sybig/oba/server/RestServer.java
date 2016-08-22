@@ -14,6 +14,7 @@ import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -71,6 +72,8 @@ public class RestServer {
 //        initParams.put("com.sun.jersey.config.property.packages",
 //                "de.sybig.oba.server;org.codehaus.jackson.jaxrs");
         initParams.put("com.sun.jersey.config.property.packages",
+                "de.sybig.oba.server");
+            initParams.put("jersey.config.provider.packages",
                 "de.sybig.oba.server");
         SelectorThread threadSelector = GrizzlyWebContainerFactory.create(
                 baseUri, initParams);
@@ -152,6 +155,8 @@ public class RestServer {
         
         File ontoDir = getOntologyDir(properties);
         
+        //ArrayList that contains the properties files for virtual ontologies
+        ArrayList<Properties> virtOnto=new ArrayList<Properties>();
         logger.debug("loading ontologies from {}", ontoDir);
         File[] files = ontoDir.listFiles();
         for (File f : files) {
@@ -159,12 +164,18 @@ public class RestServer {
                 continue;
             }
             Properties p = new Properties();
+            
             try {
                 logger.info("load property file {}", f);
                 FileReader fr = new FileReader(f);
                 p.load(fr);
                 fr.close();
-                oh.addOntology(p);
+                if(p.containsKey("type") && p.getProperty("type").trim().equals("virtual")){
+                    virtOnto.add(p);
+                }
+                else{
+                    oh.addOntology(p);
+                }
                 
             } catch (FileNotFoundException e) {
                 logger.warn(
@@ -174,9 +185,13 @@ public class RestServer {
                 logger.warn(
                         "could not load the ontology {} specified in property file {}. The file could not be read.",
                         p, f);
-                // e.printStackTrace();
             }
         }
+        
+        for(Properties p:virtOnto){
+            oh.addVirtualOntology(p);
+        }
+        
     }
     
     private File getOntologyDir(Properties properties) {
@@ -265,7 +280,6 @@ public class RestServer {
                     }
                     
                 }
-                
             }
         }
     }

@@ -7,8 +7,10 @@ package de.sybig.oba.server;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,9 +26,12 @@ import org.semanticweb.owlapi.model.OWLEntity;
 import org.semanticweb.owlapi.model.OWLNamedIndividual;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.semanticweb.owlapi.model.OWLOntology;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class OntoMarshaller implements MessageBodyWriter<Object> {
-    // private Logger logger = LoggerFactory.getLogger(OntoMarshaller.class);
+
+    private Logger log = LoggerFactory.getLogger(OntoMarshaller.class);
 
     private final int CACHE_TIME = 3600 * 24 * 30;
 
@@ -69,17 +74,42 @@ public abstract class OntoMarshaller implements MessageBodyWriter<Object> {
     public boolean isWriteable(Class arg0, Type arg1, Annotation[] arg2,
             MediaType arg3) {
         Class type = arg0;
-
         while (type != null) {
 
             Class[] interfaces = type.getInterfaces();
             for (Class c : interfaces) {
                 if (c.equals(OWLClass.class)
                         || c.equals(OWLNamedIndividual.class)
-                        || c.equals(OWLObjectProperty.class)
-                        || c.equals(Set.class) || c.equals(List.class)
-                        || c.equals(Map.class)) {
+                        || c.equals(OWLObjectProperty.class)) {
                     return true;
+                } else if (c.equals(Set.class) || c.equals(List.class)) {
+          
+                    if (arg1 instanceof ParameterizedType) {
+                        ParameterizedType t = (ParameterizedType) arg1;
+                        if (t.getActualTypeArguments()[0].equals(ObaClass.class)
+                                || t.getActualTypeArguments()[0].equals(OWLClass.class)) {
+                            //both have the format "class de.sybig.oba.server.ObaClass"
+                            return true;
+                        }
+                    } else if (arg1 instanceof Class) {
+                        // 2 dimensional list
+                        if (arg1.equals(LinkedList.class)) {
+                            //TODO how to get the type of the second list?
+                            return true;
+                        }
+                    } else {
+                        log.error("can not marshall list of " + arg1);
+                        return false;
+                    }
+
+                    return false;
+                } else if (c.equals((Map.class))) {
+                    if (((ParameterizedType) arg1).getActualTypeArguments()[0].toString().equals("interface org.semanticweb.owlapi.model.OWLClass")
+                            && ((ParameterizedType) arg1).getActualTypeArguments()[1].toString().equals("java.util.List<org.semanticweb.owlapi.model.OWLClass>")) {
+                        //TODO make better
+                        return true;
+                    }
+                    return false ;
                 }
             }
             type = type.getSuperclass();
