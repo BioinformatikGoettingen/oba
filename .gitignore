@@ -1,3 +1,5 @@
+/oba-server/target/
+/oba-server/plugins/
 /oba-go/target/
 /oba-common/target/
 /oba-tribolium/target/

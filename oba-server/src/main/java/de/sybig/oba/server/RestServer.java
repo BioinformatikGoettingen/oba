@@ -1,51 +1,54 @@
 /*
- * Created on May 29, 2v009
- *
+ * Created on May 29, 2009
  */
 package de.sybig.oba.server;
-
-import com.sun.grizzly.http.SelectorThread;
-import com.sun.jersey.api.container.grizzly.GrizzlyWebContainerFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
+import java.net.UnknownHostException;
 import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
+import org.glassfish.jersey.server.ResourceConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
- * Wrapper to start the web server and redirects requests to the root classes.
+ * Class to configure and start the REST server. The HTTP requests are handled
+ * by {@link Root.java} .
  */
 public class RestServer {
-    
+
+    private static final Logger logger = LoggerFactory.getLogger(RestServer.class.toString());
+    private static Properties props;
+    private ResourceConfig resourceConfig;
+
     private RestServer() {
         //utility class with no public non-static methods.
     }
-    private static final Logger logger = LoggerFactory.getLogger(RestServer.class.toString());
-    private static Properties props;
-    
+
     public static void main(String[] args) throws IOException {
         RestServer server = new RestServer();
-        props = loadServerProperties(args, server);        
+        props = loadServerProperties(args, server);
         server.run();
     }
-    
-    public static Properties getProperties() {
-        return props;
-    }
-    
+
     private void run() {
         try {
             props.setProperty("base_dir", getBaseDir().getAbsolutePath());
+            resourceConfig = configureServer();
+            OntologyHandler oh = OntologyHandler.getInstance();
+            oh.setGeneralProperties(props);
+            loadOntologies(props, oh);
+            loadFunctionClasses(oh);
+            loadPlugins(oh);
             startServer();
         } catch (Exception ex) {
             logger.error(
@@ -55,35 +58,34 @@ public class RestServer {
             System.exit(1);
         }
     }
-    
-    private void startServer() throws IllegalArgumentException,
-            IOException {
-        OntologyHandler.getInstance().setGeneralProperties(props);
-        loadUserData(props);
-        
-        String host = props.getProperty("host", InetAddress.getLocalHost().getHostAddress());
+
+    private ResourceConfig configureServer() {
+        ResourceConfig rc = new ResourceConfig().packages("de.sybig.oba.server");
+        rc.property("jersey.config.server.tracing.type", "ALL");
+        rc.property("jersey.config.server.tracing.threshold", "VERBOSE");
+        rc.property("com.sun.jersey.config.feature.Trace", "true");
+        String host;
+        try {
+            host = props.getProperty("host", InetAddress.getLocalHost().getHostAddress());
+        } catch (UnknownHostException ex) {
+            logger.warn("Could not get local internet address, using localhost");
+            host = "localhost";
+        }
         String port = props.getProperty("port", "9998");
         String base = props.getProperty("base", "/");
-        
         String baseUri = String.format("http://%s:%s%s", host, port, base);
-        logger.info("Starting server at {}", baseUri);
-        
-        Map<String, String> initParams = new HashMap<String, String>();
-//        initParams.put("com.sun.jersey.config.property.packages",
-//                "de.sybig.oba.server;org.codehaus.jackson.jaxrs");
-        initParams.put("com.sun.jersey.config.property.packages",
-                "de.sybig.oba.server");
-            initParams.put("jersey.config.provider.packages",
-                "de.sybig.oba.server");
-        SelectorThread threadSelector = GrizzlyWebContainerFactory.create(
-                baseUri, initParams);
-        threadSelector.setCompression("force");
-        threadSelector.setCompressionMinSize(0);
-        threadSelector.setCompressableMimeTypes("text/html");
+        props.put("base_uri", baseUri);
 
-        // System.in.read();
-        // threadSelector.stopEndpoint();
-        // System.out.println("stopped");
+        return rc;
+    }
+
+    private void startServer() throws IllegalArgumentException,
+            IOException {
+
+        String baseUri = props.getProperty("base_uri", "http://localhost:9998/");
+        HttpServer server = GrizzlyHttpServerFactory.createHttpServer(URI.create(baseUri), resourceConfig);
+
+        logger.info("Started server at {}", baseUri);
     }
 
     /**
@@ -132,16 +134,12 @@ public class RestServer {
     }
 
     /**
-     * Loads the ontologies and the classes with extra functions.
+     * Loads the ontologies and the classes with ontology specific functions.
      *
      * @param properties
      */
     private void loadUserData(Properties properties) {
-        OntologyHandler oh = OntologyHandler.getInstance();
-        
-        loadOntologies(properties, oh);
-        loadFunctionClasses(oh);
-        loadPlugins(oh);
+
     }
 
     /**
@@ -152,11 +150,9 @@ public class RestServer {
      */
     private void loadOntologies(final Properties properties,
             final OntologyHandler oh) {
-        
+
         File ontoDir = getOntologyDir(properties);
-        
-        //ArrayList that contains the properties files for virtual ontologies
-        ArrayList<Properties> virtOnto=new ArrayList<Properties>();
+
         logger.debug("loading ontologies from {}", ontoDir);
         File[] files = ontoDir.listFiles();
         for (File f : files) {
@@ -164,19 +160,13 @@ public class RestServer {
                 continue;
             }
             Properties p = new Properties();
-            
             try {
                 logger.info("load property file {}", f);
                 FileReader fr = new FileReader(f);
                 p.load(fr);
                 fr.close();
-                if(p.containsKey("type") && p.getProperty("type").trim().equals("virtual")){
-                    virtOnto.add(p);
-                }
-                else{
-                    oh.addOntology(p);
-                }
-                
+                oh.addOntology(p);
+
             } catch (FileNotFoundException e) {
                 logger.warn(
                         "could not load the ontology {} specified in property file {}. The file was not found.",
@@ -185,15 +175,11 @@ public class RestServer {
                 logger.warn(
                         "could not load the ontology {} specified in property file {}. The file could not be read.",
                         p, f);
+                // e.printStackTrace();
             }
         }
-        
-        for(Properties p:virtOnto){
-            oh.addVirtualOntology(p);
-        }
-        
     }
-    
+
     private File getOntologyDir(Properties properties) {
         File ontoDir = null;
         String dirFromProps = properties.getProperty("ontology_directory");
@@ -208,21 +194,17 @@ public class RestServer {
         if (ontoDir.exists() && ontoDir.isDirectory()) {
             return ontoDir;
         }
-        
+
         return new File(System.getProperty("java.io.tmpdir"));
     }
-    
+
     private void loadFunctionClasses(
             final OntologyHandler oh) {
-        
+
         try {
-            // TODD make generic
-//            oh.addFunctionClass("cytomer",
-//                    "de.sybig.oba.cytomer.CytomerFunctions");
+
             oh.addFunctionClass("basic",
                     "de.sybig.oba.server.OntologyFunctions");
-//            oh.addFunctionClass("tribolium",
-//                    "de.sybig.oba.tribolium.TriboliumFunctions");
         } catch (ClassNotFoundException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -234,16 +216,16 @@ public class RestServer {
             e.printStackTrace();
         }
     }
-    
+
     private void loadPlugins(final OntologyHandler oh) {
-        
+
         File pluginDir = new File(getBaseDir(), "plugins");
-        
+
         if (!(pluginDir.exists() && pluginDir.isDirectory())) {
             logger.info("Plugin directory {} does not exists or is not a directory.", pluginDir);
             return;
         }
-        
+
         for (File f : pluginDir.listFiles()) {
             if (f.isFile() && f.getName().endsWith("jar")) {
                 Manifest manifest = null;
@@ -254,21 +236,21 @@ public class RestServer {
                     logger.warn("File {} is not a valid jar file. The file is ignored", f);
                     continue;
                 }
-                
+
                 Attributes entries = manifest.getMainAttributes();
                 Attributes.Name pathAttribute = new Attributes.Name("function-path-name");
                 Attributes.Name functionClassAttribute = new Attributes.Name("function-main-class");
-                
+
                 if (entries.containsKey(pathAttribute) && entries.containsKey(functionClassAttribute)) {
                     String name = (String) entries.get(pathAttribute);
                     String className = (String) entries.get(functionClassAttribute);
-           
+
                     try {
                         URLClassLoader loader = new URLClassLoader(new URL[]{f.toURI().toURL()});
-                        
+
                         OntologyFunction instance = (OntologyFunction) loader.loadClass(className).newInstance();
                         oh.addFunctionClass(name, instance);
-                        logger.info("registering plugin class {} in version {} under the name "+ name, instance, instance.getVersion());
+                        logger.info("registering plugin class {} in version {} under the name " + name, instance, instance.getVersion());
                     } catch (ClassNotFoundException e) {
                         logger.error("The class {} specified in the plugin {} is not found in the jar.", className, f);
                     } catch (InstantiationException e) {
@@ -278,12 +260,13 @@ public class RestServer {
                     } catch (MalformedURLException e) {
                         logger.error("The class name '{}' specified in the manifest of the file {} is not valid", className, f);
                     }
-                    
+
                 }
+
             }
         }
     }
-    
+
     private File getBaseDir() {
         String url = getClass().getResource("/" + this.getClass().getName().replaceAll("\\.", "/") + ".class").toString();
         url = url.substring(url.indexOf("/")).replaceFirst("/[^/]+\\.jar!.*$", "/");
@@ -293,4 +276,9 @@ public class RestServer {
         }
         return baseDir;
     }
+
+    public static Properties getProperties() {
+        return props;
+    }
+
 }

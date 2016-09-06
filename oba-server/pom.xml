@@ -109,6 +109,17 @@
             </manifest> </archive> </configuration> </plugin> -->
         </plugins>
     </build>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.glassfish.jersey</groupId>
+                <artifactId>jersey-bom</artifactId>
+                <version>2.23.2</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
 	
         <dependency>
@@ -127,20 +138,20 @@
             <artifactId>oba-common</artifactId>
             <version>1.4-SNAPSHOT</version>
         </dependency>
+
         <dependency>
-            <groupId>com.sun.grizzly</groupId>
-            <artifactId>grizzly-servlet-webserver</artifactId>
-            <version>${grizzly.version}</version>
+            <groupId>org.glassfish.jersey.containers</groupId>
+            <artifactId>jersey-container-grizzly2-http</artifactId>
+        </dependency>
+     
+        <dependency>
+            <groupId>org.glassfish.jersey.media</groupId>
+            <artifactId>jersey-media-moxy</artifactId>
         </dependency>
         <dependency>
             <groupId>com.sun.jersey</groupId>
             <artifactId>jersey-json</artifactId>
-            <version>1.1.4</version>
-        </dependency>
-        <dependency>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-server</artifactId>
-            <version>1.1.4</version>
+            <version>1.19.2</version>
         </dependency>
         <dependency>
             <groupId>org.codehaus.jackson</groupId>
@@ -170,11 +181,11 @@
         </dependency>
     </dependencies>
     <repositories>
-      <repository>
-          <id>local-project-libraries</id>
-          <name>Local project libraries</name>
-          <url>file://${project.basedir}/lib</url>
-          <layout>default</layout>
-      </repository>
- </repositories>
+        <repository>
+            <id>local-project-libraries</id>
+            <name>Local project libraries</name>
+            <url>file://${project.basedir}/lib</url>
+            <layout>default</layout>
+        </repository>
+    </repositories>
 </project>

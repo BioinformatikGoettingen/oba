@@ -86,7 +86,7 @@ public class ObaOntology {
         }
 
         manager = OWLManager.createOWLOntologyManager();
-        logger.info("Loading ontology %s " ,iri);
+        logger.info("Loading ontology {}" ,iri);
         onto = manager.loadOntologyFromOntologyDocument(iri);
         dataFactory = manager.getOWLDataFactory();
         idx = new RAMDirectory();

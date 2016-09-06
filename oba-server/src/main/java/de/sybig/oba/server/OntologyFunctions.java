@@ -244,7 +244,7 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
     @Produces("text/plain, text/html, application/json")
     public Object xdownStreamOfY(@PathParam("x") PathSegment x,
             @PathParam("y") PathSegment y, @QueryParam("ns") String ns) {
-        // http://localhost:9998/cytomer/functions/basic/XbelowY/liver;ns=http:$$protege.stanford.edu$plugins$owl$protege/organ?ns=http://protege.stanford.edu/plugins/owl/protege
+        // url -D - -H "X-Jersey-Tracing-Accept" 'http://localhost:9998/cytomer/functions/basic/XdownstreamOfY/liver;ns=http:$$cytomer.bioinf.med.uni-goettingen.de/organ?ns=http://cytomer.bioinf.med.uni-goettingen.de'
         ObaClass clsX = getClassFromPathSegement(x);
         ObaClass clsY = getClassFromPathSegement(y, ns);
 //        log.info("search class {} downstream of class {}", clsX, clsY);

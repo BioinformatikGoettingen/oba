@@ -254,7 +254,7 @@ public class StorageHandler {
             File f = new File(new File(getRootDir(), space), name);
             FileInputStream is = new FileInputStream(f);
             JAXBContext ctx = JAXBContext.newInstance(JsonClsList.class);
-            m = JSONJAXBContext.getJSONUnmarshaller(ctx.createUnmarshaller());
+            m = JSONJAXBContext.getJSONUnmarshaller(ctx.createUnmarshaller(),ctx);
             JsonClsList<JsonCls> list = m.unmarshalFromJSON(is,
                     JsonClsList.class);
             OntologyHandler oh = OntologyHandler.getInstance();

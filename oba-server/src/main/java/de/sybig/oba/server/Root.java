@@ -65,7 +65,7 @@ public class Root {
 	public String getFunctions() {
 		StringBuilder out = new StringBuilder();
 		for (String name : oh.getFunctionNames()) {
-			out.append("name");
+			out.append(name);
 			out.append("\n");
 		}
 		return out.toString();
@@ -100,7 +100,7 @@ public class Root {
 	 * @param fc
 	 * @return
 	 */
-	@Path("{ontology}/functions/{fc}.*")
+	@Path("{ontology}/functions/{fc}")
 	public Object getOntologyFunction(@PathParam("ontology") String ontology,
 			@PathParam("fc") String fc) {
 		logger.trace("calling function class {} with ontology {}", fc, ontology);
@@ -132,7 +132,6 @@ public class Root {
                 if (c == null){
                    throw new WebApplicationException(404);
                 }
-//                System.out.println("function class " + c.getClass());
                 String overview = c.getRoot();
 		return overview;
 	}
