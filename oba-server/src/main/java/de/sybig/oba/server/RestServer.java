@@ -238,8 +238,9 @@ public class RestServer {
                 }
 
                 Attributes entries = manifest.getMainAttributes();
+                System.out.println("entries " +entries.keySet().iterator().next().getClass());
                 Attributes.Name pathAttribute = null;
-                if (entries.containsKey("function-path-name")) {
+                if (entries.containsKey(new Attributes.Name("function-path-name"))) {
                     pathAttribute = new Attributes.Name("function-path-name");
                     logger.warn("The usage of the manifest attribute 'function-path-name' is deprecated, use 'name' instead");
                 }
