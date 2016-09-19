@@ -7,12 +7,26 @@ to initialize the plugin and load required classes.
 The entries can be added to the manifest file using the ```maven-jar-plugin```
 for maven.
 
+### General
+**plugin-name** (required)  
+The (short) name of the plugin. The name should be reasonable short,
+unique and describes the plugin. The name is used in the URL to access 
+the ontology functions and as key to to register the components of the plugin
+in the OBA server.
+ 
+### Ontology function
+**function-path-name** (deprecated, use name instead)  
+the name under which the class with the semantic
+function of the plugin is registred and which is used
+in the URL pattern to access these functions.
+  
+**function-main-class**  
+The class which implements the REST functions of the plugin
+The complete name including the package (without file extension) has to
+be specified
+    
+### Marshallers
 
-  ;  function-path-name
-  :  the name under which the class with the semantic
-    function of the plugin is registred and which is used
-    in the URL pattern to access these functions.
-  ; function-main-class
-  : The class which implements the REST functions of the plugin
-    The complete name including the package (without file extension) has to
-    be specified
+**provider-classes**  
+A list of classes with ```Providers``` for jersey, limited by a colon ":". The complete name including the package (without file extension) has to
+be specified. The specified classes are initialized and registered to the resource config of Jersey before the HTTP server is started.

@@ -238,29 +238,55 @@ public class RestServer {
                 }
 
                 Attributes entries = manifest.getMainAttributes();
-                Attributes.Name pathAttribute = new Attributes.Name("function-path-name");
+                Attributes.Name pathAttribute = null;
+                if (entries.containsKey("function-path-name")) {
+                    pathAttribute = new Attributes.Name("function-path-name");
+                    logger.warn("The usage of the manifest attribute 'function-path-name' is deprecated, use 'name' instead");
+                }
+                if (pathAttribute == null) {
+                    pathAttribute = new Attributes.Name("plugin-name");
+                }
                 Attributes.Name functionClassAttribute = new Attributes.Name("function-main-class");
-
-                if (entries.containsKey(pathAttribute) && entries.containsKey(functionClassAttribute)) {
-                    String name = (String) entries.get(pathAttribute);
-                    String className = (String) entries.get(functionClassAttribute);
-
-                    try {
-                        URLClassLoader loader = new URLClassLoader(new URL[]{f.toURI().toURL()});
+                Attributes.Name providerClassesAttribute = new Attributes.Name("provider-classes");
+                
+                String className = null;
+                try {
+                    URLClassLoader loader = new URLClassLoader(new URL[]{f.toURI().toURL()});
+                    if (entries.containsKey(pathAttribute) && entries.containsKey(functionClassAttribute)) {
+                        String name = (String) entries.get(pathAttribute);
+                        className = (String) entries.get(functionClassAttribute);
 
                         OntologyFunction instance = (OntologyFunction) loader.loadClass(className).newInstance();
                         oh.addFunctionClass(name, instance);
                         logger.info("registering plugin class {} in version {} under the name " + name, instance, instance.getVersion());
-                    } catch (ClassNotFoundException e) {
-                        logger.error("The class {} specified in the plugin {} is not found in the jar.", className, f);
-                    } catch (InstantiationException e) {
-                        logger.error("The class {} of the plugin {} could not be instantiated.\n" + e, className, f);
-                    } catch (IllegalAccessException e) {
-                        logger.error("The class {} of the plugin {} could not be instantiated.\n" + e, className, f);
-                    } catch (MalformedURLException e) {
-                        logger.error("The class name '{}' specified in the manifest of the file {} is not valid", className, f);
-                    }
+                        ////
 
+//                        if (name.equals("cytomer")) {
+//                            System.out.println("loading cytomer plugin with new marshaller");
+//                            Object marshaller = loader.loadClass("de.sybig.oba.server.TextMarshallerAlignment").newInstance();
+//                            resourceConfig.register(marshaller);
+////                            resourceConfig.
+//                        }
+                        ////
+                    }
+                    System.out.println("provider classes " + providerClassesAttribute);
+                    if (entries.containsKey(pathAttribute) && entries.containsKey(providerClassesAttribute)) {
+                    
+                        String[] classes = (String[]) entries.getValue(providerClassesAttribute).split(":");
+                            System.out.println("found new modules " + classes);
+                        for (int i = 0; i < classes.length; i++) {
+                            Object marshaller = loader.loadClass(classes[i]).newInstance();
+                            resourceConfig.register(marshaller);
+                        }
+                    }
+                } catch (ClassNotFoundException e) {
+                    logger.error("The class {} specified in the plugin {} is not found in the jar.", className, f);
+                } catch (InstantiationException e) {
+                    logger.error("The class {} of the plugin {} could not be instantiated.\n" + e, className, f);
+                } catch (IllegalAccessException e) {
+                    logger.error("The class {} of the plugin {} could not be instantiated.\n" + e, className, f);
+                } catch (MalformedURLException e) {
+                    logger.error("The class name '{}' specified in the manifest of the file {} is not valid", className, f);
                 }
 
             }
