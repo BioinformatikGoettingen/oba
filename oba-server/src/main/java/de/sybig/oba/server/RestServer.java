@@ -269,14 +269,13 @@ public class RestServer {
 //                        }
                         ////
                     }
-                    System.out.println("provider classes " + providerClassesAttribute);
                     if (entries.containsKey(pathAttribute) && entries.containsKey(providerClassesAttribute)) {
                     
-                        String[] classes = (String[]) entries.getValue(providerClassesAttribute).split(":");
-                            System.out.println("found new modules " + classes);
+                        String[] classes = (String[]) entries.getValue(providerClassesAttribute).split(":");                          
                         for (int i = 0; i < classes.length; i++) {
                             Object marshaller = loader.loadClass(classes[i]).newInstance();
                             resourceConfig.register(marshaller);
+                            logger.info("registering class {} for jersey", marshaller.getClass());
                         }
                     }
                 } catch (ClassNotFoundException e) {
