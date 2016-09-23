@@ -103,10 +103,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <!-- <plugin> <artifactId>maven-assembly-plugin</artifactId> <version>2.2-beta-5</version>
-            <configuration> <descriptorRefs> <descriptorRef>jar-with-dependencies</descriptorRef>
-            </descriptorRefs> <archive> <manifest> <mainClass>de.sybig.oba.server.RestServer</mainClass>
-            </manifest> </archive> </configuration> </plugin> -->
         </plugins>
     </build>
     <dependencyManagement>
@@ -178,6 +174,12 @@
             <groupId>hsqldb</groupId>
             <artifactId>hsqldb</artifactId>
             <version>1.8.0.10</version>
+        </dependency>
+        <dependency>
+            <groupId>uk.org.lidalia</groupId>
+            <artifactId>slf4j-test</artifactId>
+            <version>1.1.0</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <repositories>

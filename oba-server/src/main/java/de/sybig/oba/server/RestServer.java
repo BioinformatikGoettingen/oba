@@ -4,12 +4,10 @@
 package de.sybig.oba.server;
 
 import java.io.*;
-import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.net.UnknownHostException;
 import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
@@ -26,11 +24,11 @@ import org.slf4j.LoggerFactory;
  */
 public class RestServer {
 
-    private static final Logger logger = LoggerFactory.getLogger(RestServer.class.toString());
+    private static final Logger logger = LoggerFactory.getLogger(RestServer.class);
     private static Properties props;
     private ResourceConfig resourceConfig;
 
-    private RestServer() {
+    RestServer() {
         //utility class with no public non-static methods.
     }
 
@@ -47,8 +45,7 @@ public class RestServer {
             OntologyHandler oh = OntologyHandler.getInstance();
             oh.setGeneralProperties(props);
             loadOntologies(props, oh);
-            loadFunctionClasses(oh);
-            loadPlugins(oh);
+            loadPlugins();
             startServer();
         } catch (Exception ex) {
             logger.error(
@@ -184,71 +181,62 @@ public class RestServer {
         return new File(System.getProperty("java.io.tmpdir"));
     }
 
-    private void loadFunctionClasses(
-            final OntologyHandler oh) {
+    private void registerFunctionClassesToOntologyHandler(
+            final String name, final String classname) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+        OntologyHandler oh = OntologyHandler.getInstance();
+        oh.addFunctionClass(name, classname);
 
-        try {
-
-            oh.addFunctionClass("basic",
-                    "de.sybig.oba.server.OntologyFunctions");
-        } catch (ClassNotFoundException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
     }
 
-    private void loadPlugins(final OntologyHandler oh) {
+    private void loadPlugins() {
 
         File pluginDir = new File(getBaseDir(), "plugins");
-
         if (!(pluginDir.exists() && pluginDir.isDirectory())) {
             logger.info("Plugin directory {} does not exists or is not a directory.", pluginDir);
             return;
         }
 
-        for (File f : pluginDir.listFiles()) {
-            if (f.isFile() && f.getName().endsWith("jar")) {
-                Manifest manifest = null;
-                try {
-                    JarFile jar = new JarFile(f);
-                    manifest = jar.getManifest();
-                } catch (IOException e) {
-                    logger.warn("File {} is not a valid jar file. The file is ignored", f);
-                    continue;
-                }
+        String action = null;
+        String filename = null;
+        try {
+            registerFunctionClassesToOntologyHandler("basic", "de.sybig.oba.server.OntologyFunctions");
+            for (File f : pluginDir.listFiles()) {
+                filename = f.getAbsolutePath();
 
-                Attributes entries = manifest.getMainAttributes();
-                String name = getIdentifierFromPlugin(entries);
-                if (name == null) {
-                    logger.warn("Could not load plugin {} because no name is specified in the manifest", f);
-                    continue;
-                }
-                String action = null;
-                try {
+                if (f.isFile() && f.getName().endsWith("jar")) {
+
+                    Manifest manifest;
+                    try {
+                        JarFile jar = new JarFile(f);
+                        manifest = jar.getManifest();
+                    } catch (IOException e) {
+                        logger.warn("File {} is not a valid jar file. The file is ignored", f);
+                        continue;
+                    }
+                    Attributes entries = manifest.getMainAttributes();
+                    String name = getIdentifierFromPlugin(entries);
+                    if (name == null) {
+                        logger.warn("Could not load plugin {} because no name is specified in the manifest", f);
+                        continue;
+                    }
                     URLClassLoader loader = new URLClassLoader(new URL[]{f.toURI().toURL()});
                     action = "semantic function";
                     loadFunctionClassFromPlugin(loader, entries, name);
                     action = "jersey providers";
                     loadProvidersFromPlugin(loader, entries);
-                } catch (ClassNotFoundException e) {
-                    logger.error("While loading the {} the class was not find in the plugin {}.", action, f);
-                } catch (InstantiationException | IllegalAccessException e) {
-                    logger.error("While loading the {} the class could not be instantiated in the plugin {}." + e, action, f);
-                } catch (MalformedURLException e) {
-                    logger.error("While loading the {} the manifest entry was not valid in plugin {}", action, f);
                 }
-
             }
+        } catch (ClassNotFoundException e) {
+            logger.error("While loading the {} the class was not find in the plugin {}.", action, filename);
+        } catch (InstantiationException | IllegalAccessException e) {
+            logger.error("While loading the {} the class could not be instantiated in the plugin {}." + e, action, filename);
+        } catch (MalformedURLException e) {
+            logger.error("While loading the {} the manifest entry was not valid in plugin {}", action, filename);
         }
+
     }
 
-    private String getIdentifierFromPlugin(Attributes entries) {
+    protected String getIdentifierFromPlugin(Attributes entries) {
         Attributes.Name pathAttribute = null;
         if (entries.containsKey(new Attributes.Name("function-path-name"))) {
             pathAttribute = new Attributes.Name("function-path-name");
@@ -264,10 +252,12 @@ public class RestServer {
         Attributes.Name functionClassAttribute = new Attributes.Name("function-main-class");
         if (entries.containsKey(functionClassAttribute)) {
             String className = (String) entries.get(functionClassAttribute);
+                        System.out.println("  3 " +className);
             OntologyFunction instance = (OntologyFunction) loader.loadClass(className).newInstance();
             OntologyHandler oh = OntologyHandler.getInstance();
             oh.addFunctionClass(name, instance);
-            logger.info("registering plugin class {} in version {} under the name " + name, instance, instance.getVersion());
+
+            logger.info("registering plugin class {} in version {} under the name " + name, className, name);
 
         }
     }
@@ -299,4 +289,8 @@ public class RestServer {
         return props;
     }
 
+    // stuff for testing
+    protected Logger getLogger() {
+        return logger;
+    }
 }

@@ -15,7 +15,7 @@
 				
 	<jersey.version>1.9.1</jersey.version>
         <plugin.shade.version>1.4</plugin.shade.version>
-        <slf4j.version>1.5.8</slf4j.version>
+        <slf4j.version>1.7.21</slf4j.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!-- the following is needed for the PMD plugin, it ignores it own config 
 			values -->
