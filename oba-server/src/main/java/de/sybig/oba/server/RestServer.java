@@ -224,49 +224,63 @@ public class RestServer {
                 }
 
                 Attributes entries = manifest.getMainAttributes();
-                System.out.println("entries " + entries.keySet().iterator().next().getClass());
-                Attributes.Name pathAttribute = null;
-                if (entries.containsKey(new Attributes.Name("function-path-name"))) {
-                    pathAttribute = new Attributes.Name("function-path-name");
-                    logger.warn("The usage of the manifest attribute 'function-path-name' is deprecated, use 'name' instead");
+                String name = getIdentifierFromPlugin(entries);
+                if (name == null) {
+                    logger.warn("Could not load plugin {} because no name is specified in the manifest", f);
+                    continue;
                 }
-                if (pathAttribute == null) {
-                    pathAttribute = new Attributes.Name("plugin-name");
-                }
-                Attributes.Name functionClassAttribute = new Attributes.Name("function-main-class");
-                Attributes.Name providerClassesAttribute = new Attributes.Name("provider-classes");
-
-                String className = null;
+                String action = null;
                 try {
                     URLClassLoader loader = new URLClassLoader(new URL[]{f.toURI().toURL()});
-                    if (entries.containsKey(pathAttribute) && entries.containsKey(functionClassAttribute)) {
-                        String name = (String) entries.get(pathAttribute);
-                        className = (String) entries.get(functionClassAttribute);
-
-                        OntologyFunction instance = (OntologyFunction) loader.loadClass(className).newInstance();
-                        oh.addFunctionClass(name, instance);
-                        logger.info("registering plugin class {} in version {} under the name " + name, instance, instance.getVersion());
-
-                    }
-                    if (entries.containsKey(pathAttribute) && entries.containsKey(providerClassesAttribute)) {
-
-                        String[] classes = (String[]) entries.getValue(providerClassesAttribute).split(":");
-                        for (int i = 0; i < classes.length; i++) {
-                            Object marshaller = loader.loadClass(classes[i]).newInstance();
-                            resourceConfig.register(marshaller);
-                            logger.info("registering class {} for jersey", marshaller.getClass());
-                        }
-                    }
+                    action = "semantic function";
+                    loadFunctionClassFromPlugin(loader, entries, name);
+                    action = "jersey providers";
+                    loadProvidersFromPlugin(loader, entries);
                 } catch (ClassNotFoundException e) {
-                    logger.error("The class {} specified in the plugin {} is not found in the jar.", className, f);
-                } catch (InstantiationException e) {
-                    logger.error("The class {} of the plugin {} could not be instantiated.\n" + e, className, f);
-                } catch (IllegalAccessException e) {
-                    logger.error("The class {} of the plugin {} could not be instantiated.\n" + e, className, f);
+                    logger.error("While loading the {} the class was not find in the plugin {}.", action, f);
+                } catch (InstantiationException | IllegalAccessException e) {
+                    logger.error("While loading the {} the class could not be instantiated in the plugin {}." + e, action, f);
                 } catch (MalformedURLException e) {
-                    logger.error("The class name '{}' specified in the manifest of the file {} is not valid", className, f);
+                    logger.error("While loading the {} the manifest entry was not valid in plugin {}", action, f);
                 }
 
+            }
+        }
+    }
+
+    private String getIdentifierFromPlugin(Attributes entries) {
+        Attributes.Name pathAttribute = null;
+        if (entries.containsKey(new Attributes.Name("function-path-name"))) {
+            pathAttribute = new Attributes.Name("function-path-name");
+            logger.warn("The usage of the manifest attribute 'function-path-name' is deprecated, use 'name' instead");
+        }
+        if (pathAttribute == null) {
+            pathAttribute = new Attributes.Name("plugin-name");
+        }
+        return (String) entries.get(pathAttribute);
+    }
+
+    private void loadFunctionClassFromPlugin(URLClassLoader loader, Attributes entries, String name) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+        Attributes.Name functionClassAttribute = new Attributes.Name("function-main-class");
+        if (entries.containsKey(functionClassAttribute)) {
+            String className = (String) entries.get(functionClassAttribute);
+            OntologyFunction instance = (OntologyFunction) loader.loadClass(className).newInstance();
+            OntologyHandler oh = OntologyHandler.getInstance();
+            oh.addFunctionClass(name, instance);
+            logger.info("registering plugin class {} in version {} under the name " + name, instance, instance.getVersion());
+
+        }
+    }
+
+    private void loadProvidersFromPlugin(URLClassLoader loader, Attributes entries) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+        Attributes.Name providerClassesAttribute = new Attributes.Name("provider-classes");
+        if (entries.containsKey(providerClassesAttribute)) {
+
+            String[] classes = (String[]) entries.getValue(providerClassesAttribute).split(":");
+            for (int i = 0; i < classes.length; i++) {
+                Object marshaller = loader.loadClass(classes[i]).newInstance();
+                resourceConfig.register(marshaller);
+                logger.info("registering class {} for jersey", marshaller.getClass());
             }
         }
     }
