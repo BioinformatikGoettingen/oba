@@ -64,13 +64,8 @@ public class RestServer {
         rc.property("jersey.config.server.tracing.type", "ALL");
         rc.property("jersey.config.server.tracing.threshold", "VERBOSE");
         rc.property("com.sun.jersey.config.feature.Trace", "true");
-        String host;
-        try {
-            host = props.getProperty("host", InetAddress.getLocalHost().getHostAddress());
-        } catch (UnknownHostException ex) {
-            logger.warn("Could not get local internet address, using localhost");
-            host = "localhost";
-        }
+        String host = "0.0.0.0";
+
         String port = props.getProperty("port", "9998");
         String base = props.getProperty("base", "/");
         String baseUri = String.format("http://%s:%s%s", host, port, base);
@@ -131,15 +126,6 @@ public class RestServer {
             return externalProps;
         }
         return internalProps;
-    }
-
-    /**
-     * Loads the ontologies and the classes with ontology specific functions.
-     *
-     * @param properties
-     */
-    private void loadUserData(Properties properties) {
-
     }
 
     /**
@@ -238,7 +224,7 @@ public class RestServer {
                 }
 
                 Attributes entries = manifest.getMainAttributes();
-                System.out.println("entries " +entries.keySet().iterator().next().getClass());
+                System.out.println("entries " + entries.keySet().iterator().next().getClass());
                 Attributes.Name pathAttribute = null;
                 if (entries.containsKey(new Attributes.Name("function-path-name"))) {
                     pathAttribute = new Attributes.Name("function-path-name");
@@ -249,7 +235,7 @@ public class RestServer {
                 }
                 Attributes.Name functionClassAttribute = new Attributes.Name("function-main-class");
                 Attributes.Name providerClassesAttribute = new Attributes.Name("provider-classes");
-                
+
                 String className = null;
                 try {
                     URLClassLoader loader = new URLClassLoader(new URL[]{f.toURI().toURL()});
@@ -260,19 +246,11 @@ public class RestServer {
                         OntologyFunction instance = (OntologyFunction) loader.loadClass(className).newInstance();
                         oh.addFunctionClass(name, instance);
                         logger.info("registering plugin class {} in version {} under the name " + name, instance, instance.getVersion());
-                        ////
 
-//                        if (name.equals("cytomer")) {
-//                            System.out.println("loading cytomer plugin with new marshaller");
-//                            Object marshaller = loader.loadClass("de.sybig.oba.server.TextMarshallerAlignment").newInstance();
-//                            resourceConfig.register(marshaller);
-////                            resourceConfig.
-//                        }
-                        ////
                     }
                     if (entries.containsKey(pathAttribute) && entries.containsKey(providerClassesAttribute)) {
-                    
-                        String[] classes = (String[]) entries.getValue(providerClassesAttribute).split(":");                          
+
+                        String[] classes = (String[]) entries.getValue(providerClassesAttribute).split(":");
                         for (int i = 0; i < classes.length; i++) {
                             Object marshaller = loader.loadClass(classes[i]).newInstance();
                             resourceConfig.register(marshaller);
