@@ -3,18 +3,17 @@
  */
 package de.sybig.oba.server;
 
+import de.sybig.oba.server.pluginManagment.OntologyLoader;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
@@ -141,11 +140,11 @@ public class RestServer {
 
     private void loadOntology(String id, Map<String, Properties> availableOntologies) {
         Properties p = availableOntologies.get(id);
-        loadPreviousOntologies(id, availableOntologies);
+        loadAncestorOntologies(id, availableOntologies);
         OntologyHandler.getInstance().addOntology(p);
     }
 
-    private void loadPreviousOntologies(String id, Map<String, Properties> availableOntologies)  {
+    private void loadAncestorOntologies(String id, Map<String, Properties> availableOntologies)  {
         Properties p = availableOntologies.get(id);
         if (p.containsKey("depends_on")) {
             String[] previousOntologies = p.getProperty("depends_on").split(";");
@@ -255,7 +254,9 @@ public class RestServer {
                     action = "semantic function";
                     loadFunctionClassFromPlugin(loader, entries, name);
                     action = "jersey providers";
-                    loadProvidersFromPlugin(loader, entries);
+                    loadProvidersFromPlugin(loader, entries, name);
+                    action = "ontology loaders";
+                    loadOntologyLoaderFromPlugin(loader, entries, name);
                 }
             }
         } catch (ClassNotFoundException e) {
@@ -294,7 +295,7 @@ public class RestServer {
         }
     }
 
-    private void loadProvidersFromPlugin(URLClassLoader loader, Attributes entries) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+    private void loadProvidersFromPlugin(URLClassLoader loader, Attributes entries, String name) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         Attributes.Name providerClassesAttribute = new Attributes.Name("provider-classes");
         if (entries.containsKey(providerClassesAttribute)) {
 
@@ -305,6 +306,16 @@ public class RestServer {
                 logger.info("registering class {} for jersey", marshaller.getClass());
             }
         }
+    }
+
+    private void loadOntologyLoaderFromPlugin(URLClassLoader loader, Attributes entries, String name) throws ClassNotFoundException, InstantiationException, IllegalAccessException{
+        Attributes.Name loaderName = new Attributes.Name("ontology-loader-class");
+        if (! entries.containsKey(loaderName)){
+            return;
+        }
+        String className = (String) entries.get(loaderName);
+        OntologyLoader instance = (OntologyLoader) loader.loadClass(className).newInstance();
+        OntologyHandler.getInstance().addOntologyLoader(name, instance);
     }
 
     private File getBaseDir() {
