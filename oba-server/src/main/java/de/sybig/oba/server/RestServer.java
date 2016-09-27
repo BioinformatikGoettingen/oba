@@ -8,10 +8,17 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.logging.Level;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -44,8 +51,8 @@ public class RestServer {
             resourceConfig = configureServer();
             OntologyHandler oh = OntologyHandler.getInstance();
             oh.setGeneralProperties(props);
-            loadOntologies(props, oh);
             loadPlugins();
+            loadOntologies(props);
             startServer();
         } catch (Exception ex) {
             logger.error(
@@ -125,42 +132,67 @@ public class RestServer {
         return internalProps;
     }
 
-    /**
-     * Loads the ontologies from the "ontology_directory" as specified in the
-     * props and add them to the OntologyHandler.
-     *
-     * @param properties The properties
-     */
-    private void loadOntologies(final Properties properties,
-            final OntologyHandler oh) {
+    private void loadOntologies(final Properties properties) {
+        Map<String, Properties> availableOntologies = getIdentifierFromOntologyProperties(properties);
+        for (String id : availableOntologies.keySet()) {
+            loadOntology(id, availableOntologies);
+        }
+    }
+
+    private void loadOntology(String id, Map<String, Properties> availableOntologies) {
+        Properties p = availableOntologies.get(id);
+        loadPreviousOntologies(id, availableOntologies);
+        OntologyHandler.getInstance().addOntology(p);
+    }
+
+    private void loadPreviousOntologies(String id, Map<String, Properties> availableOntologies)  {
+        Properties p = availableOntologies.get(id);
+        if (p.containsKey("depends_on")) {
+            String[] previousOntologies = p.getProperty("depends_on").split(";");
+            for (String previousOntology : previousOntologies) {
+                if (OntologyHandler.getInstance().containsOntology(previousOntology)) {
+                    continue;
+                }
+                if (!availableOntologies.containsKey(previousOntology)) {
+                    logger.error("the depending ontology {} for {} was not loaded", previousOntology, id);
+                    //TODO stop loading of depending ontologies
+                }
+                loadOntology(id, availableOntologies);
+            }
+        }
+    }
+
+    private Map<String, Properties> getIdentifierFromOntologyProperties(final Properties properties) {
+        Map<String, Properties> idPropertyMap = new HashMap<>();
+        List que = new LinkedList();
 
         File ontoDir = getOntologyDir(properties);
 
-        logger.debug("loading ontologies from {}", ontoDir);
+        logger.debug("scanning property files for ontologies from {}", ontoDir);
         File[] files = ontoDir.listFiles();
         for (File f : files) {
             if (!f.getName().endsWith("properties")) {
                 continue;
             }
             Properties p = new Properties();
+
             try {
-                logger.info("load property file {}", f);
                 FileReader fr = new FileReader(f);
                 p.load(fr);
                 fr.close();
-                oh.addOntology(p);
-
-            } catch (FileNotFoundException e) {
-                logger.warn(
-                        "could not load the ontology {} specified in property file {}. The file was not found.",
-                        p, f);
-            } catch (IOException e) {
-                logger.warn(
-                        "could not load the ontology {} specified in property file {}. The file could not be read.",
-                        p, f);
-                // e.printStackTrace();
+            } catch (FileNotFoundException ex) {
+                java.util.logging.Logger.getLogger(RestServer.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                java.util.logging.Logger.getLogger(RestServer.class.getName()).log(Level.SEVERE, null, ex);
             }
+
+            if (!p.containsKey("identifier")) {
+                logger.warn("could not parse property file {} because the identifier is missing", f.getAbsoluteFile());
+                continue;
+            }
+            idPropertyMap.put(p.getProperty("identifier"), p);
         }
+        return idPropertyMap;
     }
 
     private File getOntologyDir(Properties properties) {
@@ -252,7 +284,7 @@ public class RestServer {
         Attributes.Name functionClassAttribute = new Attributes.Name("function-main-class");
         if (entries.containsKey(functionClassAttribute)) {
             String className = (String) entries.get(functionClassAttribute);
-                        System.out.println("  3 " +className);
+
             OntologyFunction instance = (OntologyFunction) loader.loadClass(className).newInstance();
             OntologyHandler oh = OntologyHandler.getInstance();
             oh.addFunctionClass(name, instance);
