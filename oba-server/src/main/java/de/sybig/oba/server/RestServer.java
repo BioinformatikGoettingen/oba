@@ -18,6 +18,7 @@ import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 import java.util.logging.Level;
+import javax.validation.constraints.Null;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -144,7 +145,7 @@ public class RestServer {
         OntologyHandler.getInstance().addOntology(p);
     }
 
-    private void loadAncestorOntologies(String id, Map<String, Properties> availableOntologies)  {
+    private void loadAncestorOntologies(String id, Map<String, Properties> availableOntologies) {
         Properties p = availableOntologies.get(id);
         if (p.containsKey("depends_on")) {
             String[] previousOntologies = p.getProperty("depends_on").split(";");
@@ -219,7 +220,7 @@ public class RestServer {
 
     }
 
-    private void loadPlugins() {
+    protected void loadPlugins() {
 
         File pluginDir = new File(getBaseDir(), "plugins");
         if (!(pluginDir.exists() && pluginDir.isDirectory())) {
@@ -269,7 +270,15 @@ public class RestServer {
 
     }
 
-    protected String getIdentifierFromPlugin(Attributes entries) {
+    /**
+     * Get the (required) name of the plugin from the manifest of the plugin.
+     *
+     * @param entries The entries of the manifest file.
+     * @return The name of the plugin, or <code>null</code>
+     *
+     */
+    @Null
+    protected String getIdentifierFromPlugin(final Attributes entries) {
         Attributes.Name pathAttribute = null;
         if (entries.containsKey(new Attributes.Name("function-path-name"))) {
             pathAttribute = new Attributes.Name("function-path-name");
@@ -281,7 +290,21 @@ public class RestServer {
         return (String) entries.get(pathAttribute);
     }
 
-    private void loadFunctionClassFromPlugin(URLClassLoader loader, Attributes entries, String name) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+    /**
+     * Instanciate the class with the ontology function from a plugn, if any
+     * specified in the manifest, and register them to the
+     * {@link de.sybig.oba.server.OntologyHandler}.
+     *
+     * @param loader The classloader used to load the plugin
+     * @param entries The entries of the manifest file.
+     * @param name The name of the plugin, as specified in the manifest.
+     * @throws ClassNotFoundException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     */
+    private void loadFunctionClassFromPlugin(final URLClassLoader loader,
+            final Attributes entries, final String name)
+            throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         Attributes.Name functionClassAttribute = new Attributes.Name("function-main-class");
         if (entries.containsKey(functionClassAttribute)) {
             String className = (String) entries.get(functionClassAttribute);
@@ -295,6 +318,17 @@ public class RestServer {
         }
     }
 
+    /**
+     * Instanciate the jersey providers of a plugin, specified in the manifest,
+     * and register them to the application.
+     *
+     * @param loader The classloader used to load the plugin
+     * @param entries The entries of the manifest file.
+     * @param name The name of the plugin, as specified in the manifest.
+     * @throws ClassNotFoundException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     */
     private void loadProvidersFromPlugin(URLClassLoader loader, Attributes entries, String name) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         Attributes.Name providerClassesAttribute = new Attributes.Name("provider-classes");
         if (entries.containsKey(providerClassesAttribute)) {
@@ -308,9 +342,11 @@ public class RestServer {
         }
     }
 
-    private void loadOntologyLoaderFromPlugin(URLClassLoader loader, Attributes entries, String name) throws ClassNotFoundException, InstantiationException, IllegalAccessException{
+    private void loadOntologyLoaderFromPlugin(final URLClassLoader loader,
+            final Attributes entries, final String name)
+            throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         Attributes.Name loaderName = new Attributes.Name("ontology-loader-class");
-        if (! entries.containsKey(loaderName)){
+        if (!entries.containsKey(loaderName)) {
             return;
         }
         String className = (String) entries.get(loaderName);
@@ -318,8 +354,19 @@ public class RestServer {
         OntologyHandler.getInstance().addOntologyLoader(name, instance);
     }
 
-    private File getBaseDir() {
-        String url = getClass().getResource("/" + this.getClass().getName().replaceAll("\\.", "/") + ".class").toString();
+    /**
+     * Get the directory where the OBA jar file is in, this could be different
+     * from the current working directory. If the application is not started
+     * from a jar file the current working directory is used. The base dir is
+     * used e.g. to get the plugin directory.
+     *
+     * @return The base dir of the application.
+     */
+    protected File getBaseDir() {
+        String url = getClass().
+                getResource("/" + this.getClass().getName().
+                        replaceAll("\\.", "/") + ".class").
+                toString();
         url = url.substring(url.indexOf("/")).replaceFirst("/[^/]+\\.jar!.*$", "/");
         File baseDir = new File(url);
         if (!(baseDir.exists() && baseDir.isDirectory())) {
