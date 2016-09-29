@@ -19,7 +19,7 @@ public class JsonPropertyList<T extends JsonObjectProperty> {
 	}
 
 	/**
-	 * @param classes
+	 * @param entities
 	 *            the classes to set
 	 */
 	public void setEntities(List<T> entities) {

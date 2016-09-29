@@ -15,7 +15,11 @@ import de.sybig.oba.server.JsonCls;
 import de.sybig.oba.server.JsonClsList;
 import de.sybig.oba.server.JsonObjectProperty;
 import de.sybig.oba.server.JsonPropertyList;
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.ConnectException;
 import java.net.URI;
 import java.util.Iterator;
@@ -29,11 +33,19 @@ import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * The generic connector can be embedded into Java applications to call the
+ * REST endpoints of the OBA service using Java methods.
+ * @author juergen.doenitz@bioinf.med.uni-goettingen.de
+ * @param <C> The implementation of the ontology class.
+ * @param <CL> The implementation of the ontology class list.
+ * @param <C2L> The implementation of the two dimensional ontology class list.
+ */
 public class GenericConnector<C extends OntologyClass, CL extends AbstractOntologyClassList<C>, C2L extends AbstractOntology2DClassList<CL, C>> {
 
     private final Logger logger = LoggerFactory.getLogger(GenericConnector.class);
     protected String ontology;
-    protected Client client;// = Client.create();
+    protected Client client;
     protected String baseURI;
     private Properties props;
 
@@ -42,10 +54,10 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      * of the loaded ontologies and their names, please refer to the front page
      * of the oba server.
      *
-     * @param ontology
+     * @param onto The onotology to use on the OBA server
      */
-    public GenericConnector(String ontology) {
-        this.ontology = ontology;
+    public GenericConnector(final String onto) {
+        this.ontology = onto;
         init();
     }
 
@@ -100,7 +112,7 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
                 String field = it.next();
                 paramValue.append(field);
                 if (it.hasNext()) {
-                    paramValue.append(",");
+                    paramValue.append(',');
                 }
             }
             uriBuilder = uriBuilder.matrixParam("field", paramValue.toString());
@@ -348,6 +360,7 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
         } catch (UniformInterfaceException ex) {
             if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
                 if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
+                    //TODO throw exception
                 }
             }
             logger.error("error while communicating the OBA server", ex);
