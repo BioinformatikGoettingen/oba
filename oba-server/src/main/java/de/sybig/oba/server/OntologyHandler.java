@@ -4,6 +4,7 @@
  */
 package de.sybig.oba.server;
 
+import de.sybig.oba.server.pluginManagment.OntologyLoader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -34,17 +35,16 @@ public final class OntologyHandler {
     private static volatile OntologyHandler instance = null;
     private Properties generalProps;
 
-    private Map<String, OntologyResource> ontologyMap = new HashMap<String, OntologyResource>();
-    private Map<String, OntologyResource> preparedOntologyMap = new HashMap<String, OntologyResource>();
-    private Map<String, Properties> ontologyPropertiesMap = new HashMap<String, Properties>();
-    private Map<String, OntologyFunction> functionMap;
-
-    private Logger logger = LoggerFactory.getLogger(OntologyHandler.class);
+    private final Map<String, OntologyResource> ontologyMap = new HashMap<>();
+    private final Map<String, OntologyResource> preparedOntologyMap = new HashMap<>();
+    private final Map<String, Properties> ontologyPropertiesMap = new HashMap<>();
+    private final Map<String, OntologyFunction> functionMap = new HashMap<>();
+    private final Map<String, OntologyLoader> ontologyLoaderMap = new HashMap<>();
+    private final Logger logger = LoggerFactory.getLogger(OntologyHandler.class);
 
     /**
      * The OntologyHandler is a singleton class, so no public constructor is
-     * available. To get the instance of the OntologyHandler use
-	 * {
+     * available. To get the instance of the OntologyHandler use {
      *
      * @#getInstance()}.
      */
@@ -106,7 +106,7 @@ public final class OntologyHandler {
     }
 
     public String getNameOfOntology(OWLOntology ontology) {
-		// if (ontologyMap == null) {
+        // if (ontologyMap == null) {
         // return null;
         // }
         for (String name : ontologyMap.keySet()) {
@@ -133,7 +133,7 @@ public final class OntologyHandler {
      * @return <code>true</code> if an ontology was registered under this name.
      */
     public boolean containsOntology(String name) {
-		// if (ontologyMap == null && preparedOntologyMap == null) {
+        // if (ontologyMap == null && preparedOntologyMap == null) {
         // return false;
         // }
 
@@ -199,11 +199,42 @@ public final class OntologyHandler {
     }
 
     /**
-     * Adds a single ontology defined in its own property file
+     * Adds a single ontology defined in its own property file.
      *
-     * @param p
+     * @param p The properties for the ontology.
      */
     public void addOntology(Properties p) {
+        String name = p.getProperty("identifier");
+        ObaOntology po = null;
+        if (!p.containsKey("load_by_plugin")) {
+            po = buildOntologyWrapper(p);
+        } else {
+            OntologyLoader ontologyLoader = getOntologyLoader(p.getProperty("load_by_plugin"));
+            if (ontologyLoader == null){
+                logger.warn("The plugin {} to load the ontology does not provide an ontology loader",p.getProperty("load_by_plugin"));
+                return;
+            }
+            po = ontologyLoader.loadOntology(p);
+        }
+        po.setProperties(p);
+        OntologyResource onto = new OntologyResource();
+        onto.setOntology(po);
+        if (p.getProperty("load_lazy", "false").equalsIgnoreCase("true")) {
+            preparedOntologyMap.put(name, onto);
+        } else {
+            try {
+                po.init();
+                ontologyMap.put(name, onto);
+            } catch (OWLOntologyCreationException e) {
+                logger.error("could not load ontology {}, due to {}",
+                        name, e.getMessage());
+                return;
+            }
+        }
+        ontologyPropertiesMap.put(name, p);
+    }
+
+    private ObaOntology buildOntologyWrapper(Properties p) {
         File ontoFile = new File(p.getProperty("file").trim());
 
         if (!ontoFile.isAbsolute()) {
@@ -216,26 +247,10 @@ public final class OntologyHandler {
                     "could not load the ontology {}, will skip the ontology",
                     ontoFile);
         }
-        String name = p.getProperty("identifier",
-                ontoFile.getName().split("\\.")[0]);
+        String name = p.getProperty("identifier");
         ObaOntology po = new ObaOntology();
         po.setOwlURI(IRI.create(ontoFile));
-        po.setProperties(p);
-        OntologyResource onto = new OntologyResource();
-        onto.setOntology(po);
-        if (p.getProperty("load_lazy", "false").equalsIgnoreCase("true")) {
-            preparedOntologyMap.put(name, onto);
-        } else {
-            try {
-                po.init();
-                ontologyMap.put(name, onto);
-            } catch (OWLOntologyCreationException e) {
-                logger.error("could not load ontology {}, due to {}",
-                        ontoFile.getName(), e.getMessage());
-                return;
-            }
-        }
-        ontologyPropertiesMap.put(name, p);
+        return po;
     }
 
     public Properties getOntologyProperties(String name) {
@@ -266,11 +281,13 @@ public final class OntologyHandler {
             }
         }
     }
+
     /**
      * Instantiate the named class and register it under the given name. For
      * loading the class loader of the application is used, so classes from
      * plugins can not be loaded using this method. For plugins use the method
      * {#see #addFunctionClass(String, OntologyFunction)}
+     *
      * @param name The name under which the class is registered
      * @param className The class to load
      * @throws ClassNotFoundException
@@ -290,16 +307,22 @@ public final class OntologyHandler {
     /**
      * Register an instance of an OntologyFunction under the given name. The
      * class has to be already instanciated, so that a class loader for the
-     * plugins can be used. To load classes from the classpath of the application
-     * see also {#see #addFunctionClass(String, String)}
+     * plugins can be used. To load classes from the classpath of the
+     * application see also {#see #addFunctionClass(String, String)}
+     *
      * @param name The name under which the class is registered
      * @param classInstance The class with the ontology functions
      */
     public void addFunctionClass(String name, OntologyFunction classInstance) {
-        if (functionMap == null) {
-            functionMap = new HashMap<String, OntologyFunction>();
-        }
         functionMap.put(name, classInstance);
+    }
+
+    public void addOntologyLoader(String name, OntologyLoader instance) {
+        ontologyLoaderMap.put(name, instance);
+    }
+
+    public OntologyLoader getOntologyLoader(String name){
+        return ontologyLoaderMap.get(name);
     }
 
     /**
@@ -348,7 +371,7 @@ public final class OntologyHandler {
         }
         throw new IllegalArgumentException("unknown function class");
     }
-	// public OWLOntologyWalker getWalker() {
+    // public OWLOntologyWalker getWalker() {
     // return walker;
     // }
 

@@ -15,15 +15,27 @@ the ontology functions and as key to to register the components of the plugin
 in the OBA server.
  
 ### Ontology function
-**function-path-name** (deprecated, use name instead)  
+**function-path-name** (deprecated, use name instead)
+
 the name under which the class with the semantic
 function of the plugin is registred and which is used
 in the URL pattern to access these functions.
   
-**function-main-class**  
+**function-main-class**
+
 The class which implements the REST functions of the plugin
 The complete name including the package (without file extension) has to
 be specified
+
+**load_by_plugin**
+A class to load an ontology. The class should implement the
+interface ```de.sybig.oba.server.pluginManagment.OntologyLoader```.
+If an ontology specified the name of a plugin in its property
+file under the key ```load_by_plugin```. This class is used
+to process the property file of the ontology and should return
+an ObaOntology.
+
+
     
 ### Marshallers
 

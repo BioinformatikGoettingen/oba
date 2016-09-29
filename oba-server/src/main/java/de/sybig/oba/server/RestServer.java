@@ -3,15 +3,22 @@
  */
 package de.sybig.oba.server;
 
+import de.sybig.oba.server.pluginManagment.OntologyLoader;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.logging.Level;
+import javax.validation.constraints.Null;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
@@ -44,8 +51,8 @@ public class RestServer {
             resourceConfig = configureServer();
             OntologyHandler oh = OntologyHandler.getInstance();
             oh.setGeneralProperties(props);
-            loadOntologies(props, oh);
             loadPlugins();
+            loadOntologies(props);
             startServer();
         } catch (Exception ex) {
             logger.error(
@@ -125,42 +132,67 @@ public class RestServer {
         return internalProps;
     }
 
-    /**
-     * Loads the ontologies from the "ontology_directory" as specified in the
-     * props and add them to the OntologyHandler.
-     *
-     * @param properties The properties
-     */
-    private void loadOntologies(final Properties properties,
-            final OntologyHandler oh) {
+    private void loadOntologies(final Properties properties) {
+        Map<String, Properties> availableOntologies = getIdentifierFromOntologyProperties(properties);
+        for (String id : availableOntologies.keySet()) {
+            loadOntology(id, availableOntologies);
+        }
+    }
+
+    private void loadOntology(String id, Map<String, Properties> availableOntologies) {
+        Properties p = availableOntologies.get(id);
+        loadAncestorOntologies(id, availableOntologies);
+        OntologyHandler.getInstance().addOntology(p);
+    }
+
+    private void loadAncestorOntologies(String id, Map<String, Properties> availableOntologies) {
+        Properties p = availableOntologies.get(id);
+        if (p.containsKey("depends_on")) {
+            String[] previousOntologies = p.getProperty("depends_on").split(";");
+            for (String previousOntology : previousOntologies) {
+                if (OntologyHandler.getInstance().containsOntology(previousOntology)) {
+                    continue;
+                }
+                if (!availableOntologies.containsKey(previousOntology)) {
+                    logger.error("the depending ontology {} for {} was not loaded", previousOntology, id);
+                    //TODO stop loading of depending ontologies
+                }
+                loadOntology(id, availableOntologies);
+            }
+        }
+    }
+
+    private Map<String, Properties> getIdentifierFromOntologyProperties(final Properties properties) {
+        Map<String, Properties> idPropertyMap = new HashMap<>();
+        List que = new LinkedList();
 
         File ontoDir = getOntologyDir(properties);
 
-        logger.debug("loading ontologies from {}", ontoDir);
+        logger.debug("scanning property files for ontologies from {}", ontoDir);
         File[] files = ontoDir.listFiles();
         for (File f : files) {
             if (!f.getName().endsWith("properties")) {
                 continue;
             }
             Properties p = new Properties();
+
             try {
-                logger.info("load property file {}", f);
                 FileReader fr = new FileReader(f);
                 p.load(fr);
                 fr.close();
-                oh.addOntology(p);
-
-            } catch (FileNotFoundException e) {
-                logger.warn(
-                        "could not load the ontology {} specified in property file {}. The file was not found.",
-                        p, f);
-            } catch (IOException e) {
-                logger.warn(
-                        "could not load the ontology {} specified in property file {}. The file could not be read.",
-                        p, f);
-                // e.printStackTrace();
+            } catch (FileNotFoundException ex) {
+                java.util.logging.Logger.getLogger(RestServer.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                java.util.logging.Logger.getLogger(RestServer.class.getName()).log(Level.SEVERE, null, ex);
             }
+
+            if (!p.containsKey("identifier")) {
+                logger.warn("could not parse property file {} because the identifier is missing", f.getAbsoluteFile());
+                continue;
+            }
+            idPropertyMap.put(p.getProperty("identifier"), p);
         }
+        return idPropertyMap;
     }
 
     private File getOntologyDir(Properties properties) {
@@ -188,7 +220,7 @@ public class RestServer {
 
     }
 
-    private void loadPlugins() {
+    protected void loadPlugins() {
 
         File pluginDir = new File(getBaseDir(), "plugins");
         if (!(pluginDir.exists() && pluginDir.isDirectory())) {
@@ -223,7 +255,9 @@ public class RestServer {
                     action = "semantic function";
                     loadFunctionClassFromPlugin(loader, entries, name);
                     action = "jersey providers";
-                    loadProvidersFromPlugin(loader, entries);
+                    loadProvidersFromPlugin(loader, entries, name);
+                    action = "ontology loaders";
+                    loadOntologyLoaderFromPlugin(loader, entries, name);
                 }
             }
         } catch (ClassNotFoundException e) {
@@ -236,7 +270,15 @@ public class RestServer {
 
     }
 
-    protected String getIdentifierFromPlugin(Attributes entries) {
+    /**
+     * Get the (required) name of the plugin from the manifest of the plugin.
+     *
+     * @param entries The entries of the manifest file.
+     * @return The name of the plugin, or <code>null</code>
+     *
+     */
+    @Null
+    protected String getIdentifierFromPlugin(final Attributes entries) {
         Attributes.Name pathAttribute = null;
         if (entries.containsKey(new Attributes.Name("function-path-name"))) {
             pathAttribute = new Attributes.Name("function-path-name");
@@ -248,11 +290,25 @@ public class RestServer {
         return (String) entries.get(pathAttribute);
     }
 
-    private void loadFunctionClassFromPlugin(URLClassLoader loader, Attributes entries, String name) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+    /**
+     * Instanciate the class with the ontology function from a plugn, if any
+     * specified in the manifest, and register them to the
+     * {@link de.sybig.oba.server.OntologyHandler}.
+     *
+     * @param loader The classloader used to load the plugin
+     * @param entries The entries of the manifest file.
+     * @param name The name of the plugin, as specified in the manifest.
+     * @throws ClassNotFoundException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     */
+    private void loadFunctionClassFromPlugin(final URLClassLoader loader,
+            final Attributes entries, final String name)
+            throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         Attributes.Name functionClassAttribute = new Attributes.Name("function-main-class");
         if (entries.containsKey(functionClassAttribute)) {
             String className = (String) entries.get(functionClassAttribute);
-                        System.out.println("  3 " +className);
+
             OntologyFunction instance = (OntologyFunction) loader.loadClass(className).newInstance();
             OntologyHandler oh = OntologyHandler.getInstance();
             oh.addFunctionClass(name, instance);
@@ -262,7 +318,18 @@ public class RestServer {
         }
     }
 
-    private void loadProvidersFromPlugin(URLClassLoader loader, Attributes entries) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+    /**
+     * Instanciate the jersey providers of a plugin, specified in the manifest,
+     * and register them to the application.
+     *
+     * @param loader The classloader used to load the plugin
+     * @param entries The entries of the manifest file.
+     * @param name The name of the plugin, as specified in the manifest.
+     * @throws ClassNotFoundException
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     */
+    private void loadProvidersFromPlugin(URLClassLoader loader, Attributes entries, String name) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         Attributes.Name providerClassesAttribute = new Attributes.Name("provider-classes");
         if (entries.containsKey(providerClassesAttribute)) {
 
@@ -275,8 +342,31 @@ public class RestServer {
         }
     }
 
-    private File getBaseDir() {
-        String url = getClass().getResource("/" + this.getClass().getName().replaceAll("\\.", "/") + ".class").toString();
+    private void loadOntologyLoaderFromPlugin(final URLClassLoader loader,
+            final Attributes entries, final String name)
+            throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+        Attributes.Name loaderName = new Attributes.Name("ontology-loader-class");
+        if (!entries.containsKey(loaderName)) {
+            return;
+        }
+        String className = (String) entries.get(loaderName);
+        OntologyLoader instance = (OntologyLoader) loader.loadClass(className).newInstance();
+        OntologyHandler.getInstance().addOntologyLoader(name, instance);
+    }
+
+    /**
+     * Get the directory where the OBA jar file is in, this could be different
+     * from the current working directory. If the application is not started
+     * from a jar file the current working directory is used. The base dir is
+     * used e.g. to get the plugin directory.
+     *
+     * @return The base dir of the application.
+     */
+    protected File getBaseDir() {
+        String url = getClass().
+                getResource("/" + this.getClass().getName().
+                        replaceAll("\\.", "/") + ".class").
+                toString();
         url = url.substring(url.indexOf("/")).replaceFirst("/[^/]+\\.jar!.*$", "/");
         File baseDir = new File(url);
         if (!(baseDir.exists() && baseDir.isDirectory())) {
