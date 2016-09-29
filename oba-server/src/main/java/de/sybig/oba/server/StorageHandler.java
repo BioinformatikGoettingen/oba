@@ -31,7 +31,8 @@ import org.slf4j.LoggerFactory;
 
 import com.sun.jersey.api.json.JSONJAXBContext;
 import com.sun.jersey.api.json.JSONUnmarshaller;
-import java.io.*;
+import java.io.BufferedReader;
+
 
 /**
  * Subresource to handle the storage and retrieval of list with ontology
@@ -43,12 +44,9 @@ import java.io.*;
  */
 public class StorageHandler {
 
-    private Logger logger = LoggerFactory.getLogger(StorageHandler.class.toString());
+    private static final Logger logger = LoggerFactory.getLogger(StorageHandler.class.toString());
     private static String rootDir;
 
-    public StorageHandler() {
-        // System.out.println("new storage handler");
-    }
 
     /**
      * Accepts a list in plain text format. The format is one class per line
@@ -56,22 +54,22 @@ public class StorageHandler {
      * list was already saved under the same name in this partition the old list
      * is overwritten.
      *
-     * Possible http codes are <ul> <li>201 if the list could be saved.</li>
+     * <p>Possible http codes are <ul> <li>201 if the list could be saved.</li>
      * <li>413 if the list exceeds the limit of 20kb</li> <li>500 for any other
-     * error</li> </ul>
+     * error</li> </ul></p>
      *
      * @param partition The partition to store the list in
      * @param name The name to store the list.
-     * @param is
+     * @param inStream The input stream with the PUT content.
      */
     @PUT
     @Path("{partition}/{name}")
     @Consumes("text/plain")
     public void putStorageText(@PathParam("partition") String partition,
-            @PathParam("name") String name, InputStream is) {
+            @PathParam("name") String name, InputStream inStream) {
         logger.info("PUT mit text");
         testNames(partition, name);
-        saveInputStream(partition, name, is);
+        saveInputStream(partition, name, inStream);
         StorageDatabase db = StorageDatabase.getInstance();
         db.logPut(partition, name, "text");
     }
@@ -85,17 +83,17 @@ public class StorageHandler {
      * @see #putStorageText(String, String, InputStream)
      * @param partition
      * @param name
-     * @param is
+     * @param inStream
      */
     @PUT
     @Path("{partition}/{name}")
     @Consumes("application/json")
     // @Produces("application/json")
     public void putStorageJson(@PathParam("partition") String partition,
-            @PathParam("name") String name, InputStream is) {
+            @PathParam("name") String name, InputStream inStream) {
         logger.info("PUT mit json");
         testNames(partition, name);
-        saveInputStream(partition, name, is);
+        saveInputStream(partition, name, inStream);
         StorageDatabase db = StorageDatabase.getInstance();
         db.logPut(partition, name, "json");
     }

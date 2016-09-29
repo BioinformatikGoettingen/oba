@@ -20,22 +20,41 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * Connector specific for the Tribolium plugin.
+ *
  * @author juergen.doenitz@bioinf.med.uni-goettingen.de
  */
 public class TriboliumConnector extends OboConnector {
-    private static Logger logger = LoggerFactory.getLogger(TriboliumConnector.class);
-    protected final String SUB_RESOURCE = "functions/tribolium";
 
+    private static final Logger logger = LoggerFactory.getLogger(TriboliumConnector.class);
+    protected final static String SUB_RESOURCE = "functions/tribolium";
+
+    /**
+     * Initite the connector with the default ontology "tribolium".
+     */
     public TriboliumConnector() {
         super("tribolium");
     }
 
+    /**
+     * Initate the connector to use the given ontology. In most cases the
+     * default constructor will be used {@link #TriboliumConnector()}.
+     *
+     * @param ontology The ontology to use.
+     */
     public TriboliumConnector(String ontology) {
         super(ontology);
     }
- public static String getVersion() {
-        return "20130516";
-    }
+
+    /**
+     * Get all concrete classes from the triboliom ontology. Therefor the
+     * endpoint '.../concreteClasses' of the OBA service is called. Concrete
+     * classes are disectible morphological structures and linked to a
+     * developemental stage.
+     *
+     * @return All concrete classes of the ontology.
+     * @throws ConnectException
+     */
     public OboClassList getConcreteClasses() throws ConnectException {
         String path = String.format("%s/%s/concreteClasses", getOntology(),
                 SUB_RESOURCE);
@@ -62,6 +81,14 @@ public class TriboliumConnector extends OboConnector {
         return null;
     }
 
+    /**
+     * Get all generic classes from the triboliom ontology. Therefor the
+     * endpoint '.../genericClasses' of the OBA service is called. Generic
+     * classes are biological concepts and not linked to a developemental stage.
+     *
+     * @return All generic classes of the ontology
+     * @throws ConnectException
+     */
     public OboClassList getGenericClasses() throws ConnectException {
         String path = String.format("%s/%s/genericClasses", getOntology(),
                 SUB_RESOURCE);
@@ -70,7 +97,7 @@ public class TriboliumConnector extends OboConnector {
         try {
             OboClassList genericClasses = (OboClassList) getResponse(
                     webResource, OboClassList.class);
-            if (genericClasses == null){
+            if (genericClasses == null) {
                 logger.error("No generic classes found in the ontology. The suggestion tree is not available.");
                 return null;
             }
@@ -92,6 +119,16 @@ public class TriboliumConnector extends OboConnector {
         return null;
     }
 
+    /**
+     * Get all mixed classes from the triboliom ontology. Therefor the endpoint
+     * '.../mixedlasses' of the OBA service is called. Mixed classes are
+     * disectible morphological structures that are only present in one
+     * developmental stage and represent also the biological concept of a
+     * structure.
+     *
+     * @return All mixed classes of the ontology
+     * @throws ConnectException
+     */
     public OboClassList getMixedClasses() throws ConnectException {
         String path = String.format("%s/%s/mixedClasses", getOntology(),
                 SUB_RESOURCE);
@@ -118,6 +155,13 @@ public class TriboliumConnector extends OboConnector {
         return null;
     }
 
+    /**
+     * Get all developemental stages from the ontology. Therefor the endpoint
+     * '.../devStages' of the OBA service is called.
+     *
+     * @return All developemental stages of the ontology.
+     * @throws ConnectException
+     */
     public OboClassList getDevelopmentalStages() throws ConnectException {
         String path = String.format("%s/%s/devStages", getOntology(),
                 SUB_RESOURCE);
@@ -126,7 +170,7 @@ public class TriboliumConnector extends OboConnector {
         try {
             OboClassList devStages = (OboClassList) getResponse(
                     webResource, OboClassList.class);
-           
+
             devStages.setConnector(this);
             return devStages;
         } catch (ClientHandlerException ex) {
@@ -145,10 +189,18 @@ public class TriboliumConnector extends OboConnector {
         return null;
     }
 
+    /**
+     * Search for a pattern the indexed fields of all generic (and mixed)
+     * classes. See also
+     * {@link de.sybig.oba.server.tribolium.TriboliumFunctions#searchInGeneric(java.lang.String) }
+     *
+     * @param pattern The pattern to search for.
+     * @return All generic and mixed classes with the searched pattern.
+     * @throws ConnectException
+     */
     public OboClassList searchInGeneric(final String pattern) throws ConnectException {
         String path = String.format("%s/%s/", getOntology(), SUB_RESOURCE);
         WebResource webResource = getWebResource();
-        // webResource.
         UriBuilder uriBuilder = webResource.getUriBuilder();
         uriBuilder = uriBuilder.path(path);
 
@@ -162,7 +214,7 @@ public class TriboliumConnector extends OboConnector {
                     MediaType.APPLICATION_JSON).get(getOntologyClassList());
             list.setConnector(this);
             return list;
-        }catch (ClientHandlerException ex) {
+        } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
             }
@@ -177,7 +229,8 @@ public class TriboliumConnector extends OboConnector {
         }
         return null;
     }
-public OboClassList searchInGenericAndMixed(final String pattern) throws ConnectException {
+
+    public OboClassList searchInGenericAndMixed(final String pattern) throws ConnectException {
         String path = String.format("%s/%s/", getOntology(), SUB_RESOURCE);
         WebResource webResource = getWebResource();
         // webResource.
@@ -209,6 +262,7 @@ public OboClassList searchInGenericAndMixed(final String pattern) throws Connect
         }
         return null;
     }
+
     public OboClassList searchInConcrete(final String pattern) throws ConnectException {
         String path = String.format("%s/%s/", getOntology(), SUB_RESOURCE);
         WebResource webResource = getWebResource();
@@ -310,7 +364,7 @@ public OboClassList searchInGenericAndMixed(final String pattern) throws Connect
                     concreteCls.getNamespace());
             OboClass cls = (OboClass) getResponse(webResource,
                     getOntologyClass());
-            if (cls == null){
+            if (cls == null) {
                 logger.warn("could not get dev stage of class {}", concreteCls);
                 return null;
             }
@@ -362,7 +416,7 @@ public OboClassList searchInGenericAndMixed(final String pattern) throws Connect
         } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
-            }else if (ex.getCause() instanceof EOFException){
+            } else if (ex.getCause() instanceof EOFException) {
                 //ok
                 return null;
             }
@@ -450,9 +504,7 @@ public OboClassList searchInGenericAndMixed(final String pattern) throws Connect
         return null;
     }
 
-   
-
-    public static void main(String[] args)  {
+    public static void main(String[] args) {
         try {
             TriboliumConnector connector = new TriboliumConnector();
             OboClassList cc = connector.getConcreteClasses();
@@ -474,7 +526,7 @@ public OboClassList searchInGenericAndMixed(final String pattern) throws Connect
             }
             System.out.println();
         } catch (ConnectException ex) {
-           logger.error("Error ", ex);
+            logger.error("Error ", ex);
         }
     }
 }

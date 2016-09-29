@@ -184,10 +184,10 @@ public class TriboliumFunctions extends OntologyFunctions {
     @GET
     @Path("/searchInGeneric/{pattern}")
     @Produces(ALL_TYPES)
-    public List<ObaClass> searchInGeneric(@PathParam("pattern") String searchPattern) {
+    public List<ObaClass> searchInGeneric(@PathParam("pattern") final String searchPattern) {
         Set<ObaClass> toRemove = getConcreteClasses();
         // In the owl representation of the OBO ontology spaces are replace by '_'
-        searchPattern = searchPattern.replaceAll("_", " ");
+        String internalSearchPattern = searchPattern.replaceAll("_", " ");
 
 //        try {
 //            StorageHandler storageHandler = new StorageHandler();
@@ -199,7 +199,7 @@ public class TriboliumFunctions extends OntologyFunctions {
 //        } catch (WebApplicationException we) {
 //            // the storage list wasn't found, just use the generic classes.
 //        }
-        List<ObaClass> hits = ontology.searchCls(searchPattern, null);
+        List<ObaClass> hits = ontology.searchCls(internalSearchPattern, null);
         hits.removeAll(toRemove);
 
         return hits;
@@ -208,6 +208,7 @@ public class TriboliumFunctions extends OntologyFunctions {
     @GET
     @Path("/searchInGenericAndMixed/{pattern}")
     @Produces(ALL_TYPES)
+    //TODO compare with searchInGeneric
     public List<ObaClass> searchInGenericAndMixed(@PathParam("pattern") String searchPattern) {
         Set<ObaClass> toRemove = new HashSet<ObaClass>();
         toRemove.addAll(getConcreteClasses());
@@ -531,9 +532,8 @@ public class TriboliumFunctions extends OntologyFunctions {
 
     /**
      * If the start class is a concrete class, the class is added to the result
-     * list. Otherwise
-     * <code>findDownToConcrete</code> is called for each child of the start
-     * class and for each class connected. with "hasPart".
+     * list. Otherwise <code>findDownToConcrete</code> is called for each child
+     * of the start class and for each class connected. with "hasPart".
      *
      * @param cls The start class
      * @param result
@@ -577,8 +577,7 @@ public class TriboliumFunctions extends OntologyFunctions {
 
     /**
      * Returns a list of classes with a partOf relation to the given class. If
-     * no relations are found,
-     * <code>null</code> is returned.
+     * no relations are found, <code>null</code> is returned.
      *
      * @param cls
      * @return

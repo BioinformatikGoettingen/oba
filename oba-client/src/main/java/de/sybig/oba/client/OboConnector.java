@@ -1,12 +1,11 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package de.sybig.oba.client;
 
 /**
+ * This connector converts the ontology clases from the server to the Obo
+ * classes. THis connecotr is mostly used to inherited from connectors using
+ * ontologies in the OBO format.
  *
- * @author jdo
+ * @author juergen.doenitz@ibeetle-base.uni-goettingen.de
  */
 public class OboConnector extends GenericConnector<OboClass, OboClassList, Obo2DClassList> {
 
