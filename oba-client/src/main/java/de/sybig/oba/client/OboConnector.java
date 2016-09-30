@@ -9,6 +9,11 @@ package de.sybig.oba.client;
  */
 public class OboConnector extends GenericConnector<OboClass, OboClassList, Obo2DClassList> {
 
+    /**
+     * Initiate the connector with the given ontology.
+     *
+     * @param ontology The ontology to use with the OBA service.
+     */
     public OboConnector(String ontology) {
         super(ontology);
     }

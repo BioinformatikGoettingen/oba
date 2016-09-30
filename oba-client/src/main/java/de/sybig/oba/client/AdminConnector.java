@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package de.sybig.oba.client;
 
 import com.sun.jersey.api.client.ClientHandlerException;
@@ -9,23 +5,34 @@ import com.sun.jersey.api.client.UniformInterfaceException;
 import com.sun.jersey.api.client.WebResource;
 import java.net.ConnectException;
 import java.util.Properties;
-import java.util.logging.Level;
 import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * The admin connector is mainly used to control the OBA server, like adding or
+ * removing ontologies or stopping the sever.
  *
- * @author jdo
+ * @author juergen.doenitz@bioinf.med.uni-goetingen.de
  */
 public class AdminConnector extends GenericConnector {
 
-    private static Logger logger = LoggerFactory.getLogger(AdminConnector.class);
+    private static final Logger logger = LoggerFactory.getLogger(AdminConnector.class);
 
+    /**
+     * Create a new admin connector. It is not possible to use an ontology with
+     * this connector.
+     */
     public AdminConnector() {
         super("admin");
     }
 
+    /**
+     * Gets the version of the OBA service.
+     *
+     * @return The version of the server.
+     * @throws ConnectException Thrown if the server is not reached.
+     */
     public String getVersion() throws ConnectException {
         String path = "/admin/version";
         WebResource webResource = getWebResource();
@@ -49,6 +56,13 @@ public class AdminConnector extends GenericConnector {
         return null;
     }
 
+    /**
+     * Get the properties used to load the specified ontology.
+     *
+     * @param ontology The ontology to get the properties for.
+     * @return The properties of the ontology.
+     * @throws ConnectException Thrown if the OBA server is not reached.
+     */
     public Properties getProperties(String ontology) throws ConnectException {
         String path = String.format("/admin/ontology/%s/properties", ontology);
         WebResource webResource = getWebResource();

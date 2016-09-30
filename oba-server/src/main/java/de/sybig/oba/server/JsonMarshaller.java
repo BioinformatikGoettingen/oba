@@ -43,8 +43,8 @@ import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 @Produces("application/json")
 public class JsonMarshaller implements MessageBodyWriter<Object> {
 
-    private Logger log = LoggerFactory.getLogger(JsonMarshaller.class);
-    private final int CACHE_TIME = 3600 * 24 * 30;
+    private static final Logger log = LoggerFactory.getLogger(JsonMarshaller.class);
+    private static final int CACHE_TIME = 3600 * 24 * 30;
 
     @Override
     public boolean isWriteable(Class arg0, Type arg1, Annotation[] arg2,
@@ -81,7 +81,7 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
                     }
 
                     return false;
-                } else if (c.equals((Map.class))) {
+                } else if (c.equals(Map.class)) {
                     if (((ParameterizedType) arg1).getActualTypeArguments()[0].toString().equals("interface org.semanticweb.owlapi.model.OWLClass")
                             && ((ParameterizedType) arg1).getActualTypeArguments()[1].toString().equals("java.util.List<org.semanticweb.owlapi.model.OWLClass>")) {
                         //TODO make better

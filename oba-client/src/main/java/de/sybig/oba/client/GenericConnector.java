@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
  */
 public class GenericConnector<C extends OntologyClass, CL extends AbstractOntologyClassList<C>, C2L extends AbstractOntology2DClassList<CL, C>> {
 
-    private final Logger logger = LoggerFactory.getLogger(GenericConnector.class);
+    private final static Logger logger = LoggerFactory.getLogger(GenericConnector.class);
     protected String ontology;
     protected Client client;
     protected String baseURI;
@@ -579,7 +579,7 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
         return null;
     }
 
-    protected void init() {
+    protected final void init() {
         ClientConfig cc = new DefaultClientConfig();
         cc.getClasses().add(JacksonJsonProvider.class);
         client = Client.create(cc);

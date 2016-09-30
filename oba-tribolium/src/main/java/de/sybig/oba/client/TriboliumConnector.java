@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 public class TriboliumConnector extends OboConnector {
 
     private static final Logger logger = LoggerFactory.getLogger(TriboliumConnector.class);
-    protected final static String SUB_RESOURCE = "functions/tribolium";
+    protected static final String SUB_RESOURCE = "functions/tribolium";
 
     /**
      * Initite the connector with the default ontology "tribolium".
@@ -53,7 +53,7 @@ public class TriboliumConnector extends OboConnector {
      * developemental stage.
      *
      * @return All concrete classes of the ontology.
-     * @throws ConnectException
+     * @throws ConnectException Thrown if the communiction with the server fails.
      */
     public OboClassList getConcreteClasses() throws ConnectException {
         String path = String.format("%s/%s/concreteClasses", getOntology(),
@@ -87,7 +87,7 @@ public class TriboliumConnector extends OboConnector {
      * classes are biological concepts and not linked to a developemental stage.
      *
      * @return All generic classes of the ontology
-     * @throws ConnectException
+     * @throws ConnectException Thrown if the communiction with the server fails.
      */
     public OboClassList getGenericClasses() throws ConnectException {
         String path = String.format("%s/%s/genericClasses", getOntology(),
@@ -127,7 +127,7 @@ public class TriboliumConnector extends OboConnector {
      * structure.
      *
      * @return All mixed classes of the ontology
-     * @throws ConnectException
+     * @throws ConnectException Thrown if the communiction with the server fails.
      */
     public OboClassList getMixedClasses() throws ConnectException {
         String path = String.format("%s/%s/mixedClasses", getOntology(),
@@ -160,7 +160,7 @@ public class TriboliumConnector extends OboConnector {
      * '.../devStages' of the OBA service is called.
      *
      * @return All developemental stages of the ontology.
-     * @throws ConnectException
+     * @throws ConnectException Thrown if the communiction with the server fails.
      */
     public OboClassList getDevelopmentalStages() throws ConnectException {
         String path = String.format("%s/%s/devStages", getOntology(),
@@ -196,7 +196,7 @@ public class TriboliumConnector extends OboConnector {
      *
      * @param pattern The pattern to search for.
      * @return All generic and mixed classes with the searched pattern.
-     * @throws ConnectException
+     * @throws ConnectException Thrown if the communiction with the server fails.
      */
     public OboClassList searchInGeneric(final String pattern) throws ConnectException {
         String path = String.format("%s/%s/", getOntology(), SUB_RESOURCE);

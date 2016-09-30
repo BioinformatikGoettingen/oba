@@ -142,7 +142,7 @@ public class HtmlMarshaller extends OntoMarshaller {
 	@Override
 	protected String convertProperty(OWLObjectProperty r, Annotation[] arg3) {
 		StringBuffer out = new StringBuffer();
-		String htmlBase = getHtmlBase(arg3);
+		final String htmlBase = getHtmlBase(arg3);
 		OWLOntology ontology = getOntology(r);
 
 		out.append(String.format("<h1>Object property \"%s\"</h1>\n", r
