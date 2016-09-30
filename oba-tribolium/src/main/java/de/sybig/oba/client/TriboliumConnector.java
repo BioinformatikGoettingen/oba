@@ -26,8 +26,9 @@ import org.slf4j.LoggerFactory;
  */
 public class TriboliumConnector extends OboConnector {
 
-    private static final Logger logger = LoggerFactory.getLogger(TriboliumConnector.class);
     protected static final String SUB_RESOURCE = "functions/tribolium";
+    private static final Logger logger = LoggerFactory.getLogger(TriboliumConnector.class);
+    private static final String ERR_MSG = "error while communicating the OBA server";
 
     /**
      * Initite the connector with the default ontology "tribolium".
@@ -53,32 +54,34 @@ public class TriboliumConnector extends OboConnector {
      * developemental stage.
      *
      * @return All concrete classes of the ontology.
-     * @throws ConnectException Thrown if the communiction with the server fails.
+     * @throws ConnectException Thrown if the communiction with the server
+     * fails.
      */
     public OboClassList getConcreteClasses() throws ConnectException {
         String path = String.format("%s/%s/concreteClasses", getOntology(),
                 SUB_RESOURCE);
 
         WebResource webResource = getWebResource().path(path);
+        OboClassList concreteClasses = null;
         try {
-            OboClassList concreteClasses = (OboClassList) getResponse(
+            concreteClasses = (OboClassList) getResponse(
                     webResource, OboClassList.class);
             concreteClasses.setConnector(this);
-            return concreteClasses;
+
         } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         } catch (UniformInterfaceException ex) {
             if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
                 if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
                     return null;
                 }
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         }
-        return null;
+        return concreteClasses;
     }
 
     /**
@@ -87,15 +90,17 @@ public class TriboliumConnector extends OboConnector {
      * classes are biological concepts and not linked to a developemental stage.
      *
      * @return All generic classes of the ontology
-     * @throws ConnectException Thrown if the communiction with the server fails.
+     * @throws ConnectException Thrown if the communiction with the server
+     * fails.
      */
     public OboClassList getGenericClasses() throws ConnectException {
         String path = String.format("%s/%s/genericClasses", getOntology(),
                 SUB_RESOURCE);
 
         WebResource webResource = getWebResource().path(path);
+        OboClassList genericClasses = null;
         try {
-            OboClassList genericClasses = (OboClassList) getResponse(
+            genericClasses = (OboClassList) getResponse(
                     webResource, OboClassList.class);
             if (genericClasses == null) {
                 logger.error("No generic classes found in the ontology. The suggestion tree is not available.");
@@ -107,16 +112,16 @@ public class TriboliumConnector extends OboConnector {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         } catch (UniformInterfaceException ex) {
             if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
                 if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
                     return null;
                 }
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         }
-        return null;
+        return genericClasses;
     }
 
     /**
@@ -127,32 +132,34 @@ public class TriboliumConnector extends OboConnector {
      * structure.
      *
      * @return All mixed classes of the ontology
-     * @throws ConnectException Thrown if the communiction with the server fails.
+     * @throws ConnectException Thrown if the communiction with the server
+     * fails.
      */
     public OboClassList getMixedClasses() throws ConnectException {
         String path = String.format("%s/%s/mixedClasses", getOntology(),
                 SUB_RESOURCE);
 
         WebResource webResource = getWebResource().path(path);
+        OboClassList genericClasses = null;
         try {
-            OboClassList genericClasses = (OboClassList) getResponse(
+            genericClasses = (OboClassList) getResponse(
                     webResource, OboClassList.class);
             genericClasses.setConnector(this);
-            return genericClasses;
+
         } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         } catch (UniformInterfaceException ex) {
             if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
                 if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
                     return null;
                 }
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         }
-        return null;
+        return genericClasses;
     }
 
     /**
@@ -160,33 +167,35 @@ public class TriboliumConnector extends OboConnector {
      * '.../devStages' of the OBA service is called.
      *
      * @return All developemental stages of the ontology.
-     * @throws ConnectException Thrown if the communiction with the server fails.
+     * @throws ConnectException Thrown if the communiction with the server
+     * fails.
      */
     public OboClassList getDevelopmentalStages() throws ConnectException {
         String path = String.format("%s/%s/devStages", getOntology(),
                 SUB_RESOURCE);
 
         WebResource webResource = getWebResource().path(path);
+        OboClassList devStages = null;
         try {
-            OboClassList devStages = (OboClassList) getResponse(
+            devStages = (OboClassList) getResponse(
                     webResource, OboClassList.class);
 
             devStages.setConnector(this);
-            return devStages;
+
         } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         } catch (UniformInterfaceException ex) {
             if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
                 if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
                     return null;
                 }
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         }
-        return null;
+        return devStages;
     }
 
     /**
@@ -196,7 +205,8 @@ public class TriboliumConnector extends OboConnector {
      *
      * @param pattern The pattern to search for.
      * @return All generic and mixed classes with the searched pattern.
-     * @throws ConnectException Thrown if the communiction with the server fails.
+     * @throws ConnectException Thrown if the communiction with the server
+     * fails.
      */
     public OboClassList searchInGeneric(final String pattern) throws ConnectException {
         String path = String.format("%s/%s/", getOntology(), SUB_RESOURCE);
@@ -209,25 +219,26 @@ public class TriboliumConnector extends OboConnector {
         uriBuilder = uriBuilder.segment(pattern);
         URI uri = uriBuilder.build();
         webResource = webResource.uri(uri);
+        OboClassList list = null;
         try {
-            OboClassList list = (OboClassList) webResource.accept(
+            list = (OboClassList) webResource.accept(
                     MediaType.APPLICATION_JSON).get(getOntologyClassList());
             list.setConnector(this);
-            return list;
+
         } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         } catch (UniformInterfaceException ex) {
             if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
                 if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
                     return null;
                 }
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         }
-        return null;
+        return list;
     }
 
     public OboClassList searchInGenericAndMixed(final String pattern) throws ConnectException {
@@ -242,25 +253,26 @@ public class TriboliumConnector extends OboConnector {
         uriBuilder = uriBuilder.segment(pattern);
         URI uri = uriBuilder.build();
         webResource = webResource.uri(uri);
+        OboClassList list = null;
         try {
-            OboClassList list = (OboClassList) webResource.accept(
+            list = (OboClassList) webResource.accept(
                     MediaType.APPLICATION_JSON).get(getOntologyClassList());
             list.setConnector(this);
-            return list;
+
         } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         } catch (UniformInterfaceException ex) {
             if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
                 if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
                     return null;
                 }
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         }
-        return null;
+        return list;
     }
 
     public OboClassList searchInConcrete(final String pattern) throws ConnectException {
@@ -275,25 +287,26 @@ public class TriboliumConnector extends OboConnector {
         uriBuilder = uriBuilder.segment(pattern);
         URI uri = uriBuilder.build();
         webResource = webResource.uri(uri);
+        OboClassList list = null;
         try {
-            OboClassList list = (OboClassList) webResource.accept(
+            list = (OboClassList) webResource.accept(
                     MediaType.APPLICATION_JSON).get(getOntologyClassList());
             list.setConnector(this);
-            return list;
+
         } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         } catch (UniformInterfaceException ex) {
             if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
                 if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
                     return null;
                 }
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         }
-        return null;
+        return list;
     }
 
     public OboClassList searchInConcreteAndMixed(String pattern) throws ConnectException {
@@ -308,8 +321,9 @@ public class TriboliumConnector extends OboConnector {
         uriBuilder = uriBuilder.segment(pattern);
         URI uri = uriBuilder.build();
         webResource = webResource.uri(uri);
+        OboClassList list = null;
         try {
-            OboClassList list = (OboClassList) webResource.accept(
+            list = (OboClassList) webResource.accept(
                     MediaType.APPLICATION_JSON).get(getOntologyClassList());
             list.setConnector(this);
             return list;
@@ -317,73 +331,74 @@ public class TriboliumConnector extends OboConnector {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         } catch (UniformInterfaceException ex) {
             if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
                 if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
                     return null;
                 }
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         }
-        return null;
+        return list;
     }
 
     public OboClassList searchConcreteFor(JsonCls cls) throws ConnectException {
         String path = String.format("%s/%s/searchConcreteFor/%s",
                 getOntology(), SUB_RESOURCE, cls.getName());
         WebResource webResource = getWebResource().path(path);
+        OboClassList list = null;
         try {
             webResource = webResource.queryParam("ns", cls.getNamespace());
-            OboClassList list = (OboClassList) getResponse(
+
+            list = (OboClassList) getResponse(
                     webResource, OboClassList.class);
             list.setConnector(this);
-            return list;
         } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         } catch (UniformInterfaceException ex) {
             if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
                 if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
                     return null;
                 }
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         }
-        return null;
+        return list;
     }
 
     public OboClass getDevStageOfCls(JsonCls concreteCls) throws ConnectException {
         String path = String.format("%s/%s/devStageOfCls/%s", getOntology(),
                 SUB_RESOURCE, concreteCls.getName());
         WebResource webResource = getWebResource().path(path);
+        OboClass cls = null;
         try {
             webResource = webResource.queryParam("ns",
                     concreteCls.getNamespace());
-            OboClass cls = (OboClass) getResponse(webResource,
+            cls = (OboClass) getResponse(webResource,
                     getOntologyClass());
             if (cls == null) {
                 logger.warn("could not get dev stage of class {}", concreteCls);
                 return null;
             }
             cls.setConnector(this);
-            return cls;
         } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         } catch (UniformInterfaceException ex) {
             if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
                 if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
                     return null;
                 }
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         }
-        return null;
+        return cls;
     }
 
     /**
@@ -406,13 +421,11 @@ public class TriboliumConnector extends OboConnector {
         uriBuilder = uriBuilder.queryParam("ns", devStage.getNamespace());
         URI uri = uriBuilder.build();
         webResource = webResource.uri(uri);
-//            System.out.println(genericClass + " in " + devStage);
-
+        OboClassList list = null;
         try {
-            OboClassList list = (OboClassList) webResource.accept(
+            list = (OboClassList) webResource.accept(
                     MediaType.APPLICATION_JSON).get(getOntologyClassList());
             list.setConnector(this);
-            return list;
         } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
@@ -420,88 +433,88 @@ public class TriboliumConnector extends OboConnector {
                 //ok
                 return null;
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         } catch (UniformInterfaceException ex) {
             if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
                 if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
                     return null;
                 }
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         }
-        return null;
+        return list;
     }
 
     public OboClassList checkClassLoops() throws ConnectException {
         String path = String.format("%s/%s/clsLoops", getOntology(), SUB_RESOURCE);
         WebResource webResource = getWebResource().path(path);
+        OboClassList list = null;
         try {
-            OboClassList list = (OboClassList) webResource.accept(
+            list = (OboClassList) webResource.accept(
                     MediaType.APPLICATION_JSON).get(getOntologyClassList());
             list.setConnector(this);
-            return list;
         } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         } catch (UniformInterfaceException ex) {
             if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
                 if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
                     return null;
                 }
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         }
-        return null;
+        return list;
     }
 
     public OboClassList checkRelationLoops(String relation) throws ConnectException {
         String path = String.format("%s/%s/relationLoops/%s", getOntology(), SUB_RESOURCE, relation);
         WebResource webResource = getWebResource().path(path);
+        OboClassList list = null;
         try {
-            OboClassList list = (OboClassList) webResource.accept(
+            list = (OboClassList) webResource.accept(
                     MediaType.APPLICATION_JSON).get(getOntologyClassList());
             list.setConnector(this);
-            return list;
         } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         } catch (UniformInterfaceException ex) {
             if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
                 if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
                     return null;
                 }
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         }
-        return null;
+        return list;
     }
 
     public OboClassList getAllClasses() throws ConnectException {
         String path = String.format("%s/%s/allClasses", getOntology(), SUB_RESOURCE);
         WebResource webResource = getWebResource().path(path);
+        OboClassList list = null;
         try {
-            OboClassList list = (OboClassList) webResource.accept(
+            list = (OboClassList) webResource.accept(
                     MediaType.APPLICATION_JSON).get(getOntologyClassList());
             list.setConnector(this);
-            return list;
         } catch (ClientHandlerException ex) {
             if (ex.getCause() instanceof ConnectException) {
                 throw (ConnectException) ex.getCause();
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         } catch (UniformInterfaceException ex) {
             if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
                 if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
                     return null;
                 }
             }
-            logger.error("error while communicating the OBA server", ex);
+            logger.error(ERR_MSG, ex);
         }
-        return null;
+        return list;
     }
 
     public static void main(String[] args) {

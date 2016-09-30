@@ -1,0 +1,33 @@
+format-version: 1.2
+date: 30:09:2016 14:54
+saved-by: jdo
+auto-generated-by: OBO-Edit 2.0
+default-namespace: tribolium.anatomy
+
+[Term]
+id: TrOnT:0000000
+name: anatomical_entity
+created_by: jdo
+creation_date: 2016-09-30T12:29:54Z
+
+[Term]
+id: TrOnT:0000001
+name: organism
+is_a: TrOnT:0000000 ! anatomical_entity
+created_by: jdo
+creation_date: 2016-09-30T12:30:35Z
+
+[Term]
+id: TrOnT:0000002
+name: larva
+is_a: TrOnT:0000001 ! organism
+created_by: jdo
+creation_date: 2016-09-30T12:30:57Z
+
+[Term]
+id: TrOnT:0000003
+name: pupa
+is_a: TrOnT:0000001 ! organism
+created_by: jdo
+creation_date: 2016-09-30T12:31:18Z
+

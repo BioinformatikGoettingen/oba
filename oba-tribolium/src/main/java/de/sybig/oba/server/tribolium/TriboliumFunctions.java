@@ -1,18 +1,36 @@
 package de.sybig.oba.server.tribolium;
 
-import de.sybig.oba.server.*;
+import de.sybig.oba.server.ObaAnnotation;
+import de.sybig.oba.server.ObaClass;
+import de.sybig.oba.server.ObaObjectPropertyExpression;
+import de.sybig.oba.server.OntologyFunctions;
+import de.sybig.oba.server.OntologyHelper;
+import de.sybig.oba.server.StorageHandler;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.core.PathSegment;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import org.semanticweb.owlapi.model.OWLObjectProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.*;
-import javax.ws.rs.core.PathSegment;
-import java.util.*;
-
+/**
+ * This class provides ontology functions specific for the Tribolium Ontology
+ * TrOn.
+ *
+ * @author juergen.doenitz@ibeetle-base.uni-goettingen.de
+ */
 public class TriboliumFunctions extends OntologyFunctions {
 
-    private static final String TRIBOLIUM_NS = "http://purl.org/obo/owlapi/tribolium.anatomy"; //TODO move to config
-    private static final String DEV_STAGES_ID = "TrOn_0000024";
+//    private static final String TRIBOLIUM_NS = "http://purl.org/obo/owlapi/tribolium.anatomy"; //TODO move to config
+//    private static final String DEV_STAGES_ID = "TrOn_0000024";
     private static final Logger log = LoggerFactory.getLogger(TriboliumFunctions.class);
     private volatile Map<ObaClass, ObaClass> concreteClasses;
     private Set<ObaClass> mixedClasses;
@@ -21,6 +39,11 @@ public class TriboliumFunctions extends OntologyFunctions {
     private Map<ObaClass, Set<ObaClass>> hasParts;
     private Set<ObaClass> genericClasses;
     private Set<ObaClass> concreteAndAdditinalClasses;
+
+    public TriboliumFunctions(){
+        super();
+        loadPropertiesFromJar("/tribolium.properties");
+    }
 
     @Override
     public String getVersion() {
@@ -32,13 +55,19 @@ public class TriboliumFunctions extends OntologyFunctions {
     @Produces("text/html")
     @Override
     public String getRoot() {
-        return "";
+        StringBuilder out = new StringBuilder();
+        out.append("<h1>Available functions</h1>\n");
+        out.append("<dl>");
+        out.append("<dt>/concreteClasses</dt><dd>Gets a all concrete classes, i.e. disectible structues linked to a developmental stage</dd>");
+        out.append("<dt>/devStages</dt><dd>Get all developemental stages, including sub stages like 'L1'</dd>");
+        return out.toString();
     }
 
+    @Override
     public void reset() {
-        concreteClasses = null;
-        mixedClasses = null;
-        devStages = null;
+        concreteClasses.clear();
+        mixedClasses.clear();
+        devStages.clear();
         partOfRestriction = null;
         hasParts = null;
         genericClasses = null;
@@ -61,7 +90,7 @@ public class TriboliumFunctions extends OntologyFunctions {
             ObaClass root = ontology.getRoot();
             concreteClasses = new HashMap<ObaClass, ObaClass>();
             addDevStagesToConcreteClasses();
-            HashSet<String> restrictions = new HashSet<String>();
+            Set<String> restrictions = new HashSet<String>();
 
             restrictions.add("part_of");
             partOfRestriction = OntologyHelper.getObjectProperties(root.getOntology(), restrictions).iterator().next();
@@ -156,7 +185,7 @@ public class TriboliumFunctions extends OntologyFunctions {
      * Get all ontology classes of organisms in specific developmental stage.
      * This are all classes below of the node "organism" and their children.
      *
-     * @return The developmental stages.
+     * @return The developmental stages, or <code>null</code> if the parent node is not found.
      */
     @GET
     @Path("/devStages")
@@ -164,8 +193,16 @@ public class TriboliumFunctions extends OntologyFunctions {
     public Set<ObaClass> getDevStages() {
         if (devStages == null) {
             devStages = new HashSet<ObaClass>();
-            ObaClass devStageCls = ontology.getOntologyClass(DEV_STAGES_ID,
-                    TRIBOLIUM_NS);
+            ObaClass devStageCls = ontology.getOntologyClass(getProperties().getProperty("dev_stages_id"),
+                    getProperties().getProperty("tribolium_ns"));
+            System.out.println("--- 1 " + getProperties().getProperty("dev_stages_id"));
+            System.out.println("----2 " + devStageCls);
+            System.out.println("----3 " +  getProperties().getProperty("tribolium_ns"));
+//            System.out.println(ontology.);
+            if (devStageCls == null){
+                log.error("Could not get the parent node of the developmental stages");
+                return null;
+            }
             for (ObaClass child : OntologyHelper.getChildren(devStageCls)) {
                 addDevStagesDownstream(child);
             }
