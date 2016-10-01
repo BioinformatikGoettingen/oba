@@ -2,6 +2,7 @@ package de.sybig.oba.server;
 
 import java.io.IOException;
 import java.util.Properties;
+import javax.validation.constraints.Null;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.PathSegment;
 
@@ -9,16 +10,22 @@ import org.semanticweb.owlapi.model.OWLClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Abstract class with some service methods for depending classes. All classes
+ * implementing ontology functions should inherit from this class.
+ *
+ * @author juergen.doenitz@bioinf.med.uni-goettingen.de
+ */
 public abstract class AbstractOntolgyResource {
 
-    private final static Logger log = LoggerFactory.getLogger(AbstractOntolgyResource.class);
+    private static final Logger log  = LoggerFactory.getLogger(AbstractOntolgyResource.class);
     protected ObaOntology ontology;
     protected Properties properties;
 
     /**
      * Sets the ontology used by the functions implemented by the subclasses.
      *
-     * @param ontology
+     * @param ontology The ontology to be used by the function class.
      */
     public void setOntology(ObaOntology ontology) {
         this.ontology = ontology;
@@ -27,7 +34,7 @@ public abstract class AbstractOntolgyResource {
     /**
      * Get the ontology the ontology functions work on.
      *
-     * @return The ontology
+     * @return The ontology The ontology to be used by the function class
      */
     public ObaOntology getOntology() {
         return ontology;
@@ -44,8 +51,8 @@ public abstract class AbstractOntolgyResource {
      * 'ns', if the value of the namespace contains '/' it should be replaced by
      * '$'.
      *
-     * If the path segment does not specify a valid ontology class, a web
-     * application exception 404 is thrown.
+     * <p>If the path segment does not specify a valid ontology class, a web
+     * application exception 404 is thrown.</p>
      *
      * @param pathSegment The path segment to parse if no query parameter is
      * used.
@@ -68,14 +75,34 @@ public abstract class AbstractOntolgyResource {
         return new ObaClass(clsX, ontology.getOntology());
     }
 
+    /**
+     * Sets the properties for the function class. The properties can be also
+     * loaded by using {@link #loadPropertiesFromJar(java.lang.String) }
+     *
+     * @param p The properties to set.
+     */
     protected void setProperties(Properties p) {
         properties = p;
     }
 
+    /**
+     * Get the properties for the function class. The properties should have
+     * been set previously by {@link #setProperties(java.util.Properties)} or by
+     * {@link #loadPropertiesFromJar(java.lang.String) }.
+     *
+     * @return The properties of the function class, or <code>null</code>
+     */
+    @Null
     protected Properties getProperties() {
         return properties;
     }
 
+    /**
+     * Loads a property file for the function class from the source / jar file.
+     *
+     * @param name The path to the jar file starting from the class directory,
+     * starting with '/'
+     */
     public void loadPropertiesFromJar(String name) {
 
         properties = new Properties();

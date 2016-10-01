@@ -1,8 +1,8 @@
 format-version: 1.2
-date: 30:09:2016 14:54
+date: 01:10:2016 20:32
 saved-by: jdo
 auto-generated-by: OBO-Edit 2.0
-default-namespace: tribolium.anatomy
+default-namespace: tribolium.anatomy.test
 
 [Term]
 id: TrOnT:0000000
@@ -30,4 +30,54 @@ name: pupa
 is_a: TrOnT:0000001 ! organism
 created_by: jdo
 creation_date: 2016-09-30T12:31:18Z
+
+[Term]
+id: TrOnT:0000004
+name: L1_larva
+is_a: TrOnT:0000002 ! larva
+created_by: jdo
+creation_date: 2016-09-30T05:15:16Z
+
+[Term]
+id: TrOnT:0000005
+name: appendage
+is_a: TrOnT:0000000 ! anatomical_entity
+created_by: jdo
+creation_date: 2016-09-30T09:21:36Z
+
+[Term]
+id: TrOnT:0000006
+name: leg
+is_a: TrOnT:0000005 ! appendage
+created_by: jdo
+creation_date: 2016-09-30T09:22:04Z
+
+[Term]
+id: TrOnT:0000007
+name: pupal_leg
+is_a: TrOnT:0000006 ! leg
+relationship: part_of TrOnT:0000003 ! pupa
+created_by: jdo
+creation_date: 2016-09-30T09:22:13Z
+
+[Term]
+id: TrOnT:0000008
+name: femoral_brush
+is_a: TrOnT:0000000 ! anatomical_entity
+relationship: part_of TrOnT:0000009 ! adult
+created_by: jdo
+creation_date: 2016-10-01T09:44:34Z
+
+[Term]
+id: TrOnT:0000009
+name: adult
+is_a: TrOnT:0000001 ! organism
+created_by: jdo
+creation_date: 2016-10-01T09:44:52Z
+
+[Typedef]
+id: part_of
+name: part_of
+created_by: juergen
+creation_date: 2011-05-10T02:48:58Z
 

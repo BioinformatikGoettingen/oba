@@ -197,7 +197,17 @@ public final class OntologyHandler {
             }
         }
     }
-
+    /**
+     * Adds an ontoloyg to the map of available ontologies. The method is only
+     * used for testing, for other cases uses {@link #addOntology(java.util.Properties)}
+     * which stores also the properties for an ontology.
+     *
+     * @param name The name of the ontolgy
+     * @param or The ontology resource to register.
+     */
+    public void addOntology(String name, OntologyResource or){
+        ontologyMap.put(name, or);
+    }
     /**
      * Adds a single ontology defined in its own property file.
      *

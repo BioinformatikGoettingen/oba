@@ -29,8 +29,6 @@ import org.slf4j.LoggerFactory;
  */
 public class TriboliumFunctions extends OntologyFunctions {
 
-//    private static final String TRIBOLIUM_NS = "http://purl.org/obo/owlapi/tribolium.anatomy"; //TODO move to config
-//    private static final String DEV_STAGES_ID = "TrOn_0000024";
     private static final Logger log = LoggerFactory.getLogger(TriboliumFunctions.class);
     private volatile Map<ObaClass, ObaClass> concreteClasses;
     private Set<ObaClass> mixedClasses;
@@ -40,7 +38,11 @@ public class TriboliumFunctions extends OntologyFunctions {
     private Set<ObaClass> genericClasses;
     private Set<ObaClass> concreteAndAdditinalClasses;
 
-    public TriboliumFunctions(){
+    /**
+     * Inits the class with the functions for TrOn and loads the property file.
+     *
+     */
+    public TriboliumFunctions() {
         super();
         loadPropertiesFromJar("/tribolium.properties");
     }
@@ -56,10 +58,15 @@ public class TriboliumFunctions extends OntologyFunctions {
     @Override
     public String getRoot() {
         StringBuilder out = new StringBuilder();
-        out.append("<h1>Available functions</h1>\n");
-        out.append("<dl>");
-        out.append("<dt>/concreteClasses</dt><dd>Gets a all concrete classes, i.e. disectible structues linked to a developmental stage</dd>");
-        out.append("<dt>/devStages</dt><dd>Get all developemental stages, including sub stages like 'L1'</dd>");
+        out.append("<h1>Available functions</h1>\n")
+                .append("<dl>")
+                .append("<dt>/concreteClasses</dt><dd>Gets a all concrete classes, i.e. disectible structues linked to a developmental stage</dd>")
+                .append("<dt>/devStages</dt><dd>Get all developemental stages, including sub stages like 'L1'</dd>")
+                .append("<dt>/genericClasses</dt><dd>Get all generic classes; generic classes are biological concepts not related to a developemental stage.</dd>")
+                .append("<dt>/concreteClasses</dt><dd>Get all concrete classes; concrete classes are dissectible morphological structures and linkded to a developmental stage. Mixed classes are also in te set of generic classes. </dd>")
+                .append("<dt>/mixedClasses</dt><dd>Get all mixed classes. Mixed classes are morphological structures only present in a singel developmental stage. Mixed classes are also concrete classes.</dd>")
+//                .append("<dt></dt><dd></dd>")
+                ;
         return out.toString();
     }
 
@@ -185,7 +192,8 @@ public class TriboliumFunctions extends OntologyFunctions {
      * Get all ontology classes of organisms in specific developmental stage.
      * This are all classes below of the node "organism" and their children.
      *
-     * @return The developmental stages, or <code>null</code> if the parent node is not found.
+     * @return The developmental stages, or <code>null</code> if the parent node
+     * is not found.
      */
     @GET
     @Path("/devStages")
@@ -195,11 +203,7 @@ public class TriboliumFunctions extends OntologyFunctions {
             devStages = new HashSet<ObaClass>();
             ObaClass devStageCls = ontology.getOntologyClass(getProperties().getProperty("dev_stages_id"),
                     getProperties().getProperty("tribolium_ns"));
-            System.out.println("--- 1 " + getProperties().getProperty("dev_stages_id"));
-            System.out.println("----2 " + devStageCls);
-            System.out.println("----3 " +  getProperties().getProperty("tribolium_ns"));
-//            System.out.println(ontology.);
-            if (devStageCls == null){
+            if (devStageCls == null) {
                 log.error("Could not get the parent node of the developmental stages");
                 return null;
             }
@@ -407,7 +411,7 @@ public class TriboliumFunctions extends OntologyFunctions {
 
     private void fixPodomer() {
         ObaClass podomer = ontology.getOntologyClass("TrOn_0000035", null);
-        if (genericClasses != null) {
+        if (genericClasses != null && podomer != null) {
             genericClasses.add(podomer);
         }
         if (concreteClasses != null) {
