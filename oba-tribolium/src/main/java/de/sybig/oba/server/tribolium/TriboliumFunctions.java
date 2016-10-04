@@ -57,15 +57,14 @@ public class TriboliumFunctions extends OntologyFunctions {
     @Produces("text/html")
     @Override
     public String getRoot() {
-        StringBuilder out = new StringBuilder();
-        out.append("<h1>Available functions</h1>\n")
+        StringBuilder out = new StringBuilder()
+                .append("<h1>Available functions</h1>\n")
                 .append("<dl>")
                 .append("<dt>/concreteClasses</dt><dd>Gets a all concrete classes, i.e. disectible structues linked to a developmental stage</dd>")
                 .append("<dt>/devStages</dt><dd>Get all developemental stages, including sub stages like 'L1'</dd>")
                 .append("<dt>/genericClasses</dt><dd>Get all generic classes; generic classes are biological concepts not related to a developemental stage.</dd>")
                 .append("<dt>/concreteClasses</dt><dd>Get all concrete classes; concrete classes are dissectible morphological structures and linkded to a developmental stage. Mixed classes are also in te set of generic classes. </dd>")
-                .append("<dt>/mixedClasses</dt><dd>Get all mixed classes. Mixed classes are morphological structures only present in a singel developmental stage. Mixed classes are also concrete classes.</dd>")
-//                .append("<dt></dt><dd></dd>")
+                .append("<dt>/mixedClasses</dt><dd>Get all mixed classes. Mixed classes are morphological structures only present in a singel developmental stage. Mixed classes are also concrete classes.</dd>") //                .append("<dt></dt><dd></dd>")
                 ;
         return out.toString();
     }
@@ -115,6 +114,10 @@ public class TriboliumFunctions extends OntologyFunctions {
         return concreteClasses.keySet();
     }
 
+    /**
+     * Add the concrete developemental stages to the list of concrete classes.
+     *
+     */
     private void addDevStagesToConcreteClasses() {
         for (ObaClass stage : getDevStages()) {
             concreteClasses.put(stage, stage);
@@ -138,6 +141,13 @@ public class TriboliumFunctions extends OntologyFunctions {
 //        return getConcreteClasses();
     }
 
+    /**
+     * Get all generic classes, ontology classes that represent biological
+     * concepts and not linked to developmental stage. The mixed classes are not
+     * part of the generic classes.
+     *
+     * @return The generic classes of the ontology.
+     */
     @GET
     @Path("/genericClasses")
     @Produces(ALL_TYPES)
@@ -156,8 +166,8 @@ public class TriboliumFunctions extends OntologyFunctions {
     public Set<ObaClass> getMixedClasses() {
         if (mixedClasses == null) {
             mixedClasses = new HashSet<ObaClass>();
-            final String adult = "adult";
-            final String pupa = "pupa";
+            String adult = "adult";
+            String pupa = "pupa";
             String larva = "larva";
 
             Set<ObaClass> allConcrete = getConcreteClasses();
@@ -255,9 +265,9 @@ public class TriboliumFunctions extends OntologyFunctions {
         toRemove.addAll(getConcreteClasses());
         toRemove.removeAll(getMixedClasses());
         // In the owl representation of the OBO ontology spaces are replace by '_'
-        searchPattern = searchPattern.replaceAll("_", " ");
+        String usedSearchPattern = searchPattern.replaceAll("_", " ");
 
-        List<ObaClass> hits = ontology.searchCls(searchPattern, null);
+        List<ObaClass> hits = ontology.searchCls(usedSearchPattern, null);
         hits.removeAll(toRemove);
 
         return hits;
@@ -268,8 +278,8 @@ public class TriboliumFunctions extends OntologyFunctions {
     @Produces(ALL_TYPES)
     public List<ObaClass> searchInConcrete(
             @PathParam("pattern") String searchPattern) {
-        searchPattern = searchPattern.replaceAll("_", " ");
-        List<ObaClass> hits = ontology.searchCls(searchPattern, null);
+        String usedSearchPattern = searchPattern.replaceAll("_", " ");
+        List<ObaClass> hits = ontology.searchCls(usedSearchPattern, null);
         hits.retainAll(getConcreteClasses());
         return hits;
     }

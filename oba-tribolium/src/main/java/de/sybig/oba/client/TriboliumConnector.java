@@ -74,10 +74,10 @@ public class TriboliumConnector extends OboConnector {
             }
             logger.error(ERR_MSG, ex);
         } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
-                    return null;
-                }
+            if (ex.getResponse() != null
+                    && ex.getResponse().getClientResponseStatus() != null
+                    && ex.getResponse().getClientResponseStatus().getStatusCode() == 40) {
+                return null;
             }
             logger.error(ERR_MSG, ex);
         }

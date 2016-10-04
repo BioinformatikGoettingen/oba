@@ -7,8 +7,9 @@ import de.sybig.oba.server.OntologyResource;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
 import java.util.Set;
-import junit.framework.Assert;
 import static org.junit.Assert.*;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -30,9 +31,9 @@ public class TriboliumFunctionsTest {
     private Set<String> mixedExamples;
 
     /**
-     * Load the test ontology and init the class with the functions
+     * Load the test ontology and init the class with the functions.
      *
-     * @throws Exception
+     * @throws Exception Thrown if loading the test ontology fails
      */
     @BeforeClass
     public static void setUpBeforeClass() throws Exception {
@@ -41,6 +42,7 @@ public class TriboliumFunctionsTest {
         URL testOntology = new TriboliumFunctions().getClass().getResource(
                 "/tronTest.obo");
         obaOntology.setOwlURI(IRI.create(testOntology));
+        obaOntology.setProperties(getOntologyProperties());
         obaOntology.init();
         OntologyResource or = new OntologyResource();
         or.setOntology(obaOntology);
@@ -68,7 +70,7 @@ public class TriboliumFunctionsTest {
             }
             String path = method.getAnnotation(javax.ws.rs.Path.class).value();
             if (!documentation.contains(String.format("<dt>%s</dt>", path))) {
-                Assert.fail(path + " is not documented in the overview");
+                fail(path + " is not documented in the overview");
             }
         }
     }
@@ -86,7 +88,8 @@ public class TriboliumFunctionsTest {
     }
     // --- getConcrete
     /**
-     * List of concrete classes should not contain the <code>null</code> element.
+     * List of concrete classes should not contain the <code>null</code>
+     * element.
      */
     @Test
     public void concreteClassesWithoutNull() {
@@ -104,7 +107,7 @@ public class TriboliumFunctionsTest {
     }
 
     // ---- getGeneric
-        /**
+    /**
      * List of generic classes should not contain the <code>null</code> element.
      */
     @Test
@@ -123,7 +126,7 @@ public class TriboliumFunctionsTest {
         assertFalse("getGenericClasses should not contain any mixed classes.", labels.removeAll(getMixedExamples()));
     }
     // ---- getMixedClasses
-        /**
+    /**
      * List of mixed classes should not contain the <code>null</code> element.
      */
     @Test
@@ -144,6 +147,62 @@ public class TriboliumFunctionsTest {
         assertFalse("getMixedExamples should not contain any generic classes", labels.removeAll(getGenericExamples()));
     }
 
+    // --- serach
+    /**
+     * SearchInGeneric should find generic classes.
+     */
+    @Test
+    public void searchGenericInGenericTest() {
+        List<ObaClass> hits = testClass.searchInGeneric("leg");
+        assertEquals("Generic class should be found with searchInGeneric", 1, hits.size());
+    }
+
+    /**
+     * SearchInGeneric should not find concrete classes.
+     */
+    @Test
+    public void searchConcreteInGenericTest() {
+        List<ObaClass> hits = testClass.searchInGeneric("pupal_leg");
+        assertEquals("Concrete class should not not be found with searchInGeneric", 0, hits.size());
+    }
+
+    /**
+     * SearchInGeneric should not find mixed classes.  
+     */
+    @Test
+    public void searchMixedInGenericTest() {
+        List<ObaClass> hits = testClass.searchInGeneric("femoral_brush");
+        assertEquals("Mixed class should be not found with searchInGeneric", 0, hits.size());
+    }
+
+    /// --- helper functions
+    private static Properties getOntologyProperties() {
+        Properties p = new Properties();
+        p.setProperty("indexAnnotations", "label");
+        return p;
+    }
+
+    /**
+     * Get a set of IDs for a list of ontology classes
+     *
+     * @TODO change to labels for better reading
+     *
+     * @param classes The set of classes to get the IDs for.
+     * @return A set of IDs of the input classes.
+     */
+    private Set<String> getLabels(Set<ObaClass> classes) {
+        Set<String> labels = new HashSet<String>();
+        for (ObaClass cls : classes) {
+            labels.add(cls.toString());
+        }
+        return labels;
+    }
+
+    /**
+     * Get a list of IDs of generic classes.
+     *
+     * @return Examples for generic classes.
+     */
     private Set<String> getGenericExamples() {
         if (genericExamples == null) {
             genericExamples = new HashSet<String>();
@@ -159,14 +218,11 @@ public class TriboliumFunctionsTest {
         return genericExamples;
     }
 
-    private Set<String> getLabels(Set<ObaClass> classes) {
-        Set<String> labels = new HashSet<String>();
-        for (ObaClass cls : classes) {
-            labels.add(cls.toString());
-        }
-        return labels;
-    }
-
+    /**
+     * Get a list of IDs for concrete classes.
+     *
+     * @return Examples for concrete classes.
+     */
     private Set<String> getConcreteExamples() {
         if (concreteExamples == null) {
             concreteExamples = new HashSet<String>();
@@ -183,6 +239,11 @@ public class TriboliumFunctionsTest {
         return concreteExamples;
     }
 
+    /**
+     * Get a list of IDs of mixed classes.
+     *
+     * @return Examples for mixed classes.
+     */
     private Set<String> getMixedExamples() {
         if (mixedExamples == null) {
             mixedExamples = new HashSet<String>();

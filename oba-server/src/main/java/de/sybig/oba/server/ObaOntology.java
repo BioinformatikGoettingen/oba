@@ -310,7 +310,7 @@ public class ObaOntology {
                 if (indexAnnotation.contains(annotation.getName())) {
                     name = annotation.getName();
                     value = annotation.getValue();
-                    doc.add(new Field(name, value, Store.NO, Index.ANALYZED));                 
+                    doc.add(new Field(name, value, Store.NO, Index.ANALYZED));
                 }
             }
         }
@@ -349,7 +349,6 @@ public class ObaOntology {
         Searcher searcher;
         try {
             searcher = new IndexSearcher(idx);
-
             QueryParser parser = new MultiFieldQueryParser(luceneVersion,
                     searchFields, new StandardAnalyzer(luceneVersion));
             parser.setDefaultOperator(Operator.AND);
