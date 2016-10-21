@@ -277,6 +277,14 @@ public final class OntologyHandler {
         }
     }
 
+    /**
+     * Removes the given ontology from the map of perpared or loaded ontologies.
+     * As long as the ontology is referenced some where else, e.g. by plugins,
+     * the ontology is not removed from the memory. The plugins should remove
+     * references to its ontoloy on reset.
+     *
+     * @param ontology The name of the ontology to remove.
+     */
     public void deleteOntology(String ontology) {
         for (String name : preparedOntologyMap.keySet()) {
             if (ontology.equals(name)) {
