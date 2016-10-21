@@ -6,6 +6,7 @@ import de.sybig.oba.server.OntologyHandler;
 import de.sybig.oba.server.OntologyResource;
 import java.lang.reflect.Method;
 import java.net.URL;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
@@ -147,7 +148,7 @@ public class TriboliumFunctionsTest {
         assertFalse("getMixedExamples should not contain any generic classes", labels.removeAll(getGenericExamples()));
     }
 
-    // --- serach
+    // --- search
     /**
      * SearchInGeneric should find generic classes.
      */
@@ -175,7 +176,70 @@ public class TriboliumFunctionsTest {
         assertEquals("Mixed class should be not found with searchInGeneric", 0, hits.size());
     }
 
+     /**
+     * SearchInGenericAndMixed should find generic classes.
+     */
+    @Test
+    public void searchGenericInGenericAndMixedTest() {
+        List<ObaClass> hits = testClass.searchInGenericAndMixed("leg");
+        assertEquals("Generic class should be found with searchInGenericAndMixed", 1, hits.size());
+    }
+
+    /**
+     * SearchInGenericAndMixed should not find concrete classes.
+     */
+    @Test
+    public void searchConcreteInGenericAndMixedTest() {
+        List<ObaClass> hits = testClass.searchInGenericAndMixed("pupal_leg");
+        assertEquals("Concrete class should not be found with searchInGenericAndMixed", 0, hits.size());
+    }
+
+    /**
+     * SearchInGenericAndMixed should not find mixed classes.
+     */
+    @Test
+    public void searchMixedInGenericTAndMixedTest() {
+        List<ObaClass> hits = testClass.searchInGenericAndMixed("femoral_brush");
+        assertEquals("Mixed class should be found with searchInGenericAndMixed", 1, hits.size());
+    }
+
+     /**
+     * SearchInConcrete should not find generic classes.
+     */
+    @Test
+    public void searchGenericInConcreteTest() {
+        List<ObaClass> hits = testClass.searchInConcrete("leg");
+        //pupal_leg is found
+        assertEquals("Generic class should not be found with searchInConcrete", 1, hits.size());
+        Set<String> labels = getLabels(hits);
+        assertTrue("All classes found in searchInConrete are concrete", getConcreteExamples().containsAll(labels));
+    }
+
+    /**
+     * SearchInConcrete should  find concrete classes.
+     */
+    @Test
+    public void searchConcreteInConcreteTest() {
+        List<ObaClass> hits = testClass.searchInConcrete("pupal_leg");
+        assertEquals("Concrete class should  be found with searchInConcrete", 1, hits.size());
+    }
+
+    /**
+     * SearchInConcrete should not find mixed classes.
+     */
+    @Test
+    @Ignore
+    public void searchMixedInConcreteTest() {
+        List<ObaClass> hits = testClass.searchInConcrete("femoral_brush");
+               System.out.println(" --- " + getLabels(hits));
+        assertEquals("Mixed class should be found with searchInConcrete", 0, hits.size());
+    }
     /// --- helper functions
+
+    /**
+     * Generates a simple properties object for the test ontology.
+     * @return a property config for the test ontology.
+     */
     private static Properties getOntologyProperties() {
         Properties p = new Properties();
         p.setProperty("indexAnnotations", "label");
@@ -190,7 +254,7 @@ public class TriboliumFunctionsTest {
      * @param classes The set of classes to get the IDs for.
      * @return A set of IDs of the input classes.
      */
-    private Set<String> getLabels(Set<ObaClass> classes) {
+    private Set<String> getLabels(Collection<ObaClass> classes) {
         Set<String> labels = new HashSet<String>();
         for (ObaClass cls : classes) {
             labels.add(cls.toString());

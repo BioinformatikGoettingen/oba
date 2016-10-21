@@ -64,8 +64,9 @@ public class TriboliumFunctions extends OntologyFunctions {
                 .append("<dt>/devStages</dt><dd>Get all developemental stages, including sub stages like 'L1'</dd>")
                 .append("<dt>/genericClasses</dt><dd>Get all generic classes; generic classes are biological concepts not related to a developemental stage.</dd>")
                 .append("<dt>/concreteClasses</dt><dd>Get all concrete classes; concrete classes are dissectible morphological structures and linkded to a developmental stage. Mixed classes are also in te set of generic classes. </dd>")
-                .append("<dt>/mixedClasses</dt><dd>Get all mixed classes. Mixed classes are morphological structures only present in a singel developmental stage. Mixed classes are also concrete classes.</dd>") //                .append("<dt></dt><dd></dd>")
-                ;
+                .append("<dt>/mixedClasses</dt><dd>Get all mixed classes. Mixed classes are morphological structures only present in a singel developmental stage. Mixed classes are also concrete classes.</dd>")
+                .append("<dt>/searchInGeneric/{pattern}</dt><dd>Searches a pattern in the index fields of only the generic classes.</dd>")
+                .append("<dt>/searchInGenericAndMixed/{pattern}</dt><dd>Searches a pattern in the index fields of only the generic and mixed classes, not in the concrete ones.</dd>");
         return out.toString();
     }
 
@@ -259,10 +260,11 @@ public class TriboliumFunctions extends OntologyFunctions {
     @GET
     @Path("/searchInGenericAndMixed/{pattern}")
     @Produces(ALL_TYPES)
-    //TODO compare with searchInGeneric
+
     public List<ObaClass> searchInGenericAndMixed(@PathParam("pattern") String searchPattern) {
         Set<ObaClass> toRemove = new HashSet<ObaClass>();
         toRemove.addAll(getConcreteClasses());
+        //mixed classes are also concrete classes, so remove them from removal
         toRemove.removeAll(getMixedClasses());
         // In the owl representation of the OBO ontology spaces are replace by '_'
         String usedSearchPattern = searchPattern.replaceAll("_", " ");
