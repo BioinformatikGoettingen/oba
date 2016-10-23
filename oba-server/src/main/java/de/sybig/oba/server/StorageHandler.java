@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 import com.sun.jersey.api.json.JSONJAXBContext;
 import com.sun.jersey.api.json.JSONUnmarshaller;
 import java.io.BufferedReader;
-
+import javax.ws.rs.core.Response;
 
 /**
  * Subresource to handle the storage and retrieval of list with ontology
@@ -47,14 +47,14 @@ public class StorageHandler {
     private static final Logger logger = LoggerFactory.getLogger(StorageHandler.class.toString());
     private static String rootDir;
 
-
     /**
      * Accepts a list in plain text format. The format is one class per line
      * with the full name of the class i.e. http://namespace#classname. If a
      * list was already saved under the same name in this partition the old list
      * is overwritten.
      *
-     * <p>Possible http codes are <ul> <li>201 if the list could be saved.</li>
+     * <p>
+     * Possible http codes are <ul> <li>201 if the list could be saved.</li>
      * <li>413 if the list exceeds the limit of 20kb</li> <li>500 for any other
      * error</li> </ul></p>
      *
@@ -252,7 +252,7 @@ public class StorageHandler {
             File f = new File(new File(getRootDir(), space), name);
             FileInputStream is = new FileInputStream(f);
             JAXBContext ctx = JAXBContext.newInstance(JsonClsList.class);
-            m = JSONJAXBContext.getJSONUnmarshaller(ctx.createUnmarshaller(),ctx);
+            m = JSONJAXBContext.getJSONUnmarshaller(ctx.createUnmarshaller(), ctx);
             JsonClsList<JsonCls> list = m.unmarshalFromJSON(is,
                     JsonClsList.class);
             OntologyHandler oh = OntologyHandler.getInstance();
@@ -279,8 +279,14 @@ public class StorageHandler {
         return null;
     }
 
+    /**
+     * 
+     * @param space
+     * @param name
+     * @return
+     */
     private Set<ObaClass> getStoredListFromText(String space, String name) {
-        HashSet<ObaClass> out = new HashSet<ObaClass>();
+        Set<ObaClass> out = new HashSet<>();
         File f = new File(new File(getRootDir(), space), name);
         try {
             OntologyHandler oh = OntologyHandler.getInstance();
@@ -294,7 +300,7 @@ public class StorageHandler {
                 ObaClass c = oh.getClass(splitLine[1], splitLine[0]);
                 if (c != null) {
                     out.add(c);
-                }else{
+                } else {
                     logger.warn("could not get class for stored line {}", line);
                 }
             }
@@ -312,11 +318,17 @@ public class StorageHandler {
         return out;
     }
 
+    /**
+     * Generates a random ID with the given length containing, containing
+     * numbers ans lowercase letters.
+     *
+     * @param length The length of the random ID
+     * @return an ID of lowercase letters and numbers.
+     */
     private String generateId(int length) {
-        StringBuffer id = new StringBuffer();
+        StringBuilder id = new StringBuilder();
         Random rand = new Random();
         for (int i = 0; i < length; i++) {
-
             id.append((char) (rand.nextBoolean() ? rand.nextInt(9) + 48 : rand.nextInt(25) + 97));
         }
         return id.toString();
@@ -326,9 +338,9 @@ public class StorageHandler {
      * Saves the input stream in a file with the given name in the given
      * partition (directory).<br />
      *
-     * @param partition
-     * @param name
-     * @param is
+     * @param partition The directoy to store the data.
+     * @param name The name of the file for the data.
+     * @param is The stream with the data.
      * @throws WebApplicationException 413 if the file exceeds 200kb
      * @throws WebApplicationException 500 for any other IO-exception
      */
@@ -342,30 +354,38 @@ public class StorageHandler {
                 dir.mkdir();
             }
             File file = new File(dir, name);
-            FileOutputStream os = new FileOutputStream(file);
-            byte buf[] = new byte[1024];
-            int len;
-            int kb = 0;
-            while ((len = is.read(buf)) > 0) {
-                kb++;
-                if (kb > maxUploadSize) {
-                    logger.warn(
-                            "The uploaded file {} in space {}, exceeds the limit of "
-                            + maxUploadSize + "kb", name, partition);
-                    throw new WebApplicationException(413);
+            try (FileOutputStream os = new FileOutputStream(file)) {
+                byte buf[] = new byte[1024];
+                int len;
+                int kb = 0;
+                while ((len = is.read(buf)) > 0) {
+                    kb++;
+                    if (kb > maxUploadSize) {
+                        logger.warn(
+                                "The uploaded file {} in space {}, exceeds the limit of "
+                                + maxUploadSize + "kb", name, partition);
+                        throw new WebApplicationException(413);
+                    }
+                    os.write(buf, 0, len);
                 }
-                os.write(buf, 0, len);
             }
-            os.close();
             is.close();
 
         } catch (IOException e) {
             logger.warn("could not save list file {} in space {}", name,
                     partition);
-            throw new WebApplicationException(500);
+            throw new WebApplicationException(e.getMessage(), Response.Status.INTERNAL_SERVER_ERROR);
         }
     }
 
+    /**
+     * Gets the directory where the OBA server stores data. The directory can be
+     * set in a property file for the serveror is set as a subdirectory of the
+     * root directory of the OBA serer. If this directory is not writable, the
+     * systems' temp directory is used.
+     *
+     * @return The storage directory of the OBA server.
+     */
     private String getRootDir() {
         if (rootDir == null) {
             Properties props = RestServer.getProperties();

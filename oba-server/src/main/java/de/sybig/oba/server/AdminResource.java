@@ -54,7 +54,7 @@ public class AdminResource {
         StringBuilder out = new StringBuilder();
         Set<String> names = oh.getOntologyNames();
         for (String n : names) {
-            out.append(n).append("\n");
+            out.append(n).append('\n');
         }
         return out.toString();
     }
@@ -143,7 +143,7 @@ public class AdminResource {
             oh.resetFunctionClass(function);
             return "ok";
         } catch (IllegalArgumentException ex) {
-            throw new WebApplicationException(Response.Status.BAD_REQUEST);
+            throw new WebApplicationException(ex.getMessage(), Response.Status.BAD_REQUEST);
         }
 
     }
@@ -165,9 +165,9 @@ public class AdminResource {
         StringBuilder sb = new StringBuilder();
         for (Object key : props.keySet()) {
             sb.append(key)
-                    .append("=")
+                    .append('=')
                     .append(props.get(key))
-                    .append("\n");
+                    .append('\n');
         }
         return sb.toString();
     }
