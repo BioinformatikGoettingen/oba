@@ -247,5 +247,6 @@
         <module>oba-cytomer</module>
         <module>oba-tribolium</module>
         <module>oba-go</module>
+	<module>oba-alignment</module>
     </modules>
 </project>
