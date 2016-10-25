@@ -352,6 +352,7 @@ public class RestServer {
         String className = (String) entries.get(loaderName);
         OntologyLoader instance = (OntologyLoader) loader.loadClass(className).newInstance();
         OntologyHandler.getInstance().addOntologyLoader(name, instance);
+        logger.info("registered class {} for loading ontologies", instance.getClass());
     }
 
     /**

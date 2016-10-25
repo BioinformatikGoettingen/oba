@@ -10,7 +10,7 @@
     <artifactId>oba-alignment</artifactId>
     <version>1.4-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>OBA alignment</name>
+    <name>oba alignment</name>
 
     <build>
         <plugins>
@@ -53,8 +53,8 @@
                             <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                         </manifest>
                         <manifestEntries>
-                            <function-path-name>go</function-path-name>
-                            <function-main-class>de.sybig.oba.server.go.GoFunctions</function-main-class>
+                            <plugin-name>alignment</plugin-name>
+                            <ontology-loader-class>de.sybig.oba.server.alignment.VirtualOntology</ontology-loader-class>
                         </manifestEntries>
                     </archive>
                 </configuration>
@@ -64,13 +64,11 @@
     </build>
 
     <dependencies>
-    
         <dependency>
             <groupId>de.sybig</groupId>
             <artifactId>oba-common</artifactId>
             <version>1.4-SNAPSHOT</version>
         </dependency>
-       
         <dependency>
             <groupId>de.sybig</groupId>
             <artifactId>oba-server</artifactId>
