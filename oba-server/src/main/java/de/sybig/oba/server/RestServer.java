@@ -68,8 +68,8 @@ public class RestServer {
         rc.property("jersey.config.server.tracing.type", "ALL");
         rc.property("jersey.config.server.tracing.threshold", "VERBOSE");
         rc.property("com.sun.jersey.config.feature.Trace", "true");
-        String host = "0.0.0.0";
 
+        String host = props.getProperty("bind_address", "0.0.0.0");
         String port = props.getProperty("port", "9998");
         String base = props.getProperty("base", "/");
         String baseUri = String.format("http://%s:%s%s", host, port, base);

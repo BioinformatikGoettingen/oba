@@ -143,9 +143,7 @@ public class StorageHandler {
     @Produces("text/plain, text/html, application/json")
     public Set<ObaClass> getStorage(@PathParam("partition") String partition,
             @PathParam("name") String name) {
-        StorageDatabase db = StorageDatabase.getInstance();
-        db.logGet(partition, name);
-        String mimetype = db.getMimetype(partition, name);
+        String mimetype = getMimeTypeForDataFile(partition, name);
         if (mimetype == null) {
             logger.info("could not retrun storage list, because the MIME type is unknown.");
             throw new WebApplicationException(404);
@@ -227,6 +225,13 @@ public class StorageHandler {
         return true;
     }
 
+    String getMimeTypeForDataFile(String partition, String name) {
+        StorageDatabase db = StorageDatabase.getInstance();
+        db.logGet(partition, name);
+        String mimetype = db.getMimetype(partition, name);
+        return mimetype;
+    }
+
     File getStorageFile(String space, String name) {
         File dir = new File(rootDir, space);
         File file = new File(dir, name);
@@ -280,7 +285,7 @@ public class StorageHandler {
     }
 
     /**
-     * 
+     *
      * @param space
      * @param name
      * @return
@@ -386,7 +391,7 @@ public class StorageHandler {
      *
      * @return The storage directory of the OBA server.
      */
-    private String getRootDir() {
+    String getRootDir() {
         if (rootDir == null) {
             Properties props = RestServer.getProperties();
             rootDir = props.getProperty("storage_root");
@@ -405,4 +410,5 @@ public class StorageHandler {
         }
         return rootDir;
     }
+
 }

@@ -197,17 +197,20 @@ public final class OntologyHandler {
             }
         }
     }
+
     /**
      * Adds an ontoloyg to the map of available ontologies. The method is only
-     * used for testing, for other cases uses {@link #addOntology(java.util.Properties)}
-     * which stores also the properties for an ontology.
+     * used for testing, for other cases uses
+     * {@link #addOntology(java.util.Properties)} which stores also the
+     * properties for an ontology.
      *
      * @param name The name of the ontolgy
      * @param or The ontology resource to register.
      */
-    public void addOntology(String name, OntologyResource or){
+    public void addOntology(String name, OntologyResource or) {
         ontologyMap.put(name, or);
     }
+
     /**
      * Adds a single ontology defined in its own property file.
      *
@@ -220,8 +223,8 @@ public final class OntologyHandler {
             po = buildOntologyWrapper(p);
         } else {
             OntologyLoader ontologyLoader = getOntologyLoader(p.getProperty("load_by_plugin"));
-            if (ontologyLoader == null){
-                logger.warn("The plugin {} to load the ontology does not provide an ontology loader",p.getProperty("load_by_plugin"));
+            if (ontologyLoader == null) {
+                logger.warn("The plugin {} to load the ontology does not provide an ontology loader", p.getProperty("load_by_plugin"));
                 return;
             }
             po = ontologyLoader.loadOntology(p);
@@ -339,7 +342,7 @@ public final class OntologyHandler {
         ontologyLoaderMap.put(name, instance);
     }
 
-    public OntologyLoader getOntologyLoader(String name){
+    public OntologyLoader getOntologyLoader(String name) {
         return ontologyLoaderMap.get(name);
     }
 
@@ -435,6 +438,16 @@ public final class OntologyHandler {
         return null;
     }
 
+    /**
+     * Gets a ontology class with the given name in the given namespace from any
+     * loaded ontology. Ontologies that are registered but not loaded yet (lazy
+     * loading) are not considered. If no matching class is found,
+     * <code>null</code> is returned.
+     *
+     * @param name The name of the ontology class.
+     * @param ns The namespace of the class.
+     * @return The ontology class or <code>null</code>
+     */
     public ObaClass getClass(String name, String ns) {
         for (String key : ontologyMap.keySet()) {
             OntologyResource or = ontologyMap.get(key);

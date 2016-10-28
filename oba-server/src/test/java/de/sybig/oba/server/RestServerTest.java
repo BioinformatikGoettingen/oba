@@ -6,7 +6,6 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static org.mockito.Mockito.*;
-import uk.org.lidalia.slf4jtest.LoggingEvent;
 
 import uk.org.lidalia.slf4jtest.TestLogger;
 import uk.org.lidalia.slf4jtest.TestLoggerFactory;

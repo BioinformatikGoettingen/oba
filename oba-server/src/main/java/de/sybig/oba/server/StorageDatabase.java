@@ -15,154 +15,155 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class StorageDatabase {
-	private static Logger logger = LoggerFactory
-			.getLogger(StorageDatabase.class);
-	private static StorageDatabase instance;
-	private Connection connection;
-	private PreparedStatement ps0;
-	private PreparedStatement ps1;
-	private PreparedStatement ps2;
-	private PreparedStatement ps3;
 
-	private StorageDatabase() {
-		// singleton
-	}
+    private static Logger logger = LoggerFactory
+            .getLogger(StorageDatabase.class);
+    private static StorageDatabase instance;
+    private Connection connection;
+    private PreparedStatement ps0;
+    private PreparedStatement ps1;
+    private PreparedStatement ps2;
+    private PreparedStatement ps3;
 
-	public static StorageDatabase getInstance() {
-		if (instance == null) {
-			instance = new StorageDatabase();
-			try {
-				instance.getConnection();
-			} catch (ClassNotFoundException e) {
-				logger.error("could not load driver for the database");
-				e.printStackTrace();
-				throw new WebApplicationException(500);
-			} catch (SQLException e) {
-				logger.error("could not init connection to the database because of {} "
-						+ e.getMessage());
-				e.printStackTrace();
-				throw new WebApplicationException(500);
-			}
-		}
-		return instance;
-	}
+    private StorageDatabase() {
+        // singleton
+    }
 
-	public void logPut(String space, String name, String mimetype) {
+    public static StorageDatabase getInstance() {
+        if (instance == null) {
+            instance = new StorageDatabase();
+            try {
+                instance.getConnection();
+            } catch (ClassNotFoundException e) {
+                logger.error("could not load driver for the database");
+                e.printStackTrace();
+                throw new WebApplicationException(500);
+            } catch (SQLException e) {
+                logger.error("could not init connection to the database because of {} "
+                        + e.getMessage());
+                e.printStackTrace();
+                throw new WebApplicationException(500);
+            }
+        }
+        return instance;
+    }
 
-		try {
-			ps0.setString(1, space);
-			ps0.setString(2, name);
-			ps0.execute();
-			ps1.setString(1, space);
-			ps1.setString(2, name);
-			ps1.setString(3, mimetype);
-			ps1.execute();
-		} catch (SQLException e) {
-			logger.error(
-					"could not log PUT command to partition {} and name {} ",
-					space, name);
-			logger.error("SQL error {}", e.getMessage());
-			e.printStackTrace();
-			throw new WebApplicationException(500);
-		}
-	}
+    public void logPut(String space, String name, String mimetype) {
 
-	public void logGet(String space, String name) {
-		try {
-			ps2.setString(1, space);
-			ps2.setString(2, name);
-			ps2.execute();
-		} catch (SQLException e) {
-			logger.warn(
-					"could not log GET command to partition {} and name {} ",
-					space, name);
-			logger.warn("SQL error {}", e.getMessage());
-			e.printStackTrace();
-		}
-	}
+        try {
+            ps0.setString(1, space);
+            ps0.setString(2, name);
+            ps0.execute();
+            ps1.setString(1, space);
+            ps1.setString(2, name);
+            ps1.setString(3, mimetype);
+            ps1.execute();
+        } catch (SQLException e) {
+            logger.error(
+                    "could not log PUT command to partition {} and name {} ",
+                    space, name);
+            logger.error("SQL error {}", e.getMessage());
+            e.printStackTrace();
+            throw new WebApplicationException(500);
+        }
+    }
 
-	/**
-	 * Gets the mime type as it is stored in the database. During a PUT command
-	 * the mime type of the http header is stored in the database for the
-	 * partition / name combination. If no record for the partition / name
-	 * combination is found, <code>null</code> is returned, but should not
-	 * happen.
-	 * 
-	 * @param partition
-	 *            The name of the partition the list is stored in.
-	 * @param name
-	 *            The name of the list to get the mime type of.
-	 * @return The mime type or <code>null</code>.
-	 */
-	public String getMimetype(String partition, String name) {
-		try {
-			ps3.setString(1, partition);
-			ps3.setString(2, name);
-			ResultSet rs = ps3.executeQuery();
-			if (rs.next()) {
-				String mimetype = rs.getString("mimetype");
-				return mimetype;
-			} else {
-				logger.info(
-						"could not get mime type for {}/{}, no entry found in the db",
-						partition, name);
-				return null;
-			}
+    public void logGet(String space, String name) {
+        try {
+            ps2.setString(1, space);
+            ps2.setString(2, name);
+            ps2.execute();
+        } catch (SQLException e) {
+            logger.warn(
+                    "could not log GET command to partition {} and name {} ",
+                    space, name);
+            logger.warn("SQL error {}", e.getMessage());
+            e.printStackTrace();
+        }
+    }
 
-		} catch (SQLException e) {
-			logger.error(
-					"could not get mime type for partition {} and name {} ",
-					partition, name);
-			logger.error("SQL error {}", e.getMessage());
-			e.printStackTrace();
-			throw new WebApplicationException(500);
-		}
-	}
+    /**
+     * Gets the mime type as it is stored in the database. During a PUT command
+     * the mime type of the http header is stored in the database for the
+     * partition / name combination. If no record for the partition / name
+     * combination is found, <code>null</code> is returned, but should not
+     * happen.
+     *
+     * @param partition The name of the partition the list is stored in.
+     * @param name The name of the list to get the mime type of.
+     * @return The mime type or <code>null</code>.
+     */
+    public String getMimetype(String partition, String name) {
+        try {
+            ps3.setString(1, partition);
+            ps3.setString(2, name);
+            ResultSet rs = ps3.executeQuery();
+            if (rs.next()) {
+                String mimetype = rs.getString("mimetype");
+                return mimetype;
+            } else {
+                logger.info(
+                        "could not get mime type for {}/{}, no entry found in the db",
+                        partition, name);
+                return null;
+            }
 
-	private Connection getConnection() throws ClassNotFoundException,
-			SQLException {
-		if (connection == null) {
-			Properties props = RestServer.getProperties();
+        } catch (SQLException e) {
+            logger.error(
+                    "could not get mime type for partition {} and name {} ",
+                    partition, name);
+            logger.error("SQL error {}", e.getMessage());
+            e.printStackTrace();
+            throw new WebApplicationException(500);
+        }
+    }
 
-			String dbDir = props.getProperty("storage_root",
-					System.getProperty("java.io.tmpdir", "/tmp"))
-					+ "/db";
-			Class.forName("org.hsqldb.jdbcDriver");
-			connection = DriverManager.getConnection("jdbc:hsqldb:file:"
-					+ dbDir, "sa", "");
-			DatabaseMetaData dbm = connection.getMetaData();
-			ResultSet rs = dbm.getTables(null, null, "ENTRY", null);
-			if (!rs.next()) {
-				initDB(connection);
-			}
-			ps0 = connection
-					.prepareStatement("DELETE FROM entry WHERE space = ? AND name = ? ");
-			ps1 = connection
-					.prepareStatement("INSERT INTO entry (space, name, mimetype, created, counter) values (?, ?, ?, NOW(), 0)");
-			ps2 = connection
-					.prepareStatement("UPDATE entry set counter = counter +1, last = NOW() WHERE space = ? AND name = ?");
-			ps3 = connection
-					.prepareStatement("SELECT mimetype FROM entry WHERE space = ? AND name = ?");
-		}
-		return connection;
-	}
+    private Connection getConnection() throws ClassNotFoundException,
+            SQLException {
+        if (connection == null) {
+            Properties props = RestServer.getProperties();
 
-	private void initDB(Connection c) throws SQLException {
-		String c1 = "CREATE TABLE entry (space varchar(12), name varchar(12), mimetype varchar(12), created TIMESTAMP, last TIMESTAMP, counter integer)";
-		Statement stmt = c.createStatement();
-		stmt.execute(c1);
-	}
+            String dbDir = props.getProperty("storage_root",
+                    System.getProperty("java.io.tmpdir", "/tmp"))
+                    + "/db";
+            Class.forName("org.hsqldb.jdbcDriver");
+            connection = DriverManager.getConnection("jdbc:hsqldb:file:"
+                    + dbDir, "sa", "");
+            DatabaseMetaData dbm = connection.getMetaData();
+            ResultSet rs = dbm.getTables(null, null, "ENTRY", null);
+            if (!rs.next()) {
+                initDB(connection);
+            }
+            ps0 = connection
+                    .prepareStatement("DELETE FROM entry WHERE space = ? AND name = ? ");
+            ps1 = connection
+                    .prepareStatement("INSERT INTO entry (space, name, mimetype, created, counter) values (?, ?, ?, NOW(), 0)");
+            ps2 = connection
+                    .prepareStatement("UPDATE entry set counter = counter +1, last = NOW() WHERE space = ? AND name = ?");
+            ps3 = connection
+                    .prepareStatement("SELECT mimetype FROM entry WHERE space = ? AND name = ?");
+        }
+        return connection;
+    }
 
-	@Override
-	public void finalize() {
-		try {
-			System.out.println("cleaning up");
-			if (connection != null) {
-				connection.createStatement().execute("SHUTDOWN");
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
+    private void initDB(Connection c) throws SQLException {
+        String c1 = "CREATE TABLE entry (space varchar(12), name varchar(12), mimetype varchar(12), created TIMESTAMP, last TIMESTAMP, counter integer)";
+        Statement stmt = c.createStatement();
+        stmt.execute(c1);
+    }
 
+    @Override
+    public void finalize() throws Throwable {
+        try {
+            System.out.println("cleaning up");
+            if (connection != null) {
+                connection.createStatement().execute("SHUTDOWN");
+            }
+        } catch (SQLException e) {
+            logger.error("Error during finalization of the storage handler", e);
+        } finally {
+            super.finalize();
+        }
+    }
+    
 }
