@@ -36,8 +36,7 @@ public class CytomerFunctions extends OntologyFunctions implements
             cytomerProps.load(getClass().getResourceAsStream(
                     "/cytomer.properties"));
         } catch (IOException e) {
-            log.error("could not load properties for cytomer function class");
-            e.printStackTrace();
+            log.error("could not load properties for cytomer function class", e);
         }
     }
     @Override

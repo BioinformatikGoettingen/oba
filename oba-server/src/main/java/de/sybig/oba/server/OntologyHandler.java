@@ -97,7 +97,7 @@ public final class OntologyHandler {
                 onto.getOntology().init();
             } catch (OWLOntologyCreationException e) {
                 logger.error("could not load ontology {}, due to {}", name,
-                        e.getMessage());
+                        e);
             }
             ontologyMap.put(name, onto);
             preparedOntologyMap.remove(name);
@@ -239,8 +239,8 @@ public final class OntologyHandler {
                 po.init();
                 ontologyMap.put(name, onto);
             } catch (OWLOntologyCreationException e) {
-                logger.error("could not load ontology {}, due to {}",
-                        name, e.getMessage());
+                logger.warn("Could not load ontology {}, due to {}",
+                        name, e);
                 return;
             }
         }

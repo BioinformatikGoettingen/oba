@@ -53,8 +53,8 @@ public class ObaOntology {
     private RAMDirectory idx;
     private OWLDataFactory dataFactory;
     private OWLOntologyManager manager;
-    private Set<ObaClass> orphanChildren = new HashSet<ObaClass>();
-    private Set<ObaClass> obsoleteClasses = new HashSet<ObaClass>();
+    private final Set<ObaClass> orphanChildren = new HashSet<>();
+    private final Set<ObaClass> obsoleteClasses = new HashSet<>();
     private final Logger logger = LoggerFactory.getLogger(ObaOntology.class);
     private List<String> indexAnnotations;
     private final String OBSOLTE = "is_obsolete";
@@ -78,6 +78,7 @@ public class ObaOntology {
 
     public synchronized void init() throws OWLOntologyCreationException {
         if (iri == null) {
+            logger.warn("The IRI must not be null when initiation an ontology");
             throw new OWLOntologyCreationException();
         }
         if (onto != null) {

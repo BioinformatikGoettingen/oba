@@ -17,7 +17,6 @@ import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import java.util.logging.Level;
 import javax.validation.constraints.Null;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
@@ -52,13 +51,12 @@ public class RestServer {
             OntologyHandler oh = OntologyHandler.getInstance();
             oh.setGeneralProperties(props);
             loadPlugins();
-            loadOntologies(props);
+            loadOntologies();
             startServer();
-        } catch (Exception ex) {
+        } catch (IOException | IllegalArgumentException ex) {
             logger.error(
-                    "There was a fatal error while running the server, will quit now\n {}",
-                    ex.toString());
-            ex.printStackTrace();
+                    "There was a fatal error while running the server, will quit now\n",
+                    ex);
             System.exit(1);
         }
     }
@@ -69,7 +67,7 @@ public class RestServer {
         rc.property("jersey.config.server.tracing.threshold", "VERBOSE");
         rc.property("com.sun.jersey.config.feature.Trace", "true");
 
-        String host = props.getProperty("bind_address", "0.0.0.0");
+        String host = props.getProperty("bind_address");
         String port = props.getProperty("port", "9998");
         String base = props.getProperty("base", "/");
         String baseUri = String.format("http://%s:%s%s", host, port, base);
@@ -103,16 +101,10 @@ public class RestServer {
     private static Properties loadServerProperties(String[] args, Object o)
             throws IOException {
         Properties internalProps = new Properties();
-        InputStream is = null;
-        try {
-            is = o.getClass().getResourceAsStream("/oba.properties");
+        try (InputStream is = o.getClass().getResourceAsStream("/oba.properties")) {
             internalProps.load(is);
-        } catch (Exception ex) {
+        } catch (IOException ex) {
             logger.error("could not load default properties " + ex);
-        } finally {
-            if (is != null) {
-                is.close();
-            }
         }
         if (args.length == 1) {
             File externalPropFile = new File(args[0]);
@@ -122,9 +114,9 @@ public class RestServer {
                         args[0]);
             }
             Properties externalProps = new Properties(internalProps);
-            FileReader fr = new FileReader(externalPropFile);
-            externalProps.load(fr);
-            fr.close();
+            try (FileReader fr = new FileReader(externalPropFile)) {
+                externalProps.load(fr);
+            }
             logger.info("reading global properties from external file {}",
                     args[0]);
             return externalProps;
@@ -132,20 +124,34 @@ public class RestServer {
         return internalProps;
     }
 
-    private void loadOntologies(final Properties properties) {
-        Map<String, Properties> availableOntologies = getIdentifierFromOntologyProperties(properties);
+    /**
+     * Load the ontologies during startup.
+     *
+     * @param properties
+     */
+    private void loadOntologies() {
+        Map<String, Properties> availableOntologies = getIdentifierFromOntologyProperties();
         for (String id : availableOntologies.keySet()) {
             loadOntology(id, availableOntologies);
         }
     }
-
+    /**
+     * Loads an ontology, if necessary including its dependencies.
+     * @param id The identifier of the ontology to load.
+     * @param availableOntologies The ontologies available for the server.
+     */
     private void loadOntology(String id, Map<String, Properties> availableOntologies) {
         Properties p = availableOntologies.get(id);
-        loadAncestorOntologies(id, availableOntologies);
+        loadDependenciesOntologies(id, availableOntologies);
         OntologyHandler.getInstance().addOntology(p);
     }
 
-    private void loadAncestorOntologies(String id, Map<String, Properties> availableOntologies) {
+    /**
+     * Load the dependencies for an ontology.
+     * @param id The identifier of the depending ontology.
+     * @param availableOntologies All available ontologies.
+     */
+    private void loadDependenciesOntologies(String id, Map<String, Properties> availableOntologies) {
         Properties p = availableOntologies.get(id);
         if (p.containsKey("depends_on")) {
             String[] previousOntologies = p.getProperty("depends_on").split(";");
@@ -157,16 +163,21 @@ public class RestServer {
                     logger.error("the depending ontology {} for {} was not loaded", previousOntology, id);
                     //TODO stop loading of depending ontologies
                 }
-                loadOntology(id, availableOntologies);
+                loadOntology(previousOntology, availableOntologies);
             }
         }
     }
 
-    private Map<String, Properties> getIdentifierFromOntologyProperties(final Properties properties) {
+    /**
+     * Gets for all ontologies in the ontology directory the identifier and the
+     * properties. If no ontologies' property files are found, an empty map is
+     * returned, never <code>null</code>
+     *
+     * @return A map of all identifier and ontology properties.
+     */
+    private Map<String, Properties> getIdentifierFromOntologyProperties() {
         Map<String, Properties> idPropertyMap = new HashMap<>();
-        List que = new LinkedList();
-
-        File ontoDir = getOntologyDir(properties);
+        File ontoDir = getOntologyDir(props);
 
         logger.debug("scanning property files for ontologies from {}", ontoDir);
         File[] files = ontoDir.listFiles();
@@ -176,14 +187,12 @@ public class RestServer {
             }
             Properties p = new Properties();
 
-            try {
-                FileReader fr = new FileReader(f);
+            try (FileReader fr = new FileReader(f)) {
                 p.load(fr);
-                fr.close();
             } catch (FileNotFoundException ex) {
-                java.util.logging.Logger.getLogger(RestServer.class.getName()).log(Level.SEVERE, null, ex);
+                logger.warn("Could not get the property file for the ontology", ex);
             } catch (IOException ex) {
-                java.util.logging.Logger.getLogger(RestServer.class.getName()).log(Level.SEVERE, null, ex);
+                logger.warn("Could not read the property file for the ontoloyg", ex);
             }
 
             if (!p.containsKey("identifier")) {
@@ -232,18 +241,27 @@ public class RestServer {
         String filename = null;
         try {
             registerFunctionClassesToOntologyHandler("basic", "de.sybig.oba.server.OntologyFunctions");
+            System.out.println("plugn files " + pluginDir.listFiles());
             for (File f : pluginDir.listFiles()) {
                 filename = f.getAbsolutePath();
-
                 if (f.isFile() && f.getName().endsWith("jar")) {
 
                     Manifest manifest;
+                    JarFile jar = null;
                     try {
-                        JarFile jar = new JarFile(f);
+                        jar = new JarFile(f);
                         manifest = jar.getManifest();
                     } catch (IOException e) {
                         logger.warn("File {} is not a valid jar file. The file is ignored", f);
                         continue;
+                    } finally {
+                        try {
+                            if (jar != null) {
+                                jar.close();
+                            }
+                        } catch (IOException ex) {
+                            logger.error("Could not close jar file {}", f, ex);
+                        }
                     }
                     Attributes entries = manifest.getMainAttributes();
                     String name = getIdentifierFromPlugin(entries);
@@ -255,17 +273,17 @@ public class RestServer {
                     action = "semantic function";
                     loadFunctionClassFromPlugin(loader, entries, name);
                     action = "jersey providers";
-                    loadProvidersFromPlugin(loader, entries, name);
+                    loadProvidersFromPlugin(loader, entries);
                     action = "ontology loaders";
                     loadOntologyLoaderFromPlugin(loader, entries, name);
                 }
             }
         } catch (ClassNotFoundException e) {
-            logger.error("While loading the {} the class was not find in the plugin {}.", action, filename);
+            logger.error("While loading the {} the class was not find in the plugin {} because {}.", action, filename, e.getMessage());
         } catch (InstantiationException | IllegalAccessException e) {
-            logger.error("While loading the {} the class could not be instantiated in the plugin {}." + e, action, filename);
+            logger.error("While loading the {} the class could not be instantiated in the plugin {} because {}.", action, filename, e.getMessage());
         } catch (MalformedURLException e) {
-            logger.error("While loading the {} the manifest entry was not valid in plugin {}", action, filename);
+            logger.error("While loading the {} the manifest entry was not valid in plugin {} because {}.", action, filename, e.getMessage());
         }
 
     }
@@ -329,11 +347,11 @@ public class RestServer {
      * @throws InstantiationException
      * @throws IllegalAccessException
      */
-    private void loadProvidersFromPlugin(URLClassLoader loader, Attributes entries, String name) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+    private void loadProvidersFromPlugin(URLClassLoader loader, Attributes entries) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
         Attributes.Name providerClassesAttribute = new Attributes.Name("provider-classes");
         if (entries.containsKey(providerClassesAttribute)) {
 
-            String[] classes = (String[]) entries.getValue(providerClassesAttribute).split(":");
+            String[] classes = entries.getValue(providerClassesAttribute).split(":");
             for (int i = 0; i < classes.length; i++) {
                 Object marshaller = loader.loadClass(classes[i]).newInstance();
                 resourceConfig.register(marshaller);
@@ -368,7 +386,7 @@ public class RestServer {
                 getResource("/" + this.getClass().getName().
                         replaceAll("\\.", "/") + ".class").
                 toString();
-        url = url.substring(url.indexOf("/")).replaceFirst("/[^/]+\\.jar!.*$", "/");
+        url = url.substring(url.indexOf('/')).replaceFirst("/[^/]+\\.jar!.*$", "/");
         File baseDir = new File(url);
         if (!(baseDir.exists() && baseDir.isDirectory())) {
             baseDir = new File(System.getProperty("user.dir"));

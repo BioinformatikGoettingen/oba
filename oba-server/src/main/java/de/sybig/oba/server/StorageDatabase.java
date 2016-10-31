@@ -14,9 +14,14 @@ import javax.ws.rs.WebApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Class to handle the database to store the mime types.
+ *
+ * @author juergen.doenitz@bioinf.med.uni-goettingen.de
+ */
 public class StorageDatabase {
 
-    private static Logger logger = LoggerFactory
+    private static final Logger logger = LoggerFactory
             .getLogger(StorageDatabase.class);
     private static StorageDatabase instance;
     private Connection connection;
@@ -29,19 +34,22 @@ public class StorageDatabase {
         // singleton
     }
 
+    /**
+     * Get the singleton instance of the StorageHandler and inits the connection
+     * if necessary.
+     *
+     * @return The singleton instance.
+     */
     public static StorageDatabase getInstance() {
         if (instance == null) {
             instance = new StorageDatabase();
             try {
                 instance.getConnection();
             } catch (ClassNotFoundException e) {
-                logger.error("could not load driver for the database");
-                e.printStackTrace();
+                logger.error("could not load driver for the database", e);
                 throw new WebApplicationException(500);
             } catch (SQLException e) {
-                logger.error("could not init connection to the database because of {} "
-                        + e.getMessage());
-                e.printStackTrace();
+                logger.error("could not init connection to the database because of", e);
                 throw new WebApplicationException(500);
             }
         }
@@ -63,7 +71,6 @@ public class StorageDatabase {
                     "could not log PUT command to partition {} and name {} ",
                     space, name);
             logger.error("SQL error {}", e.getMessage());
-            e.printStackTrace();
             throw new WebApplicationException(500);
         }
     }
@@ -78,7 +85,6 @@ public class StorageDatabase {
                     "could not log GET command to partition {} and name {} ",
                     space, name);
             logger.warn("SQL error {}", e.getMessage());
-            e.printStackTrace();
         }
     }
 
@@ -113,8 +119,23 @@ public class StorageDatabase {
                     "could not get mime type for partition {} and name {} ",
                     partition, name);
             logger.error("SQL error {}", e.getMessage());
-            e.printStackTrace();
             throw new WebApplicationException(500);
+        }
+    }
+
+    /**
+     * Shuts the database down and sets the connection to null.
+     */
+    public void shutdown() {
+        try {
+            if (connection != null) {
+                Statement stmt = connection.createStatement();
+                stmt.execute("SHUTDOWN");
+                stmt.closeOnCompletion();
+                connection = null;
+            }
+        } catch (SQLException e) {
+            logger.error("Error during finalization of the storage handler", e);
         }
     }
 
@@ -150,20 +171,7 @@ public class StorageDatabase {
         String c1 = "CREATE TABLE entry (space varchar(12), name varchar(12), mimetype varchar(12), created TIMESTAMP, last TIMESTAMP, counter integer)";
         Statement stmt = c.createStatement();
         stmt.execute(c1);
+        stmt.closeOnCompletion();
     }
 
-    @Override
-    public void finalize() throws Throwable {
-        try {
-            System.out.println("cleaning up");
-            if (connection != null) {
-                connection.createStatement().execute("SHUTDOWN");
-            }
-        } catch (SQLException e) {
-            logger.error("Error during finalization of the storage handler", e);
-        } finally {
-            super.finalize();
-        }
-    }
-    
 }

@@ -50,19 +50,24 @@ public class StorageHandlerTest {
         Set<ObaClass> list = handler.getStorage(PARTITION, fileName);
         Assert.assertEquals("2 ontology classes should be restored from the text file", 2, list.size());
     }
+
     /**
      * Test to load all existing ontology classes from a text file. One not
-     * existing class is not loaded, no exception is thrown, no warning is logged.
+     * existing class is not loaded, no exception is thrown, no warning is
+     * logged.
      */
     @Test
     public void getStoredListWrongClassTest() {
         String fileName = "textlist2";
         StorageHandler handler = getMockedStorageHandler(fileName);
         Mockito.doCallRealMethod().when(handler).getStorage(PARTITION, fileName);
-        Set<ObaClass> list = handler.getStorage(PARTITION,fileName);
+        Set<ObaClass> list = handler.getStorage(PARTITION, fileName);
         Assert.assertEquals("One, non-existing ontology classes can not be restored from the text file", 1, list.size());
     }
 
+    /**
+     * Tests that an exception is thrown if a non-existing file is queried.
+     */
     @Test(expected = WebApplicationException.class)
     public void getStoredNotExistingListTest() {
         String fileName = "notthere";
