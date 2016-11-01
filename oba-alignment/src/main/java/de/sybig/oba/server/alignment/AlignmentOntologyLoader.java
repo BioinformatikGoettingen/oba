@@ -19,17 +19,17 @@ public class AlignmentOntologyLoader implements OntologyLoader {
     private static final Logger log = LoggerFactory.getLogger(AlignmentOntologyLoader.class);
     private static final String ONTOLOGIES = "alignment_ontologies";
     private Properties properties;
-    private OntologyResource ontoA;
-    private OntologyResource ontoB;
+
+    private AlignmentOntology ontology;
 
     public ObaOntology loadOntology(Properties p) {
         if (p == null) {
             throw new IllegalArgumentException("The properties for the alignment ontology are null");
         }
         properties = p;
+        ontology = new AlignmentOntology();
+        ontology.setOwlURI(IRI.create(properties.getProperty("alignment_IRI", "alignment")));
         loadSourceOntologies();
-        ObaOntology ontology = new ObaOntology();
-        ontology.setOwlURI(IRI.create("http://ibeetle-base.uni-goettingen.de/tron-fbbt"));
         return ontology;
     }
 
@@ -42,14 +42,16 @@ public class AlignmentOntologyLoader implements OntologyLoader {
             oh.deleteOntology(properties.getProperty("identifier"));
             return;
         }
-        ontoA = oh.getOntology(ontologies[0]);
-        ontoB = oh.getOntology(ontologies[1]);
+        OntologyResource ontoA = oh.getOntology(ontologies[0]);
+        OntologyResource ontoB = oh.getOntology(ontologies[1]);
         if (ontoA == null || ontoB == null){
             log.error("One or both of the source ontologies for the alignment "
                     + "are missing. Loaded ontologies {}, {}. Removing alignment ontology",
                     ontoA, ontoB);
              oh.deleteOntology(properties.getProperty("identifier"));
         }
+        ontology.setOntoA(ontoA);
+        ontology.setOntoB(ontoB);
     }
 
 }

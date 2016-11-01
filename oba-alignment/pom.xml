@@ -54,7 +54,7 @@
                         </manifest>
                         <manifestEntries>
                             <plugin-name>alignment</plugin-name>
-                            <ontology-loader-class>de.sybig.oba.server.alignment.VirtualOntology</ontology-loader-class>
+                            <ontology-loader-class>de.sybig.oba.server.alignment.AlignmentOntologyLoader</ontology-loader-class>
                         </manifestEntries>
                     </archive>
                 </configuration>

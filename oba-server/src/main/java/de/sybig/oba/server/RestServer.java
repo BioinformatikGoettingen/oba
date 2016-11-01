@@ -10,8 +10,6 @@ import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.jar.Attributes;
@@ -32,16 +30,22 @@ public class RestServer {
 
     private static final Logger logger = LoggerFactory.getLogger(RestServer.class);
     private static Properties props;
+    private static RestServer OBAserver;
     private ResourceConfig resourceConfig;
+    private static HttpServer server;
 
     RestServer() {
         //utility class with no public non-static methods.
     }
 
     public static void main(String[] args) throws IOException {
-        RestServer server = new RestServer();
-        props = loadServerProperties(args, server);
-        server.run();
+        OBAserver = new RestServer();
+        props = loadServerProperties(args, OBAserver);
+        OBAserver.run();
+    }
+
+    public static void shutdown() {
+        server.shutdown();
     }
 
     private void run() {
@@ -57,7 +61,7 @@ public class RestServer {
             logger.error(
                     "There was a fatal error while running the server, will quit now\n",
                     ex);
-            System.exit(1);
+            server.shutdownNow();
         }
     }
 
@@ -80,7 +84,7 @@ public class RestServer {
             IOException {
 
         String baseUri = props.getProperty("base_uri", "http://localhost:9998/");
-        HttpServer server = GrizzlyHttpServerFactory.createHttpServer(URI.create(baseUri), resourceConfig);
+        server = GrizzlyHttpServerFactory.createHttpServer(URI.create(baseUri), resourceConfig);
 
         logger.info("Started server at {}", baseUri);
     }
@@ -135,8 +139,10 @@ public class RestServer {
             loadOntology(id, availableOntologies);
         }
     }
+
     /**
      * Loads an ontology, if necessary including its dependencies.
+     *
      * @param id The identifier of the ontology to load.
      * @param availableOntologies The ontologies available for the server.
      */
@@ -148,6 +154,7 @@ public class RestServer {
 
     /**
      * Load the dependencies for an ontology.
+     *
      * @param id The identifier of the depending ontology.
      * @param availableOntologies All available ontologies.
      */
@@ -237,12 +244,18 @@ public class RestServer {
             return;
         }
 
-        String action = null;
-        String filename = null;
         try {
             registerFunctionClassesToOntologyHandler("basic", "de.sybig.oba.server.OntologyFunctions");
-            System.out.println("plugn files " + pluginDir.listFiles());
-            for (File f : pluginDir.listFiles()) {
+        } catch (ClassNotFoundException e) {
+            logger.error("Could not find the class with the basic semantic functions", e);
+        } catch (InstantiationException | IllegalAccessException e) {
+            logger.error("Could not instanciate the class with the basic semantic functions", e);
+
+        }
+        String action = null;
+        String filename = null;
+        for (File f : pluginDir.listFiles()) {
+            try {
                 filename = f.getAbsolutePath();
                 if (f.isFile() && f.getName().endsWith("jar")) {
 
@@ -277,15 +290,15 @@ public class RestServer {
                     action = "ontology loaders";
                     loadOntologyLoaderFromPlugin(loader, entries, name);
                 }
-            }
-        } catch (ClassNotFoundException e) {
-            logger.error("While loading the {} the class was not find in the plugin {} because {}.", action, filename, e.getMessage());
-        } catch (InstantiationException | IllegalAccessException e) {
-            logger.error("While loading the {} the class could not be instantiated in the plugin {} because {}.", action, filename, e.getMessage());
-        } catch (MalformedURLException e) {
-            logger.error("While loading the {} the manifest entry was not valid in plugin {} because {}.", action, filename, e.getMessage());
-        }
 
+            } catch (ClassNotFoundException e) {
+                logger.error("While loading the {} the class was not found in the plugin {} because {}.", action, filename, e.getMessage());
+            } catch (InstantiationException | IllegalAccessException e) {
+                logger.error("While loading the {} the class could not be instantiated in the plugin {} because {}.", action, filename, e.getMessage());
+            } catch (MalformedURLException e) {
+                logger.error("While loading the {} the manifest entry was not valid in plugin {} because {}.", action, filename, e.getMessage());
+            }
+        }
     }
 
     /**
