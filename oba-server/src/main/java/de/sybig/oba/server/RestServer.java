@@ -15,6 +15,7 @@ import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+import java.util.logging.Level;
 import javax.validation.constraints.Null;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
@@ -30,7 +31,7 @@ public class RestServer {
 
     private static final Logger logger = LoggerFactory.getLogger(RestServer.class);
     private static Properties props;
-    private static RestServer OBAserver;
+    private static RestServer obaServer;
     private ResourceConfig resourceConfig;
     private static HttpServer server;
 
@@ -38,10 +39,16 @@ public class RestServer {
         //utility class with no public non-static methods.
     }
 
-    public static void main(String[] args) throws IOException {
-        OBAserver = new RestServer();
-        props = loadServerProperties(args, OBAserver);
-        OBAserver.run();
+    /**
+     * Start method of the OBA service.
+     *
+     * @param args The commandline arguments
+     * @throws IOException
+     */
+    public static void main(String[] args) {
+        obaServer = new RestServer();
+        props = loadServerProperties(args, obaServer);
+        obaServer.run();
     }
 
     public static void shutdown() {
@@ -56,13 +63,18 @@ public class RestServer {
             oh.setGeneralProperties(props);
             loadPlugins();
             loadOntologies();
-            startServer();
+            HttpServer httpServer = startServer();
+            setServer(httpServer);
         } catch (IOException | IllegalArgumentException ex) {
             logger.error(
                     "There was a fatal error while running the server, will quit now\n",
                     ex);
             server.shutdownNow();
         }
+    }
+
+    private static void setServer(HttpServer httpServer) {
+        server = httpServer;
     }
 
     private ResourceConfig configureServer() {
@@ -80,13 +92,13 @@ public class RestServer {
         return rc;
     }
 
-    private void startServer() throws IllegalArgumentException,
-            IOException {
+    private HttpServer startServer() throws IOException {
 
         String baseUri = props.getProperty("base_uri", "http://localhost:9998/");
-        server = GrizzlyHttpServerFactory.createHttpServer(URI.create(baseUri), resourceConfig);
+        HttpServer httpServer = GrizzlyHttpServerFactory.createHttpServer(URI.create(baseUri), resourceConfig);
 
         logger.info("Started server at {}", baseUri);
+        return httpServer;
     }
 
     /**
@@ -102,8 +114,7 @@ public class RestServer {
      * @throws FileNotFoundException
      * @throws IOException
      */
-    private static Properties loadServerProperties(String[] args, Object o)
-            throws IOException {
+    private static Properties loadServerProperties(String[] args, Object o) {
         Properties internalProps = new Properties();
         try (InputStream is = o.getClass().getResourceAsStream("/oba.properties")) {
             internalProps.load(is);
@@ -117,12 +128,17 @@ public class RestServer {
                         "The property file '{}' could not be open for reading, falling back to default properties.",
                         args[0]);
             }
+            logger.info("reading global properties from external file {}",
+                    args[0]);
             Properties externalProps = new Properties(internalProps);
             try (FileReader fr = new FileReader(externalPropFile)) {
                 externalProps.load(fr);
+            } catch (FileNotFoundException ex) {
+                logger.error("Could not find the config file {} given on the commad line", externalPropFile, ex);
+            } catch (IOException ex) {
+                logger.error("Could not read the config file {} given on the commad line", externalPropFile, ex);
             }
-            logger.info("reading global properties from external file {}",
-                    args[0]);
+
             return externalProps;
         }
         return internalProps;
@@ -212,7 +228,7 @@ public class RestServer {
     }
 
     private File getOntologyDir(Properties properties) {
-        File ontoDir = null;
+        File ontoDir;
         String dirFromProps = properties.getProperty("ontology_directory");
         if (dirFromProps != null) {
             ontoDir = new File(dirFromProps);
@@ -258,7 +274,6 @@ public class RestServer {
             try {
                 filename = f.getAbsolutePath();
                 if (f.isFile() && f.getName().endsWith("jar")) {
-
                     Manifest manifest;
                     JarFile jar = null;
                     try {

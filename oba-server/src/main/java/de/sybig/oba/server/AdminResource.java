@@ -157,7 +157,7 @@ public class AdminResource {
     @Path("/stop")
     public String stop() {
         logger.info("stopping oba server");
-        System.exit(0);
+        RestServer.shutdown();
         return "Bye";
     }
 
