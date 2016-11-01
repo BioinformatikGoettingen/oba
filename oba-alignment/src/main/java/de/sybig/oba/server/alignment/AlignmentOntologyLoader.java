@@ -14,9 +14,9 @@ import org.semanticweb.owlapi.model.IRI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class VirtualOntology implements OntologyLoader {
+public class AlignmentOntologyLoader implements OntologyLoader {
 
-    private static final Logger log = LoggerFactory.getLogger(VirtualOntology.class);
+    private static final Logger log = LoggerFactory.getLogger(AlignmentOntologyLoader.class);
     private static final String ONTOLOGIES = "alignment_ontologies";
     private Properties properties;
     private OntologyResource ontoA;
