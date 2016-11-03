@@ -7,6 +7,8 @@ package de.sybig.oba.server;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -123,8 +125,12 @@ public class JsonClsList<T extends JsonCls> implements Cloneable {
     }
 
     @Override
-    public JsonClsList<T> clone() throws CloneNotSupportedException {
-        super.clone();
+    public JsonClsList<T> clone(){
+        try {
+            super.clone();
+        } catch (CloneNotSupportedException ex) {
+            throw new InternalError(); // This can't happen
+        }
         JsonClsList<T> newList = new JsonClsList<T>();
         newList.setEntities(getEntities());
         return newList;
