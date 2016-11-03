@@ -7,8 +7,6 @@ package de.sybig.oba.server;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
@@ -16,6 +14,8 @@ import javax.xml.bind.annotation.XmlTransient;
 import javax.xml.bind.annotation.XmlType;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A list of ontology classes. The type of the ontology class implementation can
@@ -29,6 +29,9 @@ import org.codehaus.jackson.annotate.JsonProperty;
  * during accessing they are copied to the list <code>entities</code> and may be
  * altered in this step, i.d. the connector is set in each entity.</p>
  *
+ * The entities has to be stored as list, because in some cases the order
+ * matters, e.g. to describe a path in the graph.
+ *
  * <p>
  * This class is not defined as <code>abstract</code> to allow cloning.
  *
@@ -39,6 +42,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
 @XmlType
 public class JsonClsList<T extends JsonCls> implements Cloneable {
 
+    private static final Logger log = LoggerFactory.getLogger(JsonClsList.class);
     @XmlElement(name = "entities")
     protected List<JsonCls> _entities;
     @XmlTransient
@@ -56,7 +60,7 @@ public class JsonClsList<T extends JsonCls> implements Cloneable {
             if (_entities == null) {
                 return null;
             }
-            entities = new LinkedList<T>();
+            entities = new LinkedList<>();
             entities.addAll((Collection<? extends T>) _entities);
         }
         return entities;
@@ -71,7 +75,7 @@ public class JsonClsList<T extends JsonCls> implements Cloneable {
     public void setEntities(List<T> entities) {
         this.entities = entities;
         if (_entities == null) {
-            _entities = new LinkedList<JsonCls>();
+            _entities = new LinkedList<>();
         }
         for (T e : entities) {
             _entities.add(e);
@@ -91,10 +95,10 @@ public class JsonClsList<T extends JsonCls> implements Cloneable {
      */
     public boolean add(T cls) {
         if (entities == null) {
-            entities = new LinkedList<T>();
+            entities = new LinkedList<>();
         }
         if (_entities == null) {
-            _entities = new LinkedList<JsonCls>();
+            _entities = new LinkedList<>();
         }
         _entities.add(cls);
         return entities.add(cls);
@@ -116,11 +120,12 @@ public class JsonClsList<T extends JsonCls> implements Cloneable {
 
     /**
      * Get the number of elements in the list.
+     * If the list of elements is <
      *
-     * @return The size of the list.
+     * @return the size of the list
+     * @throws NullPointerException if the list of elements is null
      */
     public int size() {
-        //TODO getEntities may be null
         return getEntities().size();
     }
 
@@ -129,9 +134,10 @@ public class JsonClsList<T extends JsonCls> implements Cloneable {
         try {
             super.clone();
         } catch (CloneNotSupportedException ex) {
+            log.error("Error during cloning", ex);
             throw new InternalError(); // This can't happen
         }
-        JsonClsList<T> newList = new JsonClsList<T>();
+        JsonClsList<T> newList = new JsonClsList<>();
         newList.setEntities(getEntities());
         return newList;
     }
@@ -147,6 +153,7 @@ public class JsonClsList<T extends JsonCls> implements Cloneable {
     @JsonProperty("entities")
     protected List<JsonCls> getRawEntities() {
         if (_entities == null) {
+            //TODO why are the enitites returned instead of null?
             return (List<JsonCls>) entities;
         }
         return _entities;
