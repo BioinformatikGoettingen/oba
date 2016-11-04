@@ -88,7 +88,7 @@ public class OntologyResource extends AbstractOntolgyResource {
                                             @QueryParam("ns") String ns) {
         String namespace = ns != null ? ns.replace("$", "/") : null;
         logger.debug("get property '{}' in namespace '{}'", cls, namespace);
-        OWLObjectProperty prop = ontology.getPropertyByName(cls, namespace);
+        OWLObjectProperty prop = ontology.getObjectPropertyByName(cls, namespace);
         return prop;
     }
 }

@@ -1,7 +1,9 @@
 package de.sybig.oba.server.alignment;
 
+import de.sybig.oba.server.ObaClass;
 import de.sybig.oba.server.ObaOntology;
 import de.sybig.oba.server.OntologyResource;
+import java.util.List;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
 /**
@@ -14,10 +16,12 @@ public class AlignmentOntology extends ObaOntology {
     private OntologyResource ontoB;
 
     @Override
-    public void init() throws OWLOntologyCreationException{
+    public void init() throws OWLOntologyCreationException {
+        System.out.println("Hi");
+        List<ObaClass> classesA = ontoA.getOntology().getClasses();
+        List<ObaClass> classesB = ontoB.getOntology().getClasses();
 
-        System.out.println("----- root a " + ontoA.getOntology().getRoot());
-
+        System.out.println("prop ----- "  +ontoA.getOntology().getDataPropertyByName("label", "rdfs"));
     }
 
     /**
@@ -51,6 +55,7 @@ public class AlignmentOntology extends ObaOntology {
     public OntologyResource getOntoB() {
         return ontoB;
     }
+
     /**
      * Sets the second ontology for the alignment. The ontology should not be
      * <code>null</code>

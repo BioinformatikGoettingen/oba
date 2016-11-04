@@ -322,7 +322,7 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
     public Set<ObaClass> getDomainClsOfProperty(
             @PathParam("restriction") String cls, @QueryParam("ns") String ns) {
         Set<ObaClass> out = new HashSet<ObaClass>();
-        OWLObjectProperty restriction = ontology.getPropertyByName(cls, ns);
+        OWLObjectProperty restriction = ontology.getObjectPropertyByName(cls, ns);
 //        System.out.println("search axioms");
         Set<OWLAxiom> axioms = restriction.getReferencingAxioms(ontology
                 .getOntology());
