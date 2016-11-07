@@ -1,14 +1,15 @@
 package de.sybig.oba.server;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-import java.util.Stack;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -260,10 +261,10 @@ public class ObaOntology {
     public List<ObaClass> getClasses() {
         if (allClasses == null) {
             allClasses = new ArrayList<>();
-            Stack<ObaClass> unprocessed = new Stack<>();
+            Deque<ObaClass> unprocessed = new ArrayDeque<>();
             unprocessed.add(getRoot());
 
-            while (!unprocessed.empty()) {
+            while (!unprocessed.isEmpty()) {
                 ObaClass node = unprocessed.pop();
                 if (!allClasses.contains(node)) {
                     allClasses.add(node);

@@ -27,13 +27,16 @@ import uk.ac.manchester.cs.owl.owlapi.OWLLiteralImpl;
 import uk.ac.manchester.cs.owl.owlapi.OWLSubClassOfAxiomImpl;
 
 public class OntologyHelper {
-    private static Logger logger = LoggerFactory
+
+    private static final Logger logger = LoggerFactory
             .getLogger(OntologyHelper.class);
 
     /**
-     * Get the ontology the class or property belongs to. If the class is a proxy object of the type {@link ObaClass},
-     * the ontology is from the proxy class is returned. Otherwise from the loaded ontologies the first one which
-     * defines a class with this IRI is returned. If no ontology can be found a WebApplicationException is thrown.
+     * Get the ontology the class or property belongs to. If the class is a
+     * proxy object of the type {@link ObaClass}, the ontology is from the proxy
+     * class is returned. Otherwise from the loaded ontologies the first one
+     * which defines a class with this IRI is returned. If no ontology can be
+     * found a WebApplicationException is thrown.
      *
      * @param cls A OWLClass to get the ontology for.
      * @return The (first) ontology which defines this class.
@@ -65,15 +68,15 @@ public class OntologyHelper {
     }
 
     /**
-     * Get the sub classes of the given class. If the class is owl:thing also classes without explicitly defined super
-     * classes are returned.
+     * Get the sub classes of the given class. If the class is owl:thing also
+     * classes without explicitly defined super classes are returned.
      *
      * @param parent
      * @param ontology
      * @return
      */
     public static Set<ObaClass> getChildren(OWLClass parent,
-                                            OWLOntology ontology) {
+            OWLOntology ontology) {
 
         Set<ObaClass> outChildren = new HashSet<ObaClass>();
 
@@ -86,7 +89,7 @@ public class OntologyHelper {
             }
             OWLClass c = p.getClassesInSignature().iterator()
                     .next();
-            outChildren.add(new ObaClass(c, ontology));     
+            outChildren.add(new ObaClass(c, ontology));
         }
         if (parent.isOWLThing()) {
             OntologyHandler oh = OntologyHandler.getInstance();
@@ -101,29 +104,38 @@ public class OntologyHelper {
 
     public static Set<ObaAnnotation> getAnnotationProperties(
             final OWLEntity cls, final OWLOntology ontology) {
-        Set<ObaAnnotation> properties = new HashSet<ObaAnnotation>();
+        Set<ObaAnnotation> properties = new HashSet<>();
         Set<OWLAnnotation> attribs = cls.getAnnotations(ontology);
         for (OWLAnnotation a : attribs) {
             OWLAnnotationValue value = a.getValue();
             if (value instanceof OWLLiteralImpl) {
-                ObaAnnotation odp = new ObaAnnotation();
-                odp.setLanguage(((OWLLiteralImpl) value).getLang());
-                odp.setIri(a.getProperty().getIRI());
-                odp.setValue(((OWLLiteralImpl) value).getLiteral());
-
-                properties.add(odp);
-                // } else if (value instanceof OWLAnonymousIndividualImpl) {
-                // TODO check with GO
-                // ObaAnnotation odp = new ObaAnnotation();
-                // System.out.println(((OWLAnonymousIndividualImpl) value)
-                // .getIndividualsInSignature());
-                // } else {
-                // logger.debug(
-                // "could not get data property for {} because value is not an OWLLiteralImpl, but {}",
-                // a, value.getClass());
+                properties.add(createObaAnnotation(a));
             }
         }
         return properties;
+    }
+
+    public static String getAnnotation(final OWLEntity cls, final OWLOntology ontology, final String name) {
+        Set<OWLAnnotation> attribs = cls.getAnnotations(ontology);
+        for (OWLAnnotation a : attribs) {
+            OWLAnnotationValue value = a.getValue();
+            if (value instanceof OWLLiteralImpl) {
+                if (a.getProperty().getIRI().getFragment().equals(name)) {
+
+                    return createObaAnnotation(a).getValue();
+                }
+            }
+        }
+        return null;
+    }
+
+    private static ObaAnnotation createObaAnnotation(OWLAnnotation a) {
+        OWLAnnotationValue value = a.getValue();
+        ObaAnnotation odp = new ObaAnnotation();
+        odp.setLanguage(((OWLLiteralImpl) value).getLang());
+        odp.setIri(a.getProperty().getIRI());
+        odp.setValue(((OWLLiteralImpl) value).getLiteral());
+        return odp;
     }
 
     public static Set<ObaClass> getParents(final ObaClass cls) {
@@ -131,7 +143,7 @@ public class OntologyHelper {
     }
 
     public static Set<ObaClass> getParents(final OWLClass cls,
-                                           org.semanticweb.owlapi.model.OWLOntology ontology) {
+            org.semanticweb.owlapi.model.OWLOntology ontology) {
         if (ontology == null) {
             ontology = getOntology(cls);
         }
@@ -140,7 +152,7 @@ public class OntologyHelper {
             WebApplicationException ex = new WebApplicationException(404);
             throw ex;
         }
-        if (cls.isOWLThing()){
+        if (cls.isOWLThing()) {
             return out;
         }
         Set<OWLClassExpression> parents = cls.getSuperClasses(ontology);
@@ -240,17 +252,17 @@ public class OntologyHelper {
     }
 
     // ///////// Object properties
-
     /**
-     * Get a list of object properties as object with the names given in the list <code>name</code>. If
-     * <code>name</code> is <code>null</code> all object properties are returned.
+     * Get a list of object properties as object with the names given in the
+     * list <code>name</code>. If <code>name</code> is <code>null</code> all
+     * object properties are returned.
      *
      * @param model
      * @param names The list of (local) names to search for
      * @return
      */
     public static Set<OWLObjectProperty> getObjectProperties(OWLOntology model,
-                                                             Collection<String> names) {
+            Collection<String> names) {
 
         Set<OWLObjectProperty> restrictions = model
                 .getObjectPropertiesInSignature();

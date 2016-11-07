@@ -160,6 +160,13 @@ public class ObaClass implements OWLClass {
         return real.getDataPropertiesInSignature();
     }
 
+    public OWLDataProperty getDataProperty(OWLDataProperty dataProperty){
+        for (OWLDataProperty dprop : real.getDataPropertiesInSignature()){
+            System.out.println(" --222--- " + dprop.getAnnotations(onto));
+        }
+        return null;
+    }
+
     @Override
     public Set<OWLObjectProperty> getObjectPropertiesInSignature() {
         return real.getObjectPropertiesInSignature();
