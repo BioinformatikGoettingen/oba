@@ -5,7 +5,6 @@ import de.sybig.oba.server.ObaOntology;
 import de.sybig.oba.server.OntologyHelper;
 import de.sybig.oba.server.OntologyResource;
 import java.util.List;
-import org.semanticweb.owlapi.model.OWLDataProperty;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
@@ -17,6 +16,7 @@ public class AlignmentOntology extends ObaOntology {
 
     private OntologyResource ontoA;
     private OntologyResource ontoB;
+    private int count = 0;
 
     @Override
     public void init() throws OWLOntologyCreationException {
@@ -24,12 +24,9 @@ public class AlignmentOntology extends ObaOntology {
         List<ObaClass> classesA = ontoA.getOntology().getClasses();
         List<ObaClass> classesB = ontoB.getOntology().getClasses();
 
-        for (ObaClass clsA : classesA) {
-            for (ObaClass clsB : classesB) {
-                compareClasses(clsA, clsB);
-            }
-        }
-        System.out.println("init alignment in (ms) " + (System.currentTimeMillis() - start));
+        classesA.parallelStream().forEach(a -> classesB.parallelStream().forEach(b -> compareClasses(a, b)));
+
+        System.out.println(count + " init alignment in (ms) " + (System.currentTimeMillis() - start));
     }
 
     /**
@@ -77,13 +74,14 @@ public class AlignmentOntology extends ObaOntology {
     private void compareClasses(ObaClass clsA, ObaClass clsB) {
         String labelA = getLabel(clsA, ontoA.getOntology().getOntology());
         String labelB = getLabel(clsB, ontoB.getOntology().getOntology());
-        if (labelA == null || labelB == null){
+        if (labelA == null || labelB == null) {
             return;
         }
         labelA = labelA.replace('_', ' ');
         labelB = labelB.replace('_', ' ');
-        if (labelA.equals(labelB)){
-            System.out.println("match " + labelA);
+        if (labelA.equals(labelB)) {
+//            System.out.println("match " + labelA);
+            count++;
         }
 
     }
