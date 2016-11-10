@@ -4,7 +4,9 @@ import de.sybig.oba.server.ObaClass;
 import de.sybig.oba.server.ObaOntology;
 import de.sybig.oba.server.OntologyHelper;
 import de.sybig.oba.server.OntologyResource;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
@@ -14,9 +16,10 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
  */
 public class AlignmentOntology extends ObaOntology {
 
+    private static final int LABEL_EQUAL = 0;
     private OntologyResource ontoA;
     private OntologyResource ontoB;
-    private int count = 0;
+    private final Map<ObaClass, Map<ObaClass, double[]>> scores = new HashMap<>();
 
     @Override
     public void init() throws OWLOntologyCreationException {
@@ -26,7 +29,7 @@ public class AlignmentOntology extends ObaOntology {
 
         classesA.parallelStream().forEach(a -> classesB.parallelStream().forEach(b -> compareClasses(a, b)));
 
-        System.out.println(count + " init alignment in (ms) " + (System.currentTimeMillis() - start));
+        System.out.println(scores.size() + " init alignment in (ms) " + (System.currentTimeMillis() - start));
     }
 
     /**
@@ -79,15 +82,27 @@ public class AlignmentOntology extends ObaOntology {
         }
         labelA = labelA.replace('_', ' ');
         labelB = labelB.replace('_', ' ');
-        if (labelA.equals(labelB)) {
-//            System.out.println("match " + labelA);
-            count++;
+        if (labelA.equalsIgnoreCase(labelB)) {
+            safeScore(LABEL_EQUAL, clsA, clsB, 1.0);
         }
+    }
 
+    private void safeScore(int method, ObaClass clsA, ObaClass clsB, double score){
+        if (!scores.containsKey(clsA)){
+            scores.put(clsA, new HashMap<>());
+        }
+        Map<ObaClass, double[]> map1 = scores.get(clsA);
+        if (! map1.containsKey(clsB)){
+            map1.put(clsB, new double[1]);
+        }
+        map1.get(clsB)[method] = score;
     }
 
     private String getLabel(ObaClass clsA, OWLOntology ontology) {
         return OntologyHelper.getAnnotation(clsA, ontology, "label");
     }
 
+    public Map<ObaClass, Map<ObaClass, double[]>> getScores(){
+        return scores;
+    }
 }
