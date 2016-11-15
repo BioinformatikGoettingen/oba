@@ -4,13 +4,13 @@
  */
 package de.sybig.oba.client;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientHandlerException;
-import com.sun.jersey.api.client.UniformInterfaceException;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.config.ClientConfig;
-import com.sun.jersey.api.client.config.DefaultClientConfig;
-import com.sun.jersey.core.util.MultivaluedMapImpl;
+//import com.sun.jersey.api.client.ClientHandlerException;
+//import com.sun.jersey.api.client.UniformInterfaceException;
+//import com.sun.jersey.api.client.WebResource;
+//import com.sun.jersey.api.client.config.ClientConfig;
+//import com.sun.jersey.api.client.config.DefaultClientConfig;
+//import com.sun.jersey.core.util.MultivaluedMapImpl;
+import de.sybig.oba.server.Json2DClsList;
 import de.sybig.oba.server.JsonCls;
 import de.sybig.oba.server.JsonClsList;
 import de.sybig.oba.server.JsonObjectProperty;
@@ -29,13 +29,20 @@ import java.util.Properties;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
 import org.codehaus.jackson.jaxrs.JacksonJsonProvider;
+import org.glassfish.jersey.client.ClientConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The generic connector can be embedded into Java applications to call the
- * REST endpoints of the OBA service using Java methods.
+ * The generic connector can be embedded into Java applications to call the REST
+ * endpoints of the OBA service using Java methods.
+ *
  * @author juergen.doenitz@bioinf.med.uni-goettingen.de
  * @param <C> The implementation of the ontology class.
  * @param <CL> The implementation of the ontology class list.
@@ -45,7 +52,7 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
 
     private final static Logger logger = LoggerFactory.getLogger(GenericConnector.class);
     protected String ontology;
-    protected Client client;
+    protected Client client = ClientBuilder.newClient();
     protected String baseURI;
     private Properties props;
 
@@ -71,7 +78,8 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      *
      * @param pattern The search pattern
      * @return Ontology classes matching the pattern.
-     * @throws java.net.ConnectException when the connection to the server fails.
+     * @throws java.net.ConnectException when the connection to the server
+     * fails.
      */
     public CL searchCls(final String pattern) throws ConnectException {
         return searchCls(pattern, (String) null);
@@ -90,7 +98,8 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      *
      * @param pattern The search pattern
      * @param annotationFields The annotation fields to search in
-     * @throws java.net.ConnectException when the connection to the server fails.
+     * @throws java.net.ConnectException when the connection to the server
+     * fails.
      * @return A list of classes matching the search pattern.
      */
     public CL searchCls(final String pattern, List<String> annotationFields) throws ConnectException {
@@ -98,13 +107,9 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
     }
 
     public CL searchCls(final String pattern, List<String> annotationFields, int maxResults) throws ConnectException {
-        String path = String.format("%s/functions/basic/", getOntology());
-        WebResource webResource = getWebResource();
-        // webResource.
-        UriBuilder uriBuilder = webResource.getUriBuilder();
-        uriBuilder = uriBuilder.path(path);
+        String path = String.format("%s/functions/basic/searchCls", getOntology());
+        WebTarget webTarget = getWebResource().path(path);
 
-        uriBuilder = uriBuilder.segment("searchCls");
         if (annotationFields != null && annotationFields.size() > 0) {
             StringBuilder paramValue = new StringBuilder();
             Iterator<String> it = annotationFields.iterator();
@@ -115,64 +120,33 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
                     paramValue.append(',');
                 }
             }
-            uriBuilder = uriBuilder.matrixParam("field", paramValue.toString());
+            webTarget = webTarget.matrixParam("field", paramValue.toString());
             if (maxResults > 0) {
-                uriBuilder = uriBuilder.matrixParam("max", maxResults);
+                webTarget = webTarget.matrixParam("max", maxResults);
             }
         }
-        uriBuilder = uriBuilder.segment(pattern);
-        URI uri = uriBuilder.build();
-        webResource = webResource.uri(uri);
-        try {
-            CL list = (CL) webResource.accept(MediaType.APPLICATION_JSON).get(
-                    getOntologyClassList());
-            list.setConnector(this);
-            return list;
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 204) {
-                    return null;
-                }
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
-        return null;
+        webTarget = webTarget.path(pattern);
+        CL list = (CL) webTarget.request().accept(MediaType.APPLICATION_JSON).get(
+                getOntologyClassList());
+        list.setConnector(this);
+        return list;
     }
 
     /**
      * Get the root of the ontology, that will be owl:Thing
-     * @throws java.net.ConnectException when the connection to the server fails.
      *
-     * @return
+     * @throws java.net.ConnectException when the connection to the server
+     * fails.
+     *
+     * @return the root ontologies' root class
      */
     public C getRoot() throws ConnectException {
         String path = String.format("%s/cls/", getOntology());
-        WebResource webResource = getWebResource();
-        webResource = webResource.path(path);
+        WebTarget webResource = getWebResource().path(path);
         Class c = getOntologyClass();
-        try {
-            C response = (C) webResource.accept(MediaType.APPLICATION_JSON).get(c);
-            response.setConnector(this);
-            return response;
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
-                    return null;
-                }
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
-        return null;
+        C response = (C) webResource.request().accept(MediaType.APPLICATION_JSON).get(c);
+        response.setConnector(this);
+        return response;
     }
 
     /**
@@ -184,7 +158,8 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      * the ontology.
      *
      * @param c The class to get the name and namespace from.
-     * @throws java.net.ConnectException when the connection to the server fails.
+     * @throws java.net.ConnectException when the connection to the server
+     * fails.
      * @return The complete class from the ontology server, or
      * <code>null</code>.
      */
@@ -208,37 +183,21 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      *
      * @param name The name of the ontology class.
      * @param ns The namespace of the ontology class.
-     * @throws java.net.ConnectException when the connection to the server fails.
+     * @throws java.net.ConnectException when the connection to the server
+     * fails.
      * @return The requested ontology class or <code>null</code>.
      */
     public C getCls(final String name, final String ns) throws ConnectException {
         String path;
         path = String.format("%s/cls/%s", getOntology(), name);
-        WebResource webResource = getWebResource();
+        WebTarget webResource = getWebResource().path(path);
         if (ns != null && ns.trim().length() > 0) {
-            MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-            queryParams.add("ns", ns);
-            webResource = webResource.queryParams(queryParams);
+
+            webResource = webResource.queryParam("ns", ns);
         }
-        webResource = webResource.path(path);
-        try {
-            C response = (C) webResource.accept(MediaType.APPLICATION_JSON).get(getOntologyClass());
-            response.setConnector(this);
-            return response;
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
-                    return null;
-                }
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
-        return null;
+        C response = (C) webResource.request().accept(MediaType.APPLICATION_JSON).get(getOntologyClass());
+        response.setConnector(this);
+        return response;
     }
 
     public CL getDescendants(final C cls) throws ConnectException {
@@ -247,31 +206,13 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
 
     public CL getDescendants(final String name, final String ns) throws ConnectException {
         String path = String.format("%s/functions/basic/descendants/%s", getOntology(), name);
-        WebResource webResource = getWebResource();
+        WebTarget webResource = getWebResource().path(path);
         if (ns != null && ns.trim().length() > 0) {
-            MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-            queryParams.add("ns", ns);
-            webResource = webResource.queryParams(queryParams);
+            webResource = webResource.queryParam("ns", ns);
         }
-        webResource = webResource.path(path);
-        try {
-            CL response = (CL) webResource.accept(MediaType.APPLICATION_JSON).get(getOntologyClassList());
-            response.setConnector(this);
-            return response;
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
-                    return null;
-                }
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
-        return null;
+        CL response = (CL) webResource.request().accept(MediaType.APPLICATION_JSON).get(getOntologyClassList());
+        response.setConnector(this);
+        return response;
     }
 
     /**
@@ -282,42 +223,30 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      *
      * @param clsX The downstream class
      * @param clsY The upstream class
-     * @throws java.net.ConnectException when the connection to the server fails.
+     * @throws java.net.ConnectException when the connection to the server
+     * fails.
      * @return The shortest paths between the two classes.
      */
     public C2L xDownstreamOfY(OntologyClass clsX, OntologyClass clsY) throws ConnectException {
         String path;
         path = String.format("%s/functions/basic/XdownstreamOfY", getOntology());
-        WebResource webResource = getWebResource();
+        WebTarget webResource = getWebResource().path(path);
 
-        UriBuilder uriBuilder = webResource.getUriBuilder();
-        uriBuilder = uriBuilder.path(path);
+//        uriBuilder = uriBuilder.segment(clsX.getName());
+        webResource = webResource.path(clsX.getName());
+//        uriBuilder = uriBuilder.matrixParam("ns",
+//                clsX.getNamespace().replace("/", "$"));
+        webResource = webResource.matrixParam("ns", clsX.getNamespace().replace('/', '$'));
+//        uriBuilder = uriBuilder.segment(clsY.getName());
+//        uriBuilder = uriBuilder.queryParam("ns", clsY.getNamespace());
+        webResource = webResource.path(clsY.getName());
+        webResource = webResource.queryParam("ns", clsY.getNamespace());
+//        URI uri = uriBuilder.build();
+//        webResource = webResource.uri(uri);
 
-        uriBuilder = uriBuilder.segment(clsX.getName());
-        uriBuilder = uriBuilder.matrixParam("ns",
-                clsX.getNamespace().replace("/", "$"));
-        uriBuilder = uriBuilder.segment(clsY.getName());
-        uriBuilder = uriBuilder.queryParam("ns", clsY.getNamespace());
-        URI uri = uriBuilder.build();
-        webResource = webResource.uri(uri);
-        try {
-            C2L list = (C2L) webResource.accept(MediaType.APPLICATION_JSON).get(getOntology2DClassList());
-            list.setConnector(this);
-            return list;
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
-                    return null;
-                }
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
-        return null;
+        C2L list = (C2L) webResource.request().accept(MediaType.APPLICATION_JSON).get(getOntology2DClassList());
+        list.setConnector(this);
+        return list;
     }
 
     /**
@@ -325,14 +254,14 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
      *
      * @param partition The partition to store the list in
      * @param id the Name of the list
-     * @throws java.net.ConnectException when the connection to the server fails.
+     * @throws java.net.ConnectException when the connection to the server
+     * fails.
      * @param list The list with the ontology classes
      */
     public void storeList(String partition, String id, JsonClsList list) throws ConnectException {
         String path;
         path = String.format("/storage/%s/%s", partition, id);
-        WebResource webResource = getWebResource();
-        webResource = webResource.path(path);
+        WebTarget webResource = getWebResource().path(path);
         JsonClsList putList;
         if (list instanceof AbstractOntologyClassList) {
             // reset the connector to hinder the marshaller to load more classes
@@ -350,78 +279,39 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
 
             }
         }
-        try {
-            webResource.type(MediaType.APPLICATION_JSON).put(putList);
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
-                    //TODO throw exception
-                }
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
+//            webResource.type(MediaType.APPLICATION_JSON).put(putList);
+        Invocation.Builder invocationBuilder = webResource.request();
+        invocationBuilder.put(Entity.entity(putList, MediaType.APPLICATION_JSON));
+
     }
 
     public JsonClsList getStoredList(String partition, String id) throws ConnectException {
         String path;
         path = String.format("/storage/%s/%s", partition, id);
-        WebResource webResource = getWebResource();
-        webResource = webResource.path(path);
-        try {
-            CL list = (CL) webResource.accept(MediaType.APPLICATION_JSON).get(
-                    getOntologyClassList());
-            list.setConnector(this);
-            return list;
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
-                    return null;
-                }
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
-        return null;
+        WebTarget webResource = getWebResource().path(path);
+
+        CL list = (CL) webResource.request().accept(MediaType.APPLICATION_JSON).get(
+                getOntologyClassList());
+        list.setConnector(this);
+        return list;
     }
 
     /**
      * Get all object properties from the ontology.
      *
-     * @throws java.net.ConnectException when the connection to the server fails.
+     * @throws java.net.ConnectException when the connection to the server
+     * fails.
      * @return All object properties
      */
     public JsonPropertyList<JsonObjectProperty> getObjectProperties() throws ConnectException {
         String path = String.format("%s/objectProperty/", getOntology());
-        WebResource webResource = getWebResource();
-        webResource = webResource.path(path);
+        WebTarget webResource = getWebResource().path(path);
         Class<JsonPropertyList> clazz = getPropertyListClass();
-        try {
-            JsonPropertyList response = (JsonPropertyList) webResource.accept(
-                    MediaType.APPLICATION_JSON).get(clazz);
-            return response;
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
-                    return null;
-                }
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
-        return null;
+
+        JsonPropertyList response = (JsonPropertyList) webResource.request().accept(
+                MediaType.APPLICATION_JSON).get(clazz);
+        return response;
+
     }
 
     public CL reduceToLevel(int level, OntologyClass cls) throws ConnectException {
@@ -432,58 +322,28 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
         String path;
         path = String.format("%s/functions/basic/reduceToLevel/%d/%s",
                 getOntology(), level, name);
-        WebResource webResource = getWebResource();
+        WebTarget webResource = getWebResource().path(path);
 
         if (ns != null && ns.trim().length() > 0) {
-            MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-            queryParams.add("ns", ns);
-            webResource = webResource.queryParams(queryParams);
+            webResource = webResource.queryParam("ns", ns);
         }
-        webResource = webResource.path(path);
-        try {
-            CL response = (CL) webResource.accept(MediaType.APPLICATION_JSON).get(getOntologyClassList());
-            response.setConnector(this);
-            return response;
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
-                    return null;
-                }
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
-        return null;
+
+        CL response = (CL) webResource.request().accept(MediaType.APPLICATION_JSON).get(getOntologyClassList());
+        response.setConnector(this);
+        return response;
+
     }
 
     public C2L reduceStoredSetToLevel(int level, String partition, String set) throws ConnectException {
         String path;
         path = String.format("%s/functions/basic/reduceToLevel/%d/%s/%s",
                 getOntology(), level, partition, set);
-        WebResource webResource = getWebResource();
-        webResource = webResource.path(path);
-        try {
-            C2L response = (C2L) webResource.accept(MediaType.APPLICATION_JSON).get(getOntology2DClassList());
-            response.setConnector(this);
-            return response;
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
-                    return null;
-                }
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
-        return null;
+        WebTarget webResource = getWebResource().path(path);
+
+        C2L response = (C2L) webResource.request().accept(MediaType.APPLICATION_JSON).get(getOntology2DClassList());
+        response.setConnector(this);
+        return response;
+
     }
 
     public CL reduceToLevelShortestPath(int level, OntologyClass cls) throws ConnectException {
@@ -496,32 +356,15 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
         path = String.format(
                 "%s/functions/basic/reduceToLevelShortestPath/%d/%s",
                 getOntology(), level, name);
-        WebResource webResource = getWebResource();
+        WebTarget webResource = getWebResource().path(path);
 
         if (ns != null && ns.trim().length() > 0) {
-            MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
-            queryParams.add("ns", ns);
-            webResource = webResource.queryParams(queryParams);
+            webResource = webResource.queryParam("ns", ns);
         }
-        webResource = webResource.path(path);
-        try {
-            CL response = (CL) webResource.accept(MediaType.APPLICATION_JSON).get(getOntologyClassList());
-            response.setConnector(this);
-            return response;
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
-                    return null;
-                }
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
-        return null;
+        CL response = (CL) webResource.request().accept(MediaType.APPLICATION_JSON).get(getOntologyClassList());
+        response.setConnector(this);
+        return response;
+
     }
 
     public CL reduceStoredSetToLevelShortestPath(int level, String partition,
@@ -530,59 +373,26 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
         path = String.format(
                 "%s/functions/basic/reduceToLevelShortestPath/%d/%s/%s",
                 getOntology(), level, partition, set);
-        WebResource webResource = getWebResource();
-        webResource = webResource.path(path);
-        try {
-            CL response = (CL) webResource.accept(MediaType.APPLICATION_JSON).get(getOntologyClassList());
-            response.setConnector(this);
-            return response;
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
-                    return null;
-                }
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
-        return null;
+        WebTarget webResource = getWebResource().path(path);
+
+        CL response = (CL) webResource.request().accept(MediaType.APPLICATION_JSON).get(getOntologyClassList());
+        response.setConnector(this);
+        return response;
+
     }
 
     public C2L reduceToClusterSize(int size, String partition, String set) throws ConnectException {
         String path;
         path = String.format("%s/functions/basic/reduceToClusterSize/%d/%s/%s",
                 getOntology(), size, partition, set);
-        WebResource webResource = getWebResource();
-        webResource = webResource.path(path);
+        WebTarget webResource = getWebResource().path(path);
+        C2L response = (C2L) webResource.request().accept(MediaType.APPLICATION_JSON).get(getOntology2DClassList());
+        return response;
 
-        try {
-            C2L response = (C2L) webResource.accept(MediaType.APPLICATION_JSON).get(getOntology2DClassList());
-
-            return response;
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
-                    return null;
-                }
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
-        return null;
     }
 
     protected final void init() {
-        ClientConfig cc = new DefaultClientConfig();
-        cc.getClasses().add(JacksonJsonProvider.class);
-        client = Client.create(cc);
+        client = ClientBuilder.newClient(new ClientConfig().register(JacksonJsonProvider.class));
 
         Properties defaultProps = new Properties();
         try {
@@ -668,28 +478,31 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
         return "oba connector for " + ontology + " on " + getBaseURI();
     }
 
-    protected <T> T getResponse(WebResource webResource, Class<T> cl) {
-
-        T returnObject;
-        try {
-            returnObject = webResource.accept(MediaType.APPLICATION_JSON).get(
-                    cl);
-        } catch (UniformInterfaceException ex) {
-            // logger.error("the request {}", ex.getResponse());
-            int status = ex.getResponse().getStatus();
-            if (status == 404) {
-                logger.error("the method is not available on the server [status 404]");
-            } else if (status == 406) {
-                logger.error("the method is available on the server but can not return the response with the JSON media type [status 406]");
-            }
-            return null;
-        } 
-        return returnObject;
-    }
-
-    protected WebResource getWebResource() {
-        WebResource resource = client.resource(baseURI);
-        // resource.addFilter(new GZIPContentEncodingFilter(false));
+//    protected <T> T getResponse(WebResource webResource, Class<T> cl) {
+//
+//        T returnObject;
+//        try {
+//            returnObject = webResource.accept(MediaType.APPLICATION_JSON).get(
+//                    cl);
+//        } catch (UniformInterfaceException ex) {
+//            // logger.error("the request {}", ex.getResponse());
+//            int status = ex.getResponse().getStatus();
+//            if (status == 404) {
+//                logger.error("the method is not available on the server [status 404]");
+//            } else if (status == 406) {
+//                logger.error("the method is available on the server but can not return the response with the JSON media type [status 406]");
+//            }
+//            return null;
+//        }
+//        return returnObject;
+//    }
+    /**
+     * Creates a web target with the base URI.
+     *
+     * @return A WebTarget for the baseURI
+     */
+    protected WebTarget getWebResource() {
+        WebTarget resource = client.target(baseURI);
         return resource;
     }
 
@@ -710,14 +523,15 @@ public class GenericConnector<C extends OntologyClass, CL extends AbstractOntolo
         return JsonPropertyList.class;
     }
 
-//    protected Ontology2DClassList convert2DClassList(Object o) {
-//        Json2DClsList<JsonClsList<JsonCls>, JsonCls> list = (Json2DClsList<JsonClsList<JsonCls>, JsonCls>) o;
-//        Ontology2DClassList ol = new Ontology2DClassList();
-//        for (JsonClsList jl : list.getEntities()) {
-////            ol.add(convertClassList(jl)); //FIXME
-//        }
-//        return ol;
-//    }
+    protected Ontology2DClassList convert2DClassList(Object o) {
+        Json2DClsList<JsonClsList<JsonCls>, JsonCls> list = (Json2DClsList<JsonClsList<JsonCls>, JsonCls>) o;
+        Ontology2DClassList ol = new Ontology2DClassList();
+        for (JsonClsList jl : list.getEntities()) {
+//            ol.add(convertClassList(jl)); //FIXME
+        }
+        return ol;
+    }
+
     protected OntologyClassList convertClassList(JsonClsList<JsonCls> jl) {
         OntologyClassList ol = new OntologyClassList();
         for (JsonCls jc : jl.getEntities()) {

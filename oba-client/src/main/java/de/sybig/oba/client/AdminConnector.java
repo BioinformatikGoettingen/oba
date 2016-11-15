@@ -1,10 +1,10 @@
 package de.sybig.oba.client;
 
-import com.sun.jersey.api.client.ClientHandlerException;
-import com.sun.jersey.api.client.UniformInterfaceException;
-import com.sun.jersey.api.client.WebResource;
 import java.net.ConnectException;
 import java.util.Properties;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.Invocation;
+import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,25 +35,10 @@ public class AdminConnector extends GenericConnector {
      */
     public String getVersion() throws ConnectException {
         String path = "/admin/version";
-        WebResource webResource = getWebResource();
+        WebTarget webResource = getWebResource();
         webResource = webResource.path(path);
-        try {
-            String response = webResource.accept(MediaType.TEXT_PLAIN).get(String.class);
-            return response;
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
-                    return null;
-                }
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
-        return null;
+        String response = webResource.request().accept(MediaType.TEXT_PLAIN).get(String.class);
+        return response;
     }
 
     /**
@@ -65,80 +50,48 @@ public class AdminConnector extends GenericConnector {
      */
     public Properties getProperties(String ontology) throws ConnectException {
         String path = String.format("/admin/ontology/%s/properties", ontology);
-        WebResource webResource = getWebResource();
-        webResource = webResource.path(path);
-        try {
-            String response = webResource.accept(MediaType.TEXT_PLAIN).get(String.class);
-            String[] lines = response.split("\n");
-            Properties ontoProps = new Properties();
-            for (String l : lines) {
-                String[] kv = l.split("=");
-                ontoProps.put(kv[0], kv[1]);
-            }
-            return ontoProps;
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        } catch (UniformInterfaceException ex) {
-            if (ex.getResponse() != null && ex.getResponse().getClientResponseStatus() != null) {
-                if (ex.getResponse().getClientResponseStatus().getStatusCode() == 404) {
-                    return null;
-                }
-            }
-            logger.error("error while communicating the OBA server", ex);
+        WebTarget webResource = getWebResource().path(path);
+
+        String response = webResource.request().accept(MediaType.TEXT_PLAIN).get(String.class);
+        String[] lines = response.split("\n");
+        Properties ontoProps = new Properties();
+        for (String l : lines) {
+            String[] kv = l.split("=");
+            ontoProps.put(kv[0], kv[1]);
         }
-        return null;
+        return ontoProps;
+
     }
 
     public void addOntologie(Properties ontoProps) throws ConnectException {
         String path = String.format("/admin/ontology/");
-        WebResource webResource = getWebResource();
-        webResource = webResource.path(path);
-        try {
-            webResource.post(propertyToString(ontoProps));
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
+        WebTarget webResource = getWebResource().path(path);
+        Invocation.Builder invocationBuilder = webResource.request();
+        invocationBuilder.post(Entity.entity(propertyToString(ontoProps), MediaType.TEXT_PLAIN));
     }
 
     public void loadOntology(String ontology) throws ConnectException {
         String path = String.format("/admin/ontology/%s", ontology);
-        WebResource webResource = getWebResource();
-        webResource = webResource.path(path);
-        try {
-            webResource.put();
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
+        WebTarget webResource = getWebResource().path(path);
+        Invocation.Builder invocationBuilder = webResource.request();
+        invocationBuilder.put(Entity.entity(ontology, MediaType.TEXT_PLAIN));
+
     }
 
     public void removeOntology(String ontology) throws ConnectException {
         String path = String.format("/admin/ontology/%s", ontology);
-        WebResource webResource = getWebResource();
-        webResource = webResource.path(path);
-        try {
-            webResource.delete();
-        } catch (ClientHandlerException ex) {
-            if (ex.getCause() instanceof ConnectException) {
-                throw (ConnectException) ex.getCause();
-            }
-            logger.error("error while communicating the OBA server", ex);
-        }
+        WebTarget webResource = getWebResource().path(path);
+        
+//            webResource.delete();
+    Invocation.Builder invocationBuilder = webResource.request();
+    invocationBuilder.delete();
+        
     }
 
     public void resetFunctionClass(String fc) {
         String path = String.format("/admin/reset/%s", fc);
-        WebResource webResource = getWebResource();
-        webResource = webResource.path(path);
-        String response = webResource.get(String.class);
+        WebTarget webResource = getWebResource().path(path);
+        String response = webResource.request().get(String.class);
         if (!response.equalsIgnoreCase("ok")) {
             //TODO
             System.err.println("could not reset function class " + fc);
