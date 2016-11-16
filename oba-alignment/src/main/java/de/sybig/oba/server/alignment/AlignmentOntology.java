@@ -11,7 +11,7 @@ import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
 /**
- *
+ * 
  * @author juergen.doenitz@bioinf.med.uni-goettingen.de
  */
 public class AlignmentOntology extends ObaOntology {
@@ -80,12 +80,18 @@ public class AlignmentOntology extends ObaOntology {
     }
 
     private void compareLabels(ObaClass clsA, ObaClass clsB) {
-        String labelA = getLabel(clsA, ontoA.getOntology().getOntology());
-        String labelB = getLabel(clsB, ontoB.getOntology().getOntology());
-        safeScore(Methods.LABEL_EQUAL.getPosition(), clsA, clsB, lexCompare.compareLabels(labelA, labelB));
+
+        double score = lexCompare.compareLabels(
+                getLabel(clsA, ontoA.getOntology().getOntology()),
+                getLabel(clsB, ontoB.getOntology().getOntology()));
+        if (score > 0) {
+            safeScore(Methods.LABEL_EQUAL.getPosition(), clsA, clsB, score);
+        }
     }
 
-    private synchronized void safeScore(int method, ObaClass clsA, ObaClass clsB, double score) {
+    private synchronized void safeScore(int method,
+            ObaClass clsA, ObaClass clsB,
+            double score) {
 
         if (!scores.containsKey(clsA)) {
             scores.put(clsA, new HashMap<>());
@@ -94,13 +100,22 @@ public class AlignmentOntology extends ObaOntology {
         if (!map1.containsKey(clsB)) {
             map1.put(clsB, new double[1]);
         }
-        map1.get(clsB)[0] = score;
+        map1.get(clsB)[method] = score;
     }
 
     private String getLabel(ObaClass clsA, OWLOntology ontology) {
         return OntologyHelper.getAnnotation(clsA, ontology, "label");
     }
 
+    /**
+     * Get a scores of the aligenment in a 3D matrix. The first two indicies are
+     * the ontology classes of the two ontologies. The last level is a an array
+     * with a score for each comaprison method leading to a value != 0. The
+     * index for the method in the array is defined by the enum
+     * {@link de.sybig.oba.server.alignment.Methods}
+     *
+     * @return a matrix with the scores of the alignment.
+     */
     public Map<ObaClass, Map<ObaClass, double[]>> getScores() {
         return scores;
     }

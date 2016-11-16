@@ -14,6 +14,12 @@ import org.semanticweb.owlapi.model.IRI;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This class inits the alignment ontology and loads the two source
+ * ontolotgies into the alignment ontology.
+ *
+ * @author juergen.doenitz@bioinf.med.uni-goettingen.de
+ */
 public class AlignmentOntologyLoader implements OntologyLoader {
 
     private static final Logger log = LoggerFactory.getLogger(AlignmentOntologyLoader.class);
@@ -22,6 +28,7 @@ public class AlignmentOntologyLoader implements OntologyLoader {
 
     private AlignmentOntology ontology;
 
+    @Override
     public ObaOntology loadOntology(Properties p) {
         if (p == null) {
             throw new IllegalArgumentException("The properties for the alignment ontology are null");
