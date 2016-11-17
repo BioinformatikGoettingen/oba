@@ -64,6 +64,7 @@
                         <manifestEntries>
                             <plugin-name>alignment</plugin-name>
                             <ontology-loader-class>de.sybig.oba.server.alignment.AlignmentOntologyLoader</ontology-loader-class>
+                            <function-main-class>de.sybig.oba.server.inspect.OntoFunctions</function-main-class>
                         </manifestEntries>
                     </archive>
                 </configuration>
