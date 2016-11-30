@@ -4,6 +4,7 @@ import de.sybig.oba.server.AbstractOntolgyResource;
 import de.sybig.oba.server.ObaClass;
 import de.sybig.oba.server.OntologyFunction;
 import de.sybig.oba.server.alignment.AlignmentOntology;
+import de.sybig.oba.server.alignment.Methods;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -24,22 +25,46 @@ public class OntoFunctions extends AbstractOntolgyResource implements
     @Produces("text/html")
     @Override
     public String getRoot() {
-        System.out.println("hi");
-        return "Functions to inspect the alignment " + ontology;
+        return "Functions to inspect the alignment ";
     }
 
     @GET
     @Path("allScores")
     @Produces("text/plain")
-    public String getAllScores() {
+    public List<Object[]> getAllScores() {
+        int methodsLength = Methods.values().length;
+        List<Object[]> table = new ArrayList<>();
         Map<ObaClass, Map<ObaClass, double[]>> scores = ((AlignmentOntology) ontology).getScores();
-        StringBuilder out = new StringBuilder();
+        List<ObaClass> out = new ArrayList<>();
+//
         for (ObaClass clsA : scores.keySet()) {
-            out.append(clsA + "\n");
-            System.out.println(clsA);
+            Map<ObaClass, double[]> map = scores.get(clsA);
+            Object[] row = new Object[2 + methodsLength];
+            table.add(row);
+            for (ObaClass clsB : map.keySet()) {
+
+                row[0] = clsA;
+                row[1] = clsB;
+                for (int i = 0; i < methodsLength -1 ; i++) {
+                   row[2 + i] = map.get(clsB)[i];
+                }
+            }
         }
-        return out.toString();
+        return table;
     }
+
+//    @GET
+//    @Produces("text/plain application/json text/html")
+//    @Path("notMappedInA")
+//    public List<ObaClass> notMappedInA() {
+//
+//        Set<ObaClass> mappedA = ((AlignmentOntology) ontology).getScores().keySet();
+//        List<ObaClass> allA = ((AlignmentOntology) ontology).getOntoA().getOntology().getClasses();
+//        List<ObaClass> out = allA.parallelStream().filter(cls -> !mappedA.contains(cls)).collect(Collectors.toList());
+////        out.forEach(System.out::println);
+//
+//        return out.subList(0, 5);
+//    }
 
     @Override
     public String getVersion() {

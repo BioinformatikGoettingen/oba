@@ -35,6 +35,7 @@ public class AlignmentOntologyLoader implements OntologyLoader {
         }
         properties = p;
         ontology = new AlignmentOntology();
+        ontology.setProperties(properties);
         ontology.setOwlURI(IRI.create(properties.getProperty("alignment_IRI", "alignment")));
         loadSourceOntologies();
         return ontology;

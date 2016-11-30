@@ -43,8 +43,7 @@ public class Root {
 		Set<String> names = oh.getOntologyNames();
 		out.append("<h2>Available ontologies</h2><ul>");
 		for (String n : names) {
-			out.append(String.format("<li><a href=\"%s/cls\">%s</a></li>\n", n,
-					n));
+			out.append(String.format("<li><a href=\"%s/cls\">%s</a></li>\n", n,n));
 		}
 		out.append("</ul>");
 		out.append("<h2>Available function classes</h2><ul>");

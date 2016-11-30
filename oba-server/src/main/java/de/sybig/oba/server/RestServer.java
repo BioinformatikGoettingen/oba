@@ -78,8 +78,9 @@ public class RestServer {
     }
 
     private ResourceConfig configureServer() {
+        //To debug the server use curl -H X-Jersey-Tracing-Accept:whatever -v http:...
         ResourceConfig rc = new ResourceConfig().packages("de.sybig.oba.server");
-        rc.property("jersey.config.server.tracing.type", "ALL");
+        rc.property("jersey.config.server.tracing.type", "ON_DEMAND");
         rc.property("jersey.config.server.tracing.threshold", "VERBOSE");
         rc.property("com.sun.jersey.config.feature.Trace", "true");
 
