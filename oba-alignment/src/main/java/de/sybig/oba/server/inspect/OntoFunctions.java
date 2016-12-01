@@ -45,26 +45,31 @@ public class OntoFunctions extends AbstractOntolgyResource implements
 
                 row[0] = clsA;
                 row[1] = clsB;
-                for (int i = 0; i < methodsLength -1 ; i++) {
-                   row[2 + i] = map.get(clsB)[i];
+                for (int i = 0; i < methodsLength - 1; i++) {
+                    row[2 + i] = map.get(clsB)[i];
                 }
             }
         }
         return table;
     }
 
-//    @GET
-//    @Produces("text/plain application/json text/html")
-//    @Path("notMappedInA")
-//    public List<ObaClass> notMappedInA() {
-//
-//        Set<ObaClass> mappedA = ((AlignmentOntology) ontology).getScores().keySet();
-//        List<ObaClass> allA = ((AlignmentOntology) ontology).getOntoA().getOntology().getClasses();
-//        List<ObaClass> out = allA.parallelStream().filter(cls -> !mappedA.contains(cls)).collect(Collectors.toList());
-////        out.forEach(System.out::println);
-//
-//        return out.subList(0, 5);
-//    }
+    @GET
+    @Produces({"text/plain", "application/json", "text/html"})
+    @Path("notMappedInA")
+    public List<ObaClass> notMappedInA() {
+
+        Set<ObaClass> mappedA = ((AlignmentOntology) ontology).getScores().keySet();
+        List<ObaClass> allA = ((AlignmentOntology) ontology).getOntoA().getOntology().getClasses();
+        List<ObaClass> out = allA.parallelStream().filter(cls -> !mappedA.contains(cls)).collect(Collectors.toList());
+
+       for (ObaClass item :out.subList(735, 742)){
+           System.out.println("item " + item);
+       }
+        System.out.println("size " + out.size());
+//        System.out.println(out.get(744));
+//        return out.subList(41, 50);
+return out;
+    }
 
     @Override
     public String getVersion() {
