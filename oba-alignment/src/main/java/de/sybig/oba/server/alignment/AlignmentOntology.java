@@ -7,17 +7,23 @@ import de.sybig.oba.server.OntologyResource;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
+import org.semanticweb.owlapi.model.OWLOntologyID;
+import uk.ac.manchester.cs.owl.owlapi.OWLDataFactoryImpl;
+import uk.ac.manchester.cs.owl.owlapi.OWLOntologyImpl;
+import uk.ac.manchester.cs.owl.owlapi.OWLOntologyManagerImpl;
 
 /**
- * 
+ *
  * @author juergen.doenitz@bioinf.med.uni-goettingen.de
  */
 public class AlignmentOntology extends ObaOntology {
 
     private OntologyResource ontoA;
     private OntologyResource ontoB;
+    private OWLOntology resultOnto;
     private Map<ObaClass, Map<ObaClass, double[]>> scores = new HashMap<>();
     private LexCompare lexCompare;
 
@@ -26,6 +32,7 @@ public class AlignmentOntology extends ObaOntology {
         long start = System.currentTimeMillis();
         List<ObaClass> classesA = ontoA.getOntology().getClasses();
         List<ObaClass> classesB = ontoB.getOntology().getClasses();
+        resultOnto = new OWLOntologyImpl(new OWLOntologyManagerImpl(new OWLDataFactoryImpl()), new OWLOntologyID(IRI.create("alignment")));
         lexCompare = new LexCompare(getProperties());
 
         classesA.parallelStream().forEach(a -> classesB.parallelStream().forEach(b -> compareClasses(a, b)));
@@ -118,5 +125,9 @@ public class AlignmentOntology extends ObaOntology {
      */
     public Map<ObaClass, Map<ObaClass, double[]>> getScores() {
         return scores;
+    }
+    @Override
+    public OWLOntology getOntology(){
+        return resultOnto;
     }
 }

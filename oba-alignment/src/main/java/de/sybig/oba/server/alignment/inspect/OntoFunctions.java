@@ -30,7 +30,7 @@ public class OntoFunctions extends AbstractOntolgyResource implements
 
     @GET
     @Path("allScores")
-    @Produces("text/plain")
+    @Produces({"text/plain", "text/html"})
     public List<Object[]> getAllScores() {
         int methodsLength = Methods.values().length;
         List<Object[]> table = new ArrayList<>();
@@ -62,13 +62,13 @@ public class OntoFunctions extends AbstractOntolgyResource implements
         List<ObaClass> allA = ((AlignmentOntology) ontology).getOntoA().getOntology().getClasses();
         List<ObaClass> out = allA.parallelStream().filter(cls -> !mappedA.contains(cls)).collect(Collectors.toList());
 
-       for (ObaClass item :out.subList(735, 742)){
-           System.out.println("item " + item);
-       }
+        for (ObaClass item : out.subList(735, 742)) {
+            System.out.println("item " + item);
+        }
         System.out.println("size " + out.size());
 //        System.out.println(out.get(744));
 //        return out.subList(41, 50);
-return out;
+        return out;
     }
 
     @Override
