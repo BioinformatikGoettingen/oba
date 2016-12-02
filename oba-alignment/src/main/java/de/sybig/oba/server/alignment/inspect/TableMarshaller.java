@@ -1,4 +1,4 @@
-package de.sybig.oba.server.inspect;
+package de.sybig.oba.server.alignment.inspect;
 
 import de.sybig.oba.server.OntologyHelper;
 import java.lang.annotation.Annotation;

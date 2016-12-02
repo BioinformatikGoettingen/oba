@@ -1,4 +1,4 @@
-package de.sybig.oba.server.inspect;
+package de.sybig.oba.server.alignment.inspect;
 
 import java.io.IOException;
 import java.io.OutputStream;
