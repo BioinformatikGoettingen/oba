@@ -114,7 +114,7 @@
             </plugin>
         </plugins>
     </build>
-    <dependencyManagement>
+<!--    <dependencyManagement>
         <dependencies>
             <dependency>
                 <groupId>org.glassfish.jersey</groupId>
@@ -124,7 +124,7 @@
                 <scope>import</scope>
             </dependency>
         </dependencies>
-    </dependencyManagement>
+    </dependencyManagement>-->
     <dependencies>
 	
         <dependency>
@@ -147,11 +147,13 @@
         <dependency>
             <groupId>org.glassfish.jersey.containers</groupId>
             <artifactId>jersey-container-grizzly2-http</artifactId>
+            <version>2.25.1</version>
         </dependency>
      
         <dependency>
             <groupId>org.glassfish.jersey.media</groupId>
             <artifactId>jersey-media-moxy</artifactId>
+            <version>2.25.1</version>
         </dependency>
         <dependency>
             <groupId>com.sun.jersey</groupId>

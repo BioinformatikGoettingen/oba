@@ -75,12 +75,16 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
                             //TODO how to get the type of the second list?
                             return true;
                         }
+//                        System.out.println("type " + c.getTypeName());
+                        if (c.getTypeName().equals("java.util.List")){ //TODO test and make it better, hack to make XDownstreamofY working again
+                            return true;
+                        }
                     } else {
                         log.error("can not marshall list of " + arg1);
                         return false;
                     }
 
-                    return false;
+                    return false;  // returns fals for a list from the function XDownstreamOfY
                 } else if (c.equals(Map.class)) {
                     if (((ParameterizedType) arg1).getActualTypeArguments()[0].toString().equals("interface org.semanticweb.owlapi.model.OWLClass")
                             && ((ParameterizedType) arg1).getActualTypeArguments()[1].toString().equals("java.util.List<org.semanticweb.owlapi.model.OWLClass>")) {
