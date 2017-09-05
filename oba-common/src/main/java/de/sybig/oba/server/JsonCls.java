@@ -39,7 +39,7 @@ public class JsonCls<C extends JsonCls> extends JsonEntity {
 	// @XmlTransient
 	protected transient Set<C> parents = new HashSet<C>();;
 	protected Set<JsonAnnotation> annotations;
-	protected Set<JsonObjectPropertyExpression> restrictions;
+	protected Set<JsonObjectPropertyExpression> properties;
 	// @XmlTransient
 	private transient boolean isMarshalling = false;
 
@@ -151,18 +151,18 @@ public class JsonCls<C extends JsonCls> extends JsonEntity {
 	}
 
 	public Set<JsonObjectPropertyExpression> getProperties() {
-		return restrictions;
+		return properties;
 	}
 
 	public void setProperties(Set<JsonObjectPropertyExpression> properties) {
-		this.restrictions = properties;
+		this.properties = properties;
 	}
 
 	public void addRestriction(JsonObjectPropertyExpression jp) {
-		if (restrictions == null) {
-			restrictions = new HashSet<JsonObjectPropertyExpression>();
+		if (properties == null) {
+			properties = new HashSet<JsonObjectPropertyExpression>();
 		}
-		restrictions.add(jp);
+		properties.add(jp);
 	}
 
 	@XmlTransient

@@ -4,10 +4,8 @@ import de.sybig.oba.server.ObaClass;
 import de.sybig.oba.server.ObaObjectPropertyExpression;
 import de.sybig.oba.server.OntologyFunctions;
 import de.sybig.oba.server.OntologyHelper;
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -26,6 +24,8 @@ public class TFClassFunctions extends OntologyFunctions {
     private static final String CONTAINS_RELATION = "contains";
     private static final String TAXON_ATTRIBUTE = "ncbi_taxon";
     private static final String PARTOF_RELATION = "isPartOf";
+    private static final String BELONGSTO_RESTRICTION = "belongs_to";
+    private HashMap<ObaClass, Set<ObaClass>> hasPart;
 
     @GET
     @Path("/downstreamSpecies/{cls}")
@@ -37,6 +37,20 @@ public class TFClassFunctions extends OntologyFunctions {
         Set<ObaClass> taxons = getDownstreamSpecies(startClass);
         System.out.println("# of taxons " + taxons.size());
         return taxons;
+    }
+
+    @GET
+    @Path("/factorsForSpecies/{cls}")
+    @Produces(ALL_TYPES)
+    public Set<ObaClass> getFactorsForSpecies(@PathParam("cls") String cls,
+            @QueryParam("ns") String ns) {
+        HashSet<ObaClass> out = new HashSet<ObaClass>();
+        ObaClass startClass = ontology.getOntologyClass(cls, ns);
+        Set<ObaClass> proteinGroups = getHasPart(startClass);
+        for (ObaClass proteinGroup : proteinGroups) {
+            out.addAll(OntologyHelper.getChildren(proteinGroup));
+        }
+        return out;
     }
 
     private Set<ObaClass> getDownstreamSpecies(ObaClass cls) {
@@ -67,4 +81,51 @@ public class TFClassFunctions extends OntologyFunctions {
         }
         return taxons;
     }
+
+    private Set<ObaClass> getHasPart(ObaClass cls) {
+        if (hasPart == null) {
+            initHasPartMap();
+        }
+        return hasPart.get(cls);
+    }
+
+    private void initHasPartMap() {
+        hasPart = new HashMap<ObaClass, Set<ObaClass>>();
+        ObaClass root = ontology.getRoot();
+        for (ObaClass child : OntologyHelper.getChildren(root)) {
+            findHasPart(child);
+        }
+
+    }
+
+    private void findHasPart(ObaClass cls) {
+        Set<ObaObjectPropertyExpression> partOfRestrictions = getHasPartRestrictions(cls);
+        for (ObaObjectPropertyExpression ope : partOfRestrictions) {
+            ObaClass target = ope.getTarget();
+            if (!hasPart.containsKey(target)) {
+                hasPart.put(target, new HashSet<ObaClass>());
+            }
+            hasPart.get(target).add(cls);
+        }
+
+        for (ObaClass child : OntologyHelper.getChildren(cls)) {
+            if (cls.equals(child)) {
+
+                continue;
+            }
+            findHasPart(child);
+        }
+    }
+
+    private Set<ObaObjectPropertyExpression> getHasPartRestrictions(ObaClass cls) {
+        HashSet<ObaObjectPropertyExpression> partOf = new HashSet<ObaObjectPropertyExpression>();
+        for (ObaObjectPropertyExpression ope : OntologyHelper.getObjectRestrictions(cls)) {
+            if (!ope.getRestriction().getIRI().getFragment().equals(PARTOF_RELATION)) {
+                continue;
+            }
+            partOf.add(ope);
+        }
+        return partOf;
+    }
+
 }

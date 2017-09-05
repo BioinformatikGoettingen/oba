@@ -111,8 +111,8 @@ public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
     @Override
     public Set<JsonObjectPropertyExpression> getProperties() {
 
-        if (restrictions != null) {
-            for (JsonObjectPropertyExpression ope : restrictions) {
+        if (properties != null) {
+            for (JsonObjectPropertyExpression ope : properties) {
                 JsonCls target = ope.getTarget();
                 if (!(target instanceof OntologyClass)) {
                     C newTarget = createNewOntologyClass(target);
@@ -122,7 +122,7 @@ public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
             }
         }
 
-        return restrictions;
+        return properties;
     }
 
     public Set<JsonAnnotation> getAnnotations() {
@@ -148,7 +148,7 @@ public class OntologyClass<C extends OntologyClass> extends JsonCls<C> {
         namespace = c.getNamespace();
         _parents = c.getRawParents();
 
-        restrictions = c.getProperties();
+        properties = c.getProperties();
     }
 
     private void fillCls() {
