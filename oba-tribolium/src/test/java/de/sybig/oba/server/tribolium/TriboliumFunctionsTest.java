@@ -137,7 +137,7 @@ public class TriboliumFunctionsTest {
     }
 
     /**
-     * Mixed classes contains also some conrete classes, but no generic ones.
+     * Mixed classes contains also some concrete classes, but no generic ones.
      */
     @Test
     public void getMixedClassesTest() {
@@ -209,10 +209,7 @@ public class TriboliumFunctionsTest {
     @Test
     public void searchGenericInConcreteTest() {
         List<ObaClass> hits = testClass.searchInConcrete("leg");
-        //pupal_leg is found
-        assertEquals("Generic class should not be found with searchInConcrete", 1, hits.size());
-        Set<String> labels = getLabels(hits);
-        assertTrue("All classes found in searchInConrete are concrete", getConcreteExamples().containsAll(labels));
+        assertEquals("Generic class should not be found with searchInConcrete", 0, hits.size());
     }
 
     /**

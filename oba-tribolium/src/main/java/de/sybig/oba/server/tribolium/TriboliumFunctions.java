@@ -266,10 +266,8 @@ public class TriboliumFunctions extends OntologyFunctions {
         toRemove.addAll(getConcreteClasses());
         //mixed classes are also concrete classes, so remove them from removal
         toRemove.removeAll(getMixedClasses());
-        // In the owl representation of the OBO ontology spaces are replace by '_'
-        String usedSearchPattern = searchPattern.replaceAll("_", " ");
 
-        List<ObaClass> hits = ontology.searchCls(usedSearchPattern, null);
+        List<ObaClass> hits = ontology.searchCls(searchPattern, null);
         hits.removeAll(toRemove);
 
         return hits;
@@ -280,8 +278,9 @@ public class TriboliumFunctions extends OntologyFunctions {
     @Produces(ALL_TYPES)
     public List<ObaClass> searchInConcrete(
             @PathParam("pattern") String searchPattern) {
-        String usedSearchPattern = searchPattern.replaceAll("_", " ");
-        List<ObaClass> hits = ontology.searchCls(usedSearchPattern, null);
+        List<ObaClass> hits = ontology.searchCls(searchPattern, null);
+        System.out.println("1 " + hits);
+        System.out.println("2 " + getConcreteClasses());
         hits.retainAll(getConcreteClasses());
         return hits;
     }
@@ -291,7 +290,6 @@ public class TriboliumFunctions extends OntologyFunctions {
     @Produces(ALL_TYPES)
     public List<ObaClass> searchInConcreteAndMixed(
             @PathParam("pattern") String searchPattern) {
-        searchPattern = searchPattern.replaceAll("_", " ");
         List<ObaClass> hits = ontology.searchCls(searchPattern, null);
         Set<ObaClass> concreteAndMixed = new HashSet<ObaClass>(); //TODO cache?
         concreteAndMixed.addAll(getConcreteClasses());
