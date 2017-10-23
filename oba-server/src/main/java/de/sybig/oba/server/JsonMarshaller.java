@@ -230,7 +230,7 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
         JsonClsList outList = new JsonClsList();
 
         for (OWLClass cls : list) {
-            outList.add(copyCls(cls, false));
+            outList.add(copyCls(cls, true));
         }
         return outList;
     }

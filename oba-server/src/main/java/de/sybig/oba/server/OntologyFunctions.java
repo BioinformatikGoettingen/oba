@@ -75,7 +75,6 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
             @PathParam("cls") String searchPattern, @QueryParam("ns") String ns) {
         log.debug("searching for pattern '{}' in ontology {}",
                 searchPattern, ontology);
-        System.out.println(searchPattern + " searching in " + ontology.getOntology());
 
         String fields = null;
         if (searchPathSeg.getMatrixParameters().get("field") != null) {
@@ -94,7 +93,7 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
             result = ontology.searchCls(searchPattern, fields, max);
         }
         result = ontology.searchCls(searchPattern, fields);
-        System.out.println("results " + result);
+       
         if (result == null || result.size() < 1) {
             throw new WebApplicationException(Response.Status.NO_CONTENT);
         }
@@ -244,7 +243,7 @@ public class OntologyFunctions extends AbstractOntolgyResource implements
     @Produces("text/plain, text/html, application/json")
     public Object xdownStreamOfY(@PathParam("x") PathSegment x,
             @PathParam("y") PathSegment y, @QueryParam("ns") String ns) {
-        // url -D - -H "X-Jersey-Tracing-Accept" 'http://localhost:9998/cytomer/functions/basic/XdownstreamOfY/liver;ns=http:$$cytomer.bioinf.med.uni-goettingen.de/organ?ns=http://cytomer.bioinf.med.uni-goettingen.de'
+        // curl -D - -H "X-Jersey-Tracing-Accept" 'http://localhost:9998/cytomer/functions/basic/XdownstreamOfY/liver;ns=http:$$cytomer.bioinf.med.uni-goettingen.de/organ?ns=http://cytomer.bioinf.med.uni-goettingen.de'
         ObaClass clsX = getClassFromPathSegement(x);
         ObaClass clsY = getClassFromPathSegement(y, ns);
 //        log.info("search class {} downstream of class {}", clsX, clsY);

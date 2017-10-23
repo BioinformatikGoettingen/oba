@@ -28,17 +28,24 @@ public class TFClassFunctions extends OntologyFunctions {
     private HashMap<ObaClass, Set<ObaClass>> hasPart;
 
     @GET
-    @Path("/downstreamSpecies/{cls}")
+    @Path("/speciesDownstream/{cls}")
     @Produces(ALL_TYPES)
     public Set<ObaClass> getDownstreamSpecies(@PathParam("cls") String cls,
             @QueryParam("ns") String ns) {
         ObaClass startClass = ontology.getOntologyClass(cls, ns);
 
         Set<ObaClass> taxons = getDownstreamSpecies(startClass);
-        System.out.println("# of taxons " + taxons.size());
         return taxons;
     }
-
+ @GET
+    @Path("/generaDownstream/{cls}")
+    @Produces(ALL_TYPES)
+    public Set<ObaClass> getGeneraDownstream(@PathParam("cls") String cls,
+            @QueryParam("ns") String ns) {
+        ObaClass startClass = ontology.getOntologyClass(cls, ns);
+         Set<ObaClass> genera = getDownstreamGenera(startClass);
+        return genera;
+    }
     @GET
     @Path("/factorsForSpecies/{cls}")
     @Produces(ALL_TYPES)
@@ -68,6 +75,20 @@ public class TFClassFunctions extends OntologyFunctions {
         return taxons;
     }
 
+    private Set<ObaClass>getDownstreamGenera(ObaClass cls){
+        Set<ObaClass> genera = new HashSet<>();
+        Set<ObaClass> children = OntologyHelper.getChildren(cls);
+        if (children == null || children.size() < 1){
+            HashSet<ObaClass> self = new HashSet<>();
+            self.add(cls);
+            return self;
+        }
+        for (ObaClass child : children){
+            genera.addAll(getDownstreamGenera(child));
+        }
+        return genera;
+    }
+    
     private Set<ObaClass> getSpeciesOf(ObaClass target) {
         Set<ObaClass> parents = OntologyHelper.getParents(target);
         Set<ObaClass> taxons = new HashSet<>();

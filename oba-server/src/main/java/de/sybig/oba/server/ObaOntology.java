@@ -356,19 +356,25 @@ public class ObaOntology {
         value = cls.getIRI().getFragment();
         if (value == null) {
             value = cls.getIRI().toString().replace(cls.getIRI().getStart(), "");
+            value = removeSpecialChars(value);
         }
         doc.add(new Field(name, value, Store.NO, Index.ANALYZED));
         if (indexAnnotation != null && indexAnnotation.size() > 0) {
             for (ObaAnnotation annotation : OntologyHelper.getAnnotationProperties(cls, onto)) {
                 if (indexAnnotation.contains(annotation.getName())) {
                     name = annotation.getName();
-                    value = annotation.getValue();
+                    value = removeSpecialChars(annotation.getValue());
                     doc.add(new Field(name, value, Store.NO, Index.ANALYZED));
                 }
             }
         }
         return doc;
+    }
 
+    private String removeSpecialChars(String orig) {
+        String out = orig.replaceAll("-", "");
+        out = out.replaceAll("_", "");
+        return out;
     }
 
     /**
@@ -386,6 +392,7 @@ public class ObaOntology {
         }
         // The pattern is split by white spaces and a term should not start with a wildcard.
         searchPattern = searchPattern.replaceAll(" \\*", "\\*");
+        searchPattern = removeSpecialChars(searchPattern);
         String[] searchFields;
         List<String> fieldList = null;
         if (fields == null) {
@@ -406,7 +413,7 @@ public class ObaOntology {
                     searchFields, new StandardAnalyzer(luceneVersion));
             parser.setDefaultOperator(Operator.AND);
             Query query = parser.parse(searchPattern);
-            logger.debug("Search pattern: %s ; search query %s", searchPattern, query);
+            logger.debug("Search pattern: {} ; search query {}", searchPattern, query);
             TopDocs hits = searcher.search(query, maxResults);
             // List<Cls> outClasses = new LinkedList<Cls>();
             if (hits.totalHits > maxResults) {
