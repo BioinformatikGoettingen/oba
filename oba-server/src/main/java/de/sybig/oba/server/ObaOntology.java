@@ -275,6 +275,10 @@ public class ObaOntology {
         return allClasses;
     }
 
+    public OWLDataFactory getDataFactory() {
+        return dataFactory;
+    }
+
     protected OWLOntology getOntologyForProperty(OWLObjectProperty c) {
         if (onto.getObjectPropertiesInSignature().contains(c)) {
             return onto;

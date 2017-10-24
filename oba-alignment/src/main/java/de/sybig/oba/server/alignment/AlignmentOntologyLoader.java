@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * This class inits the alignment ontology and loads the two source
- * ontolotgies into the alignment ontology.
+ * ontologies into the alignment ontology.
  *
  * @author juergen.doenitz@bioinf.med.uni-goettingen.de
  */

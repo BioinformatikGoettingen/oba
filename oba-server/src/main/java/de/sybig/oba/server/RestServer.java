@@ -15,9 +15,9 @@ import java.util.Properties;
 import java.util.jar.Attributes;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import java.util.logging.Level;
 import javax.validation.constraints.Null;
 import org.glassfish.grizzly.http.server.HttpServer;
+import org.glassfish.jersey.filter.LoggingFilter;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.slf4j.Logger;
@@ -42,8 +42,7 @@ public class RestServer {
     /**
      * Start method of the OBA service.
      *
-     * @param args The commandline arguments
-     * @throws IOException
+     * @param args The command line arguments
      */
     public static void main(String[] args) {
         obaServer = new RestServer();
@@ -89,7 +88,8 @@ public class RestServer {
         String base = props.getProperty("base", "/");
         String baseUri = String.format("http://%s:%s%s", host, port, base);
         props.put("base_uri", baseUri);
-
+        // Log all http data
+//        rc.registerInstances(new LoggingFilter(java.util.logging.Logger.getLogger(RestServer.class.getName()), true));
         return rc;
     }
 

@@ -26,9 +26,9 @@ import org.slf4j.LoggerFactory;
 @Path("/")
 public class Root {
 
-	private Logger logger = LoggerFactory.getLogger(Root.class);
-	private OntologyHandler oh = OntologyHandler.getInstance();
-	private StorageHandler storageHandler = new StorageHandler();
+	private final Logger logger = LoggerFactory.getLogger(Root.class);
+	private final OntologyHandler oh = OntologyHandler.getInstance();
+	private final StorageHandler storageHandler = new StorageHandler();
 
 	@GET
 	@Path("/")
@@ -72,9 +72,9 @@ public class Root {
 
 	/**
 	 * Gets the OntologyResource registered for this ontology name and delegates
-	 * further actions to this subresource.
+	 * further actions to this sub-resource.
 	 * 
-	 * @return The subresource for the ontology
+	 * @return The sub-resource for the ontology
 	 */
 	@Path("{ontology}/")
 	public OntologyResource getOntologyBrowser(

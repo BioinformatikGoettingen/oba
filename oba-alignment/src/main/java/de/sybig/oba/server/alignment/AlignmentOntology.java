@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.semanticweb.owlapi.model.IRI;
+import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyID;
@@ -40,10 +41,18 @@ public class AlignmentOntology extends ObaOntology {
         System.out.println(scores.size() + " init alignment in (ms) " + (System.currentTimeMillis() - start));
     }
 
+       public ObaClass getRoot() {
+//           dataFactory
+           return new ObaClass(ontoA.getClsRoot(), ontoA.getOntology().getOntology());  //working
+//        OWLClass owlRoot = getDataFactory().getOWLThing();  // not working
+//        ObaClass root = new ObaClass(owlRoot, resultOnto);
+//        return root;
+    }
+    
     /**
      * Gets the first ontology of the alignment. The
      * {@link de.sybig.oba.server.alignment.AlignmentOntologyLoader} is
-     * responsible that both ontolgies are not <code>null</code>.
+     * responsible that both ontologies are not <code>null</code>.
      *
      * @return The first ontology.
      */
@@ -64,7 +73,7 @@ public class AlignmentOntology extends ObaOntology {
     /**
      * Gets the second ontology of the alignment. The
      * {@link de.sybig.oba.server.alignment.AlignmentOntologyLoader} is
-     * responsible that both ontolgies are not <code>null</code>.
+     * responsible that both ontologies are not <code>null</code>.
      *
      * @return The second ontology.
      */
