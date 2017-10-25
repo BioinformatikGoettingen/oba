@@ -35,7 +35,6 @@ public class OntoFunctions extends AbstractOntolgyResource implements
         int methodsLength = Methods.values().length;
         List<Object[]> table = new ArrayList<>();
         Map<ObaClass, Map<ObaClass, double[]>> scores = ((AlignmentOntology) ontology).getScores();
-        List<ObaClass> out = new ArrayList<>();
 //
         for (ObaClass clsA : scores.keySet()) {
             Map<ObaClass, double[]> map = scores.get(clsA);

@@ -1,9 +1,8 @@
 package de.sybig.oba.server.alignment;
 
-import de.sybig.oba.server.ObaClass;
+import info.debatty.java.stringsimilarity.JaroWinkler;
 import java.util.HashMap;
 import java.util.Properties;
-import jersey.repackaged.com.google.common.collect.Lists;
 
 /**
  *
@@ -13,6 +12,7 @@ public class LexCompare {
 
     private final Properties props;
     private HashMap<String, String> replacements;
+    private JaroWinkler jaroWinkler;
 
     public LexCompare(Properties properties) {
         this.props = properties;
@@ -41,9 +41,38 @@ public class LexCompare {
             labelB = labelB.replaceAll(pattern, replacement);
         }
 
+        double score = strictStringComparison(labelA, labelB);
+        if (score == 1) {
+            return score;
+        }
+        if (!containsNumber(labelA) && !containsNumber(labelB)) {
+            score = jaroWinklerDistance(labelA, labelB);
+            if (score > 0.985) {
+                return score;
+            }
+        }
+        return 0;
+    }
+
+    private double strictStringComparison(String labelA, String labelB) {
         if (labelA.equalsIgnoreCase(labelB)) {
             return 1;
         }
         return 0;
+    }
+
+    private double jaroWinklerDistance(String stringA, String stringB) {
+        return getJaroWinkler().similarity(stringA, stringB);
+    }
+
+    private JaroWinkler getJaroWinkler() {
+        if (jaroWinkler == null) {
+            jaroWinkler = new JaroWinkler();
+        }
+        return jaroWinkler;
+    }
+
+    private boolean containsNumber(String string) {
+        return string.matches(".*[0-9].*");
     }
 }

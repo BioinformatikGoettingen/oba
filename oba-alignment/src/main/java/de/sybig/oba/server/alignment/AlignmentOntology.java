@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.semanticweb.owlapi.model.IRI;
-import org.semanticweb.owlapi.model.OWLClass;
 import org.semanticweb.owlapi.model.OWLOntology;
 import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 import org.semanticweb.owlapi.model.OWLOntologyID;
@@ -124,9 +123,9 @@ public class AlignmentOntology extends ObaOntology {
     }
 
     /**
-     * Get a scores of the aligenment in a 3D matrix. The first two indicies are
+     * Get a scores of the alignment in a 3D matrix. The first two indicies are
      * the ontology classes of the two ontologies. The last level is a an array
-     * with a score for each comaprison method leading to a value != 0. The
+     * with a score for each comparison method leading to a value != 0. The
      * index for the method in the array is defined by the enum
      * {@link de.sybig.oba.server.alignment.Methods}
      *
