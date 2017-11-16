@@ -16,42 +16,44 @@ public class LexCompare {
 
     public LexCompare(Properties properties) {
         this.props = properties;
-        initReplacements();
     }
 
-    private void initReplacements() {
-        String allReplacements = props.getProperty("alignment_text_replace", "");
-        replacements = new HashMap<>();
-        for (String replacement : allReplacements.split(";")) {
-            String[] parts = replacement.split(":");
-            replacements.put(parts[0], parts[1]);
+    private HashMap<String, String> getReplacements() {
+        if (replacements == null) {
+            String allReplacements = props.getProperty("alignment_text_replace", "");
+            replacements = new HashMap<>();
+            for (String replacement : allReplacements.split(";")) {
+                String[] parts = replacement.split(":");
+                replacements.put(parts[0], parts[1]);
 //            System.out.println(parts[0]+" will be replaced by -" +parts[1] + "-");
+            }
         }
+        return replacements;
     }
 
-    public double compareLabels(String labelA, String labelB) {
+    public ScoreWithSource compareLabels(String labelA, String labelB) {
 
         if (labelA == null || labelB == null) {
-            return 0;
+            return new ScoreWithSource(0);
         }
         String replacement;
-        for (String pattern : replacements.keySet()) {
-            replacement = replacements.get(pattern);
+        for (String pattern : getReplacements().keySet()) {
+            replacement = getReplacements().get(pattern);
             labelA = labelA.replaceAll(pattern, replacement);
             labelB = labelB.replaceAll(pattern, replacement);
         }
 
         double score = strictStringComparison(labelA, labelB);
         if (score == 1) {
-            return score;
+            return new ScoreWithSource(1, Methods.LABEL_EQUAL);
         }
         if (!containsNumber(labelA) && !containsNumber(labelB)) {
             score = jaroWinklerDistance(labelA, labelB);
             if (score > 0.985) {
-                return score;
+                return new ScoreWithSource(score, Methods.LABEL_WINKLER);
             }
         }
-        return 0;
+        return new ScoreWithSource(0);
     }
 
     private double strictStringComparison(String labelA, String labelB) {

@@ -6,6 +6,7 @@ import de.sybig.oba.server.OntologyFunction;
 import de.sybig.oba.server.alignment.AlignmentOntology;
 import de.sybig.oba.server.alignment.Methods;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -33,18 +34,26 @@ public class OntoFunctions extends AbstractOntolgyResource implements
     @Produces({"text/plain", "text/html"})
     public List<Object[]> getAllScores() {
         int methodsLength = Methods.values().length;
+        System.out.println("methods " + Arrays.asList(Methods.values()));
         List<Object[]> table = new ArrayList<>();
+        Object[] header = new Object[2 + methodsLength+1];
+        header[0] = "# Cls A";
+        header[1] = "Cls B";
+        for (int i = 0; i < methodsLength ; i++) {
+            header[2 + i] = Methods.values()[i];
+        }
+        table.add(header);
         Map<ObaClass, Map<ObaClass, double[]>> scores = ((AlignmentOntology) ontology).getScores();
 //
         for (ObaClass clsA : scores.keySet()) {
             Map<ObaClass, double[]> map = scores.get(clsA);
-            Object[] row = new Object[2 + methodsLength];
+            Object[] row = new Object[2 + methodsLength +1];
             table.add(row);
             for (ObaClass clsB : map.keySet()) {
 
                 row[0] = clsA;
                 row[1] = clsB;
-                for (int i = 0; i < methodsLength - 1; i++) {
+                for (int i = 0; i < methodsLength ; i++) {
                     row[2 + i] = map.get(clsB)[i];
                 }
             }

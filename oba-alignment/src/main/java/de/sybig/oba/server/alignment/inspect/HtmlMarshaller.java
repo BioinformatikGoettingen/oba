@@ -45,8 +45,7 @@ public class HtmlMarshaller extends TableMarshaller {
                     OWLClass cls = (OWLClass) cell;
                     String label = getLabel(cell);
                     if (label != null) {
-                        String ontology = getOntologyIdentifier(cls);
-                        System.out.println("onto " + ontology);
+                        String ontology = getOntologyIdentifier(cls);                   
                         sb.append("<td><a href=\"../../../").append(ontology).append("/cls/").append(cls.getIRI().getFragment()).append("\">")
                                 .append(label).append("</a></td>");
                     }

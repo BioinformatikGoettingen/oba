@@ -96,11 +96,11 @@ public class AlignmentOntology extends ObaOntology {
 
     private void compareLabels(ObaClass clsA, ObaClass clsB) {
 
-        double score = lexCompare.compareLabels(
+        ScoreWithSource score = lexCompare.compareLabels(
                 getLabel(clsA, ontoA.getOntology().getOntology()),
                 getLabel(clsB, ontoB.getOntology().getOntology()));
-        if (score > 0) {
-            safeScore(Methods.LABEL_EQUAL.getPosition(), clsA, clsB, score);
+        if (score.getScore() > 0) {
+            safeScore(score.getSource().getPosition(), clsA, clsB, score.getScore());
         }
     }
 
@@ -113,7 +113,7 @@ public class AlignmentOntology extends ObaOntology {
         }
         Map<ObaClass, double[]> map1 = scores.get(clsA);
         if (!map1.containsKey(clsB)) {
-            map1.put(clsB, new double[1]);
+            map1.put(clsB, new double[Methods.values().length]);
         }
         map1.get(clsB)[method] = score;
     }
