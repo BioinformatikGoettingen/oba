@@ -45,19 +45,19 @@ public class Aligner {
         List<ObaClass> classesA = ontoA.getClasses();
         //Arrays.asList(terms).parallelStream().forEach(a -> classesA.parallelStream().forEach(b -> compareTerms(a, b)));
         Map<String, Map<ObaClass, List<ScoreWithSource>>> result = new HashMap<>();
-        for (String t : terms){
-            for (ObaClass c : classesA){
-                
+        for (String t : terms) {
+            for (ObaClass c : classesA) {
+
                 ScoreWithSource scores = compareTerms(t, c);
-                if (scores.getScore() == 0){
+                if (scores.getScore() == 0) {
                     continue;
                 }
-                System.out.println(t + " &  " + c +" -> " + scores.getScore());
-                if (! result.containsKey(t)){
+                //System.out.println(t + " &  " + c +" -> " + scores.getScore());
+                if (!result.containsKey(t)) {
                     result.put(t, new HashMap<ObaClass, List<ScoreWithSource>>());
                 }
                 Map<ObaClass, List<ScoreWithSource>> termMap = result.get(t);
-                if (!termMap.containsKey(c)){
+                if (!termMap.containsKey(c)) {
                     termMap.put(c, new ArrayList<ScoreWithSource>());
                 }
                 termMap.get(c).add(scores);

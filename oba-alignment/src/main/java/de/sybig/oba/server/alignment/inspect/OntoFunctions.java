@@ -8,7 +8,6 @@ import de.sybig.oba.server.alignment.AlignmentOntology;
 import de.sybig.oba.server.alignment.Methods;
 import de.sybig.oba.server.alignment.ScoreWithSource;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -87,14 +86,32 @@ public class OntoFunctions extends AbstractOntolgyResource implements
     @POST
     @Consumes(MediaType.TEXT_PLAIN)
     @Path("map")
-    public Map<String, Map<ObaClass, List<ScoreWithSource>>> mapTermList(final String input){
-        System.out.println("onto " + this.ontology);
-        System.out.println("input  " + input);
-        
+    public List<Object[]> mapTermList(final String input){
         
         Aligner aligner = new Aligner(getProps(), ontology);
-        Map<String, Map<ObaClass, List<ScoreWithSource>>> result = aligner.mapTermsToOntology(input.split("\\s*\\r?\\n\\s*"));
-        return result;
+        Map<String, Map<ObaClass, List<ScoreWithSource>>> scores = aligner.mapTermsToOntology(input.split("\\s*\\r?\\n\\s*"));
+        
+        List<Object[]> table = new ArrayList<>();
+        for (String term : scores.keySet()){
+            Object[] row = new Object[4];
+            row[0] = term;
+            ObaClass cls = null;
+            ScoreWithSource score = new ScoreWithSource(0);
+            for (ObaClass c : scores.get(term).keySet()){
+                List<ScoreWithSource> s = scores.get(term).get(c);
+               for (ScoreWithSource currentScore : s){
+                   if (currentScore.getScore() > score.getScore()){
+                       cls = c;
+                       score = currentScore;
+                   }
+               }
+            }
+            row[1] = cls;
+            row[2] = score.getScore();
+            table.add(row);
+        }
+        
+        return table;
     }
     
     private Properties getProps(){
