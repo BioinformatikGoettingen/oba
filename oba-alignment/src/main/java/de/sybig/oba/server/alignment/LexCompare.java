@@ -3,6 +3,8 @@ package de.sybig.oba.server.alignment;
 import info.debatty.java.stringsimilarity.JaroWinkler;
 import java.util.HashMap;
 import java.util.Properties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -13,6 +15,7 @@ public class LexCompare {
     private final Properties props;
     private HashMap<String, String> replacements;
     private JaroWinkler jaroWinkler;
+    private final static Logger log = LoggerFactory.getLogger(LexCompare.class);
 
     public LexCompare(Properties properties) {
         this.props = properties;
@@ -20,12 +23,19 @@ public class LexCompare {
 
     private HashMap<String, String> getReplacements() {
         if (replacements == null) {
-            String allReplacements = props.getProperty("alignment_text_replace", "");
+            String allReplacements;
+            if (props != null) {
+                allReplacements = props.getProperty("alignment_text_replace", "");
+            } else {
+                allReplacements = "";
+                log.error("Can not get list of string replacements for string comparison, because properties are null.");
+            }
             replacements = new HashMap<>();
-            for (String replacement : allReplacements.split(";")) {
-                String[] parts = replacement.split(":");
-                replacements.put(parts[0], parts[1]);
-//            System.out.println(parts[0]+" will be replaced by -" +parts[1] + "-");
+            if (allReplacements.contains(":")) {
+                for (String replacement : allReplacements.split(";")) {
+                    String[] parts = replacement.split(":");
+                    replacements.put(parts[0], parts[1]);
+                }
             }
         }
         return replacements;
@@ -42,7 +52,6 @@ public class LexCompare {
             labelA = labelA.replaceAll(pattern, replacement);
             labelB = labelB.replaceAll(pattern, replacement);
         }
-
         double score = strictStringComparison(labelA, labelB);
         if (score == 1) {
             return new ScoreWithSource(1, Methods.LABEL_EQUAL);

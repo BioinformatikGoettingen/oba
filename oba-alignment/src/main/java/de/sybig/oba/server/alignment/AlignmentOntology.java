@@ -25,7 +25,7 @@ public class AlignmentOntology extends ObaOntology {
     private OntologyResource ontoB;
     private OWLOntology resultOnto;
     private Map<ObaClass, Map<ObaClass, double[]>> scores = new HashMap<>();
-    private LexCompare lexCompare;
+    private Aligner aligner;
 
     @Override
     public void init() throws OWLOntologyCreationException {
@@ -33,8 +33,7 @@ public class AlignmentOntology extends ObaOntology {
         List<ObaClass> classesA = ontoA.getOntology().getClasses();
         List<ObaClass> classesB = ontoB.getOntology().getClasses();
         resultOnto = new OWLOntologyImpl(new OWLOntologyManagerImpl(new OWLDataFactoryImpl()), new OWLOntologyID(IRI.create("alignment")));
-        lexCompare = new LexCompare(getProperties());
-
+        aligner = new Aligner(getProperties(), ontoA.getOntology(), ontoB.getOntology());
         classesA.parallelStream().forEach(a -> classesB.parallelStream().forEach(b -> compareClasses(a, b)));
 
         System.out.println(scores.size() + " init alignment in (ms) " + (System.currentTimeMillis() - start));
@@ -91,18 +90,13 @@ public class AlignmentOntology extends ObaOntology {
     }
 
     private void compareClasses(ObaClass clsA, ObaClass clsB) {
-        compareLabels(clsA, clsB);
-    }
-
-    private void compareLabels(ObaClass clsA, ObaClass clsB) {
-
-        ScoreWithSource score = lexCompare.compareLabels(
-                getLabel(clsA, ontoA.getOntology().getOntology()),
-                getLabel(clsB, ontoB.getOntology().getOntology()));
-        if (score.getScore() > 0) {
+        ScoreWithSource score = aligner.compareLabels(clsA, clsB);
+         if (score.getScore() > 0) {
             safeScore(score.getSource().getPosition(), clsA, clsB, score.getScore());
         }
     }
+
+    
 
     private synchronized void safeScore(int method,
             ObaClass clsA, ObaClass clsB,
@@ -118,9 +112,7 @@ public class AlignmentOntology extends ObaOntology {
         map1.get(clsB)[method] = score;
     }
 
-    private String getLabel(ObaClass clsA, OWLOntology ontology) {
-        return OntologyHelper.getAnnotation(clsA, ontology, "label");
-    }
+   
 
     /**
      * Get a scores of the alignment in a 3D matrix. The first two indicies are
