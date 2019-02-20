@@ -52,6 +52,8 @@ public class LexCompare {
             labelA = labelA.replaceAll(pattern, replacement);
             labelB = labelB.replaceAll(pattern, replacement);
         }
+        labelA = labelA.toLowerCase();
+        labelB = labelB.toLowerCase();
         double score = strictStringComparison(labelA, labelB);
         if (score == 1) {
             return new ScoreWithSource(1, Methods.LABEL_EQUAL);

@@ -3,9 +3,8 @@ package de.sybig.oba.server.alignment;
 import de.sybig.oba.server.ObaClass;
 import de.sybig.oba.server.ObaOntology;
 import de.sybig.oba.server.OntologyHelper;
-import de.sybig.oba.server.OntologyResource;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,11 +33,18 @@ public class Aligner {
     }
 
     public ScoreWithSource compareLabels(ObaClass clsA, ObaClass clsB) {
-
-        ScoreWithSource score = lexCompare.compareLabels(
-                getLabel(clsA, ontoA.getOntology()),
-                getLabel(clsB, ontoB.getOntology()));
-        return score;
+        ScoreWithSource bestScore = new ScoreWithSource(0);
+        Collection<String> labelsA = getLabels(clsA, ontoA.getOntology());
+        Collection<String> labelsB = getLabels(clsB, ontoA.getOntology());
+        for (String labelA : labelsA) {
+            for (String labelB : labelsB) {
+                ScoreWithSource score = lexCompare.compareLabels(labelA, labelB);
+                if (score.getScore() > bestScore.getScore()) {
+                    bestScore = score;
+                }
+            }
+        }
+        return bestScore;
     }
 
     public Map<String, Map<ObaClass, List<ScoreWithSource>>> mapTermsToOntology(String[] terms) {
@@ -66,13 +72,19 @@ public class Aligner {
         return result;
     }
 
-    private String getLabel(ObaClass clsA, OWLOntology ontology) {
-        return OntologyHelper.getAnnotation(clsA, ontology, "label");
+    private Collection<String> getLabels(ObaClass clsA, OWLOntology ontology) {
+        return OntologyHelper.getAnnotations(clsA, ontology, "label");
     }
 
     private ScoreWithSource compareTerms(String term, ObaClass a) {
-        ScoreWithSource score = lexCompare.compareLabels(
-                term, getLabel(a, ontoA.getOntology()));
-        return score;
+        ScoreWithSource bestScore = new ScoreWithSource(0);
+        for (String label : getLabels(a, ontoA.getOntology())) {
+            ScoreWithSource score = lexCompare.compareLabels(
+                    term, label);
+            if (score.getScore() > bestScore.getScore()) {
+                bestScore = score;
+            }
+        }
+        return bestScore;
     }
 }

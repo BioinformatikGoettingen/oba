@@ -61,6 +61,7 @@ public class ObaOntology {
     private final Logger logger = LoggerFactory.getLogger(ObaOntology.class);
     private List<String> indexAnnotations;
     private final String OBSOLTE = "is_obsolete";
+    private final String DEPRECATED = "deprecated";
     private List<ObaClass> allClasses;
 
     public void setOwlURI(IRI uri) {
@@ -180,16 +181,30 @@ public class ObaOntology {
         if (namespace.endsWith("#")) {
             namespace = namespace.substring(0, namespace.length() - 1);
         }
+        IRI queryIri = getIri(namespace, cls);
+        OWLClass c = getExistingClassFromFactory(queryIri);
+        if (c == null){
+            if (! namespace.endsWith("/")){
+                namespace = namespace +"/";
+            }
+            queryIri = getIri(namespace, cls, false);
+            c  = getExistingClassFromFactory(queryIri);
+        }
+        if (c == null){
+            return null;
+        }
+        return new ObaClass(c, onto);
+    }
 
-        OWLClass c = dataFactory.getOWLClass(getIri(namespace, cls));
-
+    private OWLClass getExistingClassFromFactory(IRI queryIri) {
+        OWLClass c = dataFactory.getOWLClass(queryIri);
         if (getOntologyForClass(c) == null && !c.isOWLThing()) {
             // if the class is not in the ontology dataFactory.getOWLClass will
             // return a new class. So we check if the returned class is part of
             // the ontology.
             return null;
         }
-        return new ObaClass(c, onto);
+        return c;
     }
 
     /**
@@ -287,7 +302,14 @@ public class ObaOntology {
     }
 
     private IRI getIri(String ns, String name) {
-        return IRI.create(String.format("%s#%s", ns, name));
+        return getIri(ns, name, true);
+    }
+
+    private IRI getIri(String ns, String name, boolean withFragment) {
+        if (withFragment) {
+            return IRI.create(String.format("%s#%s", ns, name));
+        }
+        return IRI.create(String.format("%s%s", ns, name));
     }
 
     /**
@@ -318,7 +340,8 @@ public class ObaOntology {
                 if (cls.getSuperClasses(ontology) == null
                         || cls.getSuperClasses(ontology).size() < 1) {
                     for (ObaAnnotation annotation : OntologyHelper.getAnnotationProperties(cls, onto)) {
-                        if (annotation.getName().equals(OBSOLTE)
+                        if (annotation.getName() != null
+                                && (annotation.getName().equals(OBSOLTE) || annotation.getName().equals(DEPRECATED))
                                 && annotation.getValue().equals("true")) {
                             obsoleteClasses.add(new ObaClass(cls, ontology));
                             continue clsLoop;

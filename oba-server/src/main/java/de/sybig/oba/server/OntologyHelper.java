@@ -128,6 +128,19 @@ public class OntologyHelper {
         }
         return null;
     }
+    public static Collection<String> getAnnotations(final OWLEntity cls, final OWLOntology ontology, final String name) {
+        Collection<String>  labels = new HashSet<String>();
+        Set<OWLAnnotation> attribs = cls.getAnnotations(ontology);
+        for (OWLAnnotation a : attribs) {
+            OWLAnnotationValue value = a.getValue();
+            if (value instanceof OWLLiteralImpl) {
+                if (a.getProperty().getIRI().getFragment().equals(name)) {
+                    labels.add(createObaAnnotation(a).getValue());
+                }
+            }
+        }
+        return labels;
+    }
 
     private static ObaAnnotation createObaAnnotation(OWLAnnotation a) {
         OWLAnnotationValue value = a.getValue();

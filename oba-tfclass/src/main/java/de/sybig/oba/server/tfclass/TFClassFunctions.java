@@ -12,7 +12,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
 
 /**
  *
@@ -37,15 +36,57 @@ public class TFClassFunctions extends OntologyFunctions {
         Set<ObaClass> taxons = getDownstreamSpecies(startClass);
         return taxons;
     }
- @GET
+
+    @GET
+    @Path("superclassesDownstream/{cls}")
+    @Produces(ALL_TYPES)
+    public Set<ObaClass> getSuberclassesDownstream(@PathParam("cls") String cls,
+            @QueryParam("ns") String ns) {
+        ObaClass startClass = ontology.getOntologyClass(cls, ns);
+        Set<ObaClass> classes = getDownstreamOfType(startClass, "Superclass");
+        return classes;
+    }
+
+    @GET
+    @Path("classesDownstream/{cls}")
+    @Produces(ALL_TYPES)
+    public Set<ObaClass> getClassesDownstream(@PathParam("cls") String cls,
+            @QueryParam("ns") String ns) {
+        ObaClass startClass = ontology.getOntologyClass(cls, ns);
+        Set<ObaClass> classes = getDownstreamOfType(startClass, "Class");
+        return classes;
+    }
+
+    @GET
+    @Path("familiesDownstream/{cls}")
+    @Produces(ALL_TYPES)
+    public Set<ObaClass> getFamiliesDownstream(@PathParam("cls") String cls,
+            @QueryParam("ns") String ns) {
+        ObaClass startClass = ontology.getOntologyClass(cls, ns);
+        Set<ObaClass> classes = getDownstreamOfType(startClass, "Family");
+        return classes;
+    }
+
+    @GET
+    @Path("subfamiliesDownstream/{cls}")
+    @Produces(ALL_TYPES)
+    public Set<ObaClass> getSubfamiliesDownstream(@PathParam("cls") String cls,
+            @QueryParam("ns") String ns) {
+        ObaClass startClass = ontology.getOntologyClass(cls, ns);
+        Set<ObaClass> classes = getDownstreamOfType(startClass, "Subfamily");
+        return classes;
+    }
+
+    @GET
     @Path("/generaDownstream/{cls}")
     @Produces(ALL_TYPES)
     public Set<ObaClass> getGeneraDownstream(@PathParam("cls") String cls,
             @QueryParam("ns") String ns) {
         ObaClass startClass = ontology.getOntologyClass(cls, ns);
-         Set<ObaClass> genera = getDownstreamGenera(startClass);
+        Set<ObaClass> genera = getDownstreamGenera(startClass);
         return genera;
     }
+
     @GET
     @Path("/factorsForSpecies/{cls}")
     @Produces(ALL_TYPES)
@@ -75,20 +116,34 @@ public class TFClassFunctions extends OntologyFunctions {
         return taxons;
     }
 
-    private Set<ObaClass>getDownstreamGenera(ObaClass cls){
+    private Set<ObaClass> getDownstreamGenera(ObaClass cls) {
         Set<ObaClass> genera = new HashSet<>();
         Set<ObaClass> children = OntologyHelper.getChildren(cls);
-        if (children == null || children.size() < 1){
+        if (children == null || children.size() < 1) {
             HashSet<ObaClass> self = new HashSet<>();
             self.add(cls);
             return self;
         }
-        for (ObaClass child : children){
+        for (ObaClass child : children) {
             genera.addAll(getDownstreamGenera(child));
         }
         return genera;
     }
-    
+
+    private Set<ObaClass> getDownstreamOfType(ObaClass cls, final String level) {
+
+        Set<ObaClass> resultClasses = new HashSet<>();
+        String currentLevel = OntologyHelper.getAnnotation(cls, ontology.getOntology(), "level");
+        if (level.equals(currentLevel)) {
+            resultClasses.add(cls);
+            return resultClasses;
+        }
+        for (ObaClass child : OntologyHelper.getChildren(cls)) {
+            resultClasses.addAll(getDownstreamOfType(child, level));
+        }
+        return resultClasses;
+    }
+
     private Set<ObaClass> getSpeciesOf(ObaClass target) {
         Set<ObaClass> parents = OntologyHelper.getParents(target);
         Set<ObaClass> taxons = new HashSet<>();
