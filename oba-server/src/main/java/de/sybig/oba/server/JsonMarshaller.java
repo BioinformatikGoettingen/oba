@@ -302,6 +302,7 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
         if (!httpHeader.containsKey("Cache-Control")) {
             httpHeader.add("Cache-Control", String.format(
                     "public,max-age=%d,s-maxage=%d", CACHE_TIME, CACHE_TIME));
+            httpHeader.add("Access-Control-Allow-Origin", "*");
         }
     }
 }
