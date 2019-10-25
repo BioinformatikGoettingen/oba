@@ -41,8 +41,8 @@ public abstract class OntoMarshaller implements MessageBodyWriter<Object> {
             throws IOException, WebApplicationException {
 
         setCachControle(httpHeader);
-        if (arg0 instanceof OWLClass) {
-            os.write(convertCls((OWLClass) arg0, arg3).getBytes());
+        if (arg0 instanceof ObaClass) { // If we have more subclasses from OWLClass, we have to add them here and below for list and map
+            os.write(convertCls((ObaClass) arg0, arg3).getBytes());
         } else if (arg0 instanceof OWLNamedIndividual) {
             os.write(convertIndividual((OWLNamedIndividual) arg0, arg3)
                     .getBytes());
@@ -54,8 +54,8 @@ public abstract class OntoMarshaller implements MessageBodyWriter<Object> {
                 return;
             }
             Object first = ((Collection) arg0).iterator().next();
-            if (first instanceof OWLClass) {
-                Collection<OWLClass> set = (Collection<OWLClass>) arg0;
+            if (first instanceof ObaClass) {
+                Collection<ObaClass> set = (Collection<ObaClass>) arg0;
                 os.write(listCls(set, arg3).getBytes());
             } else if (first instanceof OWLObjectProperty) {
                 Collection<OWLObjectProperty> set = (Collection<OWLObjectProperty>) arg0;
@@ -65,7 +65,7 @@ public abstract class OntoMarshaller implements MessageBodyWriter<Object> {
                 os.write(listList(set, arg3).getBytes());
             }
         } else if (arg0 instanceof Map) {
-            Map<OWLClass, Collection> map = (Map<OWLClass, Collection>) arg0;
+            Map<ObaClass, Collection> map = (Map<ObaClass, Collection>) arg0;
             os.write(listMap(map, arg3).getBytes());
         }
     }
@@ -83,7 +83,7 @@ public abstract class OntoMarshaller implements MessageBodyWriter<Object> {
                         || c.equals(OWLObjectProperty.class)) {
                     return true;
                 } else if (c.equals(Set.class) || c.equals(List.class)) {
-          
+                  ;
                     if (arg1 instanceof ParameterizedType) {
                         ParameterizedType t = (ParameterizedType) arg1;
                         if (t.getActualTypeArguments()[0].equals(ObaClass.class)
@@ -93,7 +93,9 @@ public abstract class OntoMarshaller implements MessageBodyWriter<Object> {
                         }
                     } else if (arg1 instanceof Class) {
                         // 2 dimensional list
-                        if (arg1.equals(LinkedList.class)) {
+                            // the condiditon below was arg0, changed it to arg0 for the example
+                            // http://localhost:9998/go/functions/basic/XdownstreamOfY/GO_0060076;ns=http:$$purl.obolibrary.org$obo$/GO_0005575?ns=http://purl.obolibrary.org/obo/
+                        if (arg0.equals(LinkedList.class)) {
                             //TODO how to get the type of the second list?
                             return true;
                         }
@@ -108,8 +110,8 @@ public abstract class OntoMarshaller implements MessageBodyWriter<Object> {
                             && ((ParameterizedType) arg1).getActualTypeArguments()[1].toString().equals("java.util.List<org.semanticweb.owlapi.model.OWLClass>")) {
                         //TODO make better
                         return true;
-                    }
-                    return false ;
+                    }                  
+                    return false;
                 }
             }
             type = type.getSuperclass();
@@ -128,7 +130,7 @@ public abstract class OntoMarshaller implements MessageBodyWriter<Object> {
         return OntologyHelper.getOntology(cls);
     }
 
-    protected abstract String convertCls(OWLClass c, Annotation[] arg3);
+    protected abstract String convertCls(ObaClass c, Annotation[] arg3);
 
     // protected abstract String convertIndividual(OWLIndividual c, Annotation[]
     // arg3);
@@ -139,7 +141,7 @@ public abstract class OntoMarshaller implements MessageBodyWriter<Object> {
     protected abstract String convertProperty(OWLObjectProperty r,
             Annotation[] arg3);
 
-    protected abstract String listCls(Collection<OWLClass> c, Annotation[] arg3);
+    protected abstract String listCls(Collection<ObaClass> c, Annotation[] arg3);
 
     protected abstract String listProperties(
             Collection<OWLObjectProperty> list, Annotation[] arg3);
@@ -147,7 +149,7 @@ public abstract class OntoMarshaller implements MessageBodyWriter<Object> {
     protected abstract String listList(Collection<Collection> list,
             Annotation[] arg3);
 
-    protected abstract String listMap(Map<OWLClass, Collection> map,
+    protected abstract String listMap(Map<ObaClass, Collection> map,
             Annotation[] annotations);
 
     /**
