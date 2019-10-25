@@ -40,7 +40,7 @@ public class HtmlMarshaller extends OntoMarshaller {
 	}
 
 	@Override
-	protected String listCls(Collection<OWLClass> cls, Annotation[] annotations) {
+	protected String listCls(Collection<ObaClass> cls, Annotation[] annotations) {
 		StringBuffer out = new StringBuffer();
 		String htmlBase = getHtmlBase(annotations);
 		out.append("<ul>");
@@ -73,7 +73,7 @@ public class HtmlMarshaller extends OntoMarshaller {
 		StringBuffer out = new StringBuffer();
 		out.append("<ul class=\"superLevel\">");
 
-		for (Collection<OWLClass> subList : list) {
+		for (Collection<ObaClass> subList : list) {
 			out.append("<li></li>");
 			out.append(listCls(subList, arg3));
 		}
@@ -82,7 +82,7 @@ public class HtmlMarshaller extends OntoMarshaller {
 	}
 
 	@Override
-	protected String listMap(Map<OWLClass, Collection> map,
+	protected String listMap(Map<ObaClass, Collection> map,
 			Annotation[] annotations) {
 		StringBuffer out = new StringBuffer();
 		out.append("<ul class=\"superLevel\">");
@@ -96,7 +96,7 @@ public class HtmlMarshaller extends OntoMarshaller {
 	}
 
 	@Override
-	protected String convertCls(OWLClass cls, Annotation[] annotations) {
+	protected String convertCls(ObaClass cls, Annotation[] annotations) {
 		// String htmlBase = getHtmlBase(annotations);
 		OWLOntology ontology = getOntology(cls);
 		StringBuffer out = new StringBuffer("<html><head></head><body>");
