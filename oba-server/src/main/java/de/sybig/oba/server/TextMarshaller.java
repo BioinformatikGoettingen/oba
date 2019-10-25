@@ -25,7 +25,7 @@ public class TextMarshaller extends OntoMarshaller {
 	private Logger logger = LoggerFactory.getLogger(OntoMarshaller.class);
 
 	@Override
-	protected String listCls(Collection<OWLClass> cls, Annotation[] annotations) {
+	protected String listCls(Collection<ObaClass> cls, Annotation[] annotations) {
 		StringBuffer out = new StringBuffer();
 		for (OWLClass c : cls) {
 			out.append(c.getIRI() + "\n");
@@ -57,7 +57,7 @@ public class TextMarshaller extends OntoMarshaller {
 	}
 
 	@Override
-	protected String listMap(Map<OWLClass, Collection> map,
+	protected String listMap(Map<ObaClass, Collection> map,
 			Annotation[] annotations) {
 		StringBuffer out = new StringBuffer();
 		for (OWLClass cls : map.keySet()) {
@@ -71,7 +71,7 @@ public class TextMarshaller extends OntoMarshaller {
 		return out.toString();
 	}
 
-	protected String convertCls(OWLClass cls, Annotation[] annotations) {
+	protected String convertCls(ObaClass cls, Annotation[] annotations) {
 
 		OWLOntology ontology = getOntology(cls);
 		String namespace = cls.getIRI().getStart();
