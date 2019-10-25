@@ -103,8 +103,8 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
             MediaType arg4, MultivaluedMap httpHeader, OutputStream os)
             throws IOException, WebApplicationException {
         setCachControle(httpHeader);
-        if (arg0 instanceof OWLClass || arg0 instanceof ObaClass) {
-            OWLClass c = (OWLClass) arg0;
+        if (arg0 instanceof ObaClass || arg0 instanceof ObaClass) {
+            ObaClass c = (ObaClass) arg0;
             JsonCls oc = copyCls(c, true);
             marshallObject(oc, JsonCls.class, os);
         } else if (arg0 instanceof OWLObjectProperty) {
@@ -118,8 +118,8 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
             }
             Object first = set.iterator().next();
 
-            if (first instanceof OWLClass) {
-                JsonClsList outList = copyClsList((Collection<OWLClass>) set);
+            if (first instanceof ObaClass) {
+                JsonClsList outList = copyClsList((Collection<ObaClass>) set);
                 outList.setRawEntities(null); // otherwise the list is
                 // duplicated
                 marshallObject(outList, JsonClsList.class, os);
@@ -127,22 +127,22 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
                 JsonPropertyList outList = copyPropertyList((Collection<OWLObjectProperty>) set);
                 marshallObject(outList, JsonPropertyList.class, os);
             } else if (first instanceof Collection) {
-                Json2DClsList outList = copy2DClsList((Collection<Collection<OWLClass>>) set);
+                Json2DClsList outList = copy2DClsList((Collection<Collection<ObaClass>>) set);
                 outList.setRawEntities(null);
                 marshallObject(outList, Json2DClsList.class, os);
             }
 
         } else if (arg0 instanceof Map) {
-            Map<OWLClass, Collection<OWLClass>> map = (Map<OWLClass, Collection<OWLClass>>) arg0;
+            Map<ObaClass, Collection<ObaClass>> map = (Map<ObaClass, Collection<ObaClass>>) arg0;
             if (map.size() < 1) {
                 return;
             }
             Json2DClsList outList = new Json2DClsList();
 
-            for (OWLClass key : map.keySet()) {
+            for (ObaClass key : map.keySet()) {
                 JsonClsList innerList = new JsonClsList();
                 innerList.add(copyCls(key, false));
-                for (OWLClass value : map.get(key)) {
+                for (ObaClass value : map.get(key)) {
                     innerList.add(copyCls(value, false));
                 }
                 innerList.setRawEntities(null); // otherwise the list is
@@ -187,7 +187,7 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
         }
     }
 
-    private JsonCls copyCls(OWLClass c, boolean fillcomplete) {
+    private JsonCls copyCls(ObaClass c, boolean fillcomplete) {
         JsonCls out = new JsonCls();
         out.setShell(!fillcomplete);
         out.setName(c.getIRI().getFragment());
@@ -201,14 +201,14 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
         }
 
         Collection<ObaClass> parents = OntologyHelper.getParents(c, ontology);
-        for (OWLClass p : parents) {
+        for (ObaClass p : parents) {
             out.addParent(copyCls(p, false));
         }
 
         Set<ObaClass> children = OntologyHelper.getChildren(c, ontology);
         // init list, so that we have at least an empty list, not null
         out.setChildren(new HashSet<JsonCls>());
-        for (OWLClass child : children) {
+        for (ObaClass child : children) {
             out.addChild(copyCls(child, false));
         }
 
@@ -226,18 +226,18 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
         return out;
     }
 
-    private JsonClsList copyClsList(Collection<OWLClass> list) {
+    private JsonClsList copyClsList(Collection<ObaClass> list) {
         JsonClsList outList = new JsonClsList();
 
-        for (OWLClass cls : list) {
+        for (ObaClass cls : list) {
             outList.add(copyCls(cls, true));
         }
         return outList;
     }
 
-    private Json2DClsList copy2DClsList(Collection<Collection<OWLClass>> list) {
+    private Json2DClsList copy2DClsList(Collection<Collection<ObaClass>> list) {
         Json2DClsList outList = new Json2DClsList();
-        for (Collection<OWLClass> l : list) {
+        for (Collection<ObaClass> l : list) {
             outList.add(copyClsList(l));
         }
         return outList;
