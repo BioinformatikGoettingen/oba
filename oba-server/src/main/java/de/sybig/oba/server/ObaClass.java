@@ -1,5 +1,6 @@
 package de.sybig.oba.server;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import org.semanticweb.owlapi.model.ClassExpressionType;
@@ -38,6 +39,7 @@ public class ObaClass implements OWLClass {
 
     private OWLClass real;
     private OWLOntology onto;
+    private Set<ObaAnnotation> transientAnnotations;
 
     /**
      * Creates an ObaClass based on the given OWLClass and ontology.
@@ -73,6 +75,25 @@ public class ObaClass implements OWLClass {
 
     protected final void setOntology(OWLOntology ontology) {
         this.onto = ontology;
+    }
+    /**
+     * Creating the list
+     * @return transientAnnotation allows user to add information for the output
+     * which is not from the ontology and not stored at the end
+     */
+    public Set<ObaAnnotation> getTransientAnnotation() {
+        return transientAnnotations;
+    }
+    
+    public void setTransientAnnotation(Set<ObaAnnotation> annotations) {
+        this.transientAnnotations = annotations;
+    }
+    
+    public void addTransientAnnotation (ObaAnnotation annotations) {
+        if (transientAnnotations == null) {
+             transientAnnotations = new HashSet();
+        }
+        transientAnnotations.add(annotations);
     }
 
     @Override
