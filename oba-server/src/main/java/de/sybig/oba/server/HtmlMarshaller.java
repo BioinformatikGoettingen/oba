@@ -88,7 +88,7 @@ public class HtmlMarshaller extends OntoMarshaller {
 		out.append("<ul class=\"superLevel\">");
 
 		for (OWLClass cls : map.keySet()) {
-			out.append(String.format("<li>%s</li>", cls.getIRI().getFragment()));
+			out.append(String.format("<li>%s</li>", getHtmlLink(cls.getIRI())));
 			out.append(listCls(map.get(cls), annotations));
 		}
 		out.append("</ul>");
@@ -106,7 +106,7 @@ public class HtmlMarshaller extends OntoMarshaller {
 		// Attributes
 
 		printAnnotations(out, cls, ontology);
-
+                
 		// parents
 		out.append("<h2>Parents</h2>\n<ul>");
 		for (OWLClass p : getParents(cls, ontology)) {
@@ -128,7 +128,7 @@ public class HtmlMarshaller extends OntoMarshaller {
 				cls, ontology);
 		for (ObaObjectPropertyExpression p : properties) {
 			out.append(String
-					.format("<dt><a href=\"../property/%s?ns=%s\">%s</a></dt><dd>%s</dd>\n",
+					.format("<dt><a href=\"../objectProperty/%s?ns=%s\">%s</a></dt><dd>%s</dd>\n",
 							p.getRestriction().getIRI().getFragment(), p
 									.getRestriction().getIRI().getStart(), p
 									.getRestriction().getIRI().getFragment(),
@@ -149,7 +149,7 @@ public class HtmlMarshaller extends OntoMarshaller {
 				.getIRI().getFragment()));
 		out.append(String.format("<h2>Namespace</h2>%s\n", r.getIRI()
 				.getStart()));
-
+                // cast as ObaClass for transient annotation
 		printAnnotations(out, r, ontology);
 
 		// super propterties
@@ -190,6 +190,11 @@ public class HtmlMarshaller extends OntoMarshaller {
 			OWLOntology ontology) {
 		Set<ObaAnnotation> annotations = OntologyHelper
 				.getAnnotationProperties(cls, ontology);
+                // transient annotation
+                
+                if (cls instanceof ObaClass && ((ObaClass)cls).getTransientAnnotation() != null){
+                    annotations.addAll(((ObaClass)cls).getTransientAnnotation());
+                }
 		if (annotations.size() < 1) {
 			return;
 		}
