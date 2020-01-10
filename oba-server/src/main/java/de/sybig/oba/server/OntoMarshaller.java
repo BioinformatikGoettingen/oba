@@ -106,8 +106,10 @@ public abstract class OntoMarshaller implements MessageBodyWriter<Object> {
 
                     return false;
                 } else if (c.equals(Map.class)) {
-                    if (((ParameterizedType) arg1).getActualTypeArguments()[0].toString().equals("interface org.semanticweb.owlapi.model.OWLClass")
-                            && ((ParameterizedType) arg1).getActualTypeArguments()[1].toString().equals("java.util.List<org.semanticweb.owlapi.model.OWLClass>")) {
+                    if ((((ParameterizedType) arg1).getActualTypeArguments()[0].toString().equals("interface org.semanticweb.owlapi.model.OWLClass") ||
+                           ((ParameterizedType) arg1).getActualTypeArguments()[0].toString().equals("class de.sybig.oba.server.ObaClass"))
+                            && (((ParameterizedType) arg1).getActualTypeArguments()[1].toString().equals("java.util.List<org.semanticweb.owlapi.model.OWLClass>") || 
+                            ((ParameterizedType) arg1).getActualTypeArguments()[1].toString().equals("java.util.List<de.sybig.oba.server.ObaClass>"))) {
                         //TODO make better
                         return true;
                     }                  
