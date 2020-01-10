@@ -5,14 +5,26 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import de.sybig.oba.server.ObaClass;
 import de.sybig.oba.server.ObaAnnotation;
+import de.sybig.oba.server.ObaOntology;
 import de.sybig.oba.server.OntologyFunctions;
 import de.sybig.oba.server.OntologyHelper;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.PathSegment;
 import org.semanticweb.owlapi.model.IRI;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.Map;
+import org.opencompare.hac.dendrogram.Dendrogram;
+import org.opencompare.hac.dendrogram.DendrogramNode;
+import org.semanticweb.owlapi.model.OWLAnnotation;
+import org.semanticweb.owlapi.model.OWLClass;
 
 public class InformationContentFunctions extends OntologyFunctions {
 
@@ -28,7 +40,8 @@ public class InformationContentFunctions extends OntologyFunctions {
         StringBuffer out = new StringBuffer();
         out.append("<h1>Available functions</h1>\n");
         out.append("<dl>");
-        out.append("<dt>/getIcValue</dt><dd>Gets the intrinsic information content for this class</dd>");
+        out.append("<dt>/getIcValue/{cls}</dt><dd>Gets the intrinsic information content for this class, cls should be replaced with the desired class</dd>");
+        out.append("<dt>/semanticSimilarity/{inA}/{inB}</dt><dd>Determins the semantic similarity between two ontology terms (inA and inB)</dd>");
         out.append("</dl>");
         return out.toString();
     }
@@ -37,10 +50,9 @@ public class InformationContentFunctions extends OntologyFunctions {
     @Path("/getIcValue/{cls}")
     @Produces(ALL_TYPES)
     public ObaClass getIcValue(
-            @PathParam("cls") String cls,
+            @PathParam("cls") PathSegment cls,
             @QueryParam("ns") String ns) {
-            ObaClass startClass = ontology.getOntologyClass(cls, ns);
-        //System.out.println(getICFromNode(startClass) + " ICvalue");
+        ObaClass startClass = getClassFromPathSegement(cls, ns);
         ObaAnnotation icAnnotation = new ObaAnnotation();
         IRI transientIRI = IRI.create("http://oba.sybig.de/transientAnnotation#intrinsicIC");
         icAnnotation.setIri(transientIRI);
@@ -48,10 +60,73 @@ public class InformationContentFunctions extends OntologyFunctions {
         startClass.addTransientAnnotation(icAnnotation);
         return startClass;
     }
-       
-    private double getICFromNode(ObaClass startClass) {
+
+    @GET
+    @Path("/semanticSimilarity/{inA}/{inB}")
+    @Produces(ALL_TYPES)
+    public double semanticSimilarity(
+            @PathParam("inA") PathSegment inA, 
+            @PathParam("inB") PathSegment inB, 
+            @QueryParam("ns") String ns) {   
+        ObaClass clsA = getClassFromPathSegement(inA);
+        ObaClass clsB = getClassFromPathSegement(inB, ns);
+        return getSemanticSimilarity(clsA, clsB);
+    }
+    
+    public double getSemanticSimilarity(ObaClass clsA, ObaClass clsB) {
+        double classAIC = getICFromNode(clsA);
+        double classBIC = getICFromNode(clsB);
+        List<List<ObaClass>> classAParents = getShortestPathsToRoot(clsA);
+        List<List<ObaClass>> classBParents = getShortestPathsToRoot(clsB);
+        
+        Set<ObaClass> classAParentsFlat = new HashSet<ObaClass>();
+        
+        for (List<ObaClass> ancestor : classAParents) {
+            classAParentsFlat.addAll(ancestor);
+        }
+        
+        Set<ObaClass> classBParentsFlat = new HashSet<ObaClass>();
+        
+        for (List<ObaClass> ancestor : classBParents) {
+            classBParentsFlat.addAll(ancestor);
+        }
+
+        // finding the common ancestors
+        Set<ObaClass> commonAncestors = new HashSet<ObaClass>(classAParentsFlat);
+        commonAncestors.retainAll(classBParentsFlat);
+
+        /* determinining the IC value for the common ancestors, this will be
+            used to find the MICA*/
+        Set<Double> ancestorICSet = new HashSet();
+        for (ObaClass parent : commonAncestors) {
+            ancestorICSet.add(getICFromNode(parent));            
+        }
+        
+        double mica = -1;
+        
+        for (double ancestorICs : ancestorICSet) {
+            if (ancestorICs > mica) {
+                mica = ancestorICs;
+            } 
+        }
+
+        // Which class has the higher IC
+        double semanticSimilarity = 1;
+        double maxIC = 1;
+        
+        if (classAIC > classBIC) {
+            maxIC = classAIC;
+            semanticSimilarity = mica / maxIC;
+        } else {
+            maxIC = classBIC;
+            semanticSimilarity = mica / maxIC;
+        }
+    return semanticSimilarity;
+    }
+    //Just changed access, check this out....   
+    public double getICFromNode(ObaClass startClass) {
         double my_mu = getMuFromNode(startClass).getMu();
-        double my_IC = -Math.log(my_mu);
+        double my_IC = -Math.log10(my_mu);
         return my_IC;
     }
     
@@ -83,5 +158,4 @@ public class InformationContentFunctions extends OntologyFunctions {
         }
         return muMap;
     }
-
 }
