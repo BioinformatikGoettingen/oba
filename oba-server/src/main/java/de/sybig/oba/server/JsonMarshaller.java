@@ -86,8 +86,10 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
 
                     return false;  // returns fals for a list from the function XDownstreamOfY
                 } else if (c.equals(Map.class)) {
-                    if (((ParameterizedType) arg1).getActualTypeArguments()[0].toString().equals("interface org.semanticweb.owlapi.model.OWLClass")
-                            && ((ParameterizedType) arg1).getActualTypeArguments()[1].toString().equals("java.util.List<org.semanticweb.owlapi.model.OWLClass>")) {
+                    if ((((ParameterizedType) arg1).getActualTypeArguments()[0].toString().equals("interface org.semanticweb.owlapi.model.OWLClass")
+                            || ((ParameterizedType) arg1).getActualTypeArguments()[0].toString().equals("class de.sybig.oba.server.ObaClass"))
+                            && (((ParameterizedType) arg1).getActualTypeArguments()[1].toString().equals("java.util.List<org.semanticweb.owlapi.model.OWLClass>")
+                            || ((ParameterizedType) arg1).getActualTypeArguments()[1].toString().equals("java.util.List<de.sybig.oba.server.ObaClass>"))){
                         //TODO make better
                         return true;
                     }
@@ -265,7 +267,8 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
         out.setName(property.getIRI().getFragment());
         out.setNamespace(property.getIRI().getStart());
         OWLOntology ontology = OntoMarshaller.getOntology(property);
-        out.setAnnotations(getJsonAnnotations(property, ontology));
+        // cast property to ObaClass for input to getJsonAnnotations
+        out.setAnnotations(getJsonAnnotations((ObaClass) property, ontology));
         if (!fillcomplete) {
             return out;
         }
@@ -283,11 +286,14 @@ public class JsonMarshaller implements MessageBodyWriter<Object> {
         return out;
     }
 
-    private Set<JsonAnnotation> getJsonAnnotations(OWLEntity c,
+    private Set<JsonAnnotation> getJsonAnnotations(ObaClass c,
             OWLOntology ontology) {
         Set<JsonAnnotation> out = new HashSet<JsonAnnotation>();
-        for (ObaAnnotation property : OntologyHelper.getAnnotationProperties(c,
-                ontology)) {
+        Set<ObaAnnotation> annotationProperties = OntologyHelper.getAnnotationProperties(c, ontology);
+        if (c.getTransientAnnotation() != null){
+                    annotationProperties.addAll(c.getTransientAnnotation());
+        }
+        for (ObaAnnotation property : annotationProperties) {
             JsonAnnotation ja = new JsonAnnotation();
             ja.setLanguage(property.getLanguage());
             ja.setName(property.getName());
