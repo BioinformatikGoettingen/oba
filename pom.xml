@@ -257,6 +257,7 @@
         <module>oba-tribolium</module>
         <module>oba-go</module>
 		<module>oba-tfclass</module>
-	<module>oba-alignment</module>
+		<module>oba-alignment</module>
+		<module>oba-information-content</module>
     </modules>
 </project>

@@ -72,7 +72,6 @@
     </build>
 
     <dependencies>
-
         <dependency>
             <groupId>de.sybig</groupId>
             <artifactId>oba-common</artifactId>

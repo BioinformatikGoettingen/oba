@@ -5,7 +5,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import de.sybig.oba.server.ObaClass;
 import de.sybig.oba.server.ObaAnnotation;
-import de.sybig.oba.server.ObaOntology;
 import de.sybig.oba.server.OntologyFunctions;
 import de.sybig.oba.server.OntologyHelper;
 import java.util.ArrayList;
@@ -24,7 +23,6 @@ import java.util.Map;
 import org.opencompare.hac.dendrogram.Dendrogram;
 import org.opencompare.hac.dendrogram.DendrogramNode;
 import org.semanticweb.owlapi.model.OWLAnnotation;
-import org.semanticweb.owlapi.model.OWLClass;
 
 public class InformationContentFunctions extends OntologyFunctions {
 
@@ -57,6 +55,7 @@ public class InformationContentFunctions extends OntologyFunctions {
         IRI transientIRI = IRI.create("http://oba.sybig.de/transientAnnotation#intrinsicIC");
         icAnnotation.setIri(transientIRI);
         icAnnotation.setValue(String.valueOf(getICFromNode(startClass)));
+
         startClass.addTransientAnnotation(icAnnotation);
         return startClass;
     }
