@@ -77,9 +77,12 @@ public class ObaClass implements OWLClass {
         this.onto = ontology;
     }
     /**
-     * Creating the list
-     * @return transientAnnotation allows user to add information for the output
-     * which is not from the ontology and not stored at the end
+     * Get a list of annotations that are added transient by the OBA server.
+     * These annotations are not part of the original ontology and are not stored
+     * there. They can be used by to OBA server to enrich classes with additional
+     * information for the output.
+     * @return A set of transient annotations or <code>null</code> if there are none.
+     * 
      */
     public Set<ObaAnnotation> getTransientAnnotation() {
         return transientAnnotations;

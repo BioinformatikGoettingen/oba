@@ -73,23 +73,23 @@ public class TextMarshaller extends OntoMarshaller {
     }
 
     protected String convertCls(ObaClass cls, Annotation[] annotations) {
-
         OWLOntology ontology = getOntology(cls);
         String namespace = cls.getIRI().getStart();
 
         logger.info("converting class '{}' from ontology '{}' to text ", cls,
                 ontology);
 
-        StringBuffer out = new StringBuffer();
-        out.append("name\t" + cls.getIRI().getFragment() + "\n");
-        out.append("namespace\t" + namespace + "\n");
-        
-        // transientAnnotation
-        Set<ObaAnnotation> transientAnnotation = cls.getTransientAnnotation();
-        for (ObaAnnotation annotation : transientAnnotation) {
-            out.append("intrinsic IC value\t" + annotation.getValue() + "\n");
-        }
+        StringBuilder out = new StringBuilder();
+        out.append("name\t").append(cls.getIRI().getFragment()).append("\n");
+        out.append("namespace\t").append(namespace).append("\n");
 
+        // transient annotation
+        Set<ObaAnnotation> transientAnnotation = cls.getTransientAnnotation();
+        if (transientAnnotation != null) {
+            for (ObaAnnotation annotation : transientAnnotation) {
+                out.append(annotation.getName() +" @transient\t" + annotation.getValue() + "\n");
+            }
+        }
         // Parents
         Collection<ObaClass> parents = getParents(cls, ontology);
         for (OWLClass p : parents) {
